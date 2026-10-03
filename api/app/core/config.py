@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +14,15 @@ class Settings(BaseSettings):
     fuso: str = "America/Sao_Paulo"
     migrar_ao_iniciar: bool = True
     anthropic_api_key: str = ""
+
+    @field_validator("db_url")
+    @classmethod
+    def exigir_postgresql(cls, valor: str) -> str:
+        if valor.startswith("postgresql://"):
+            return valor.replace("postgresql://", "postgresql+psycopg://", 1)
+        if not valor.startswith("postgresql+psycopg://"):
+            raise ValueError("DB_URL deve apontar para PostgreSQL (postgresql+psycopg://)")
+        return valor
 
     @property
     def db_dsn(self) -> str:

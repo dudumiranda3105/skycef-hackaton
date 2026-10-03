@@ -46,7 +46,7 @@ fornecedores não estourarem o limite ao mesmo tempo (`tests/test_concorrencia.p
 PostgreSQL. O modelo de dados está em `api/migrations/V*.sql` (fonte do DER), aplicado em
 ordem e uma única vez por `python -m app.core.migrate` (também roda ao iniciar a API).
 Toda tabela alimentada por carga ou simulação tem a coluna `origem`
-(`PLATAFORMA`, `SIMULADO`, `HISTORICO`), porque o regulamento exige declarar a origem de
+(`PLATAFORMA`, `TESTE`, `HISTORICO`), porque o regulamento exige declarar a origem de
 cada dado do painel.
 
 ## Como rodar
@@ -61,11 +61,19 @@ uv run uvicorn app.main:app --reload
 ```
 
 - Interface da Tarefa 1: http://localhost:8000/app/
-- API: http://localhost:8000 (contrato completo em [`docs/API-TAREFA1.md`](docs/API-TAREFA1.md))
+- Interface da Tarefa 2: http://localhost:8000/app/boletim.html
+- Painel da Tarefa 3: http://localhost:8000/painel
+- API: http://localhost:8000 (contratos: [`Tarefa 1`](docs/API-TAREFA1.md), [`Tarefa 2`](docs/API-TAREFA2.md) e [`Tarefa 3`](docs/API-TAREFA3.md))
 - Swagger: http://localhost:8000/docs
 - Health: http://localhost:8000/health
 
 Com Docker: `docker compose up --build` sobe o PostgreSQL e a API.
+
+O projeto usa somente PostgreSQL. A API rejeita `DB_URL` de SQLite. Para carregar o
+histórico local no painel, execute `uv run python -m app.etl.historico --dados <caminho-do-zip>`
+em `api/`. Para gerar dados de demonstração em um banco sem agendamentos, execute
+`uv run python -m app.seed.demo`. O modo `--recriar` limpa registros operacionais existentes;
+use apenas em um banco descartável de demonstração.
 
 ### Fluxo funcional da Tarefa 1
 
@@ -121,10 +129,10 @@ Ao final do evento, apague as cópias.
 
 ## Artefatos obrigatórios (`/docs`)
 
-- [ ] Relatório gerencial
-- [ ] Diagrama de Caso de Uso (UML)
-- [ ] Diagrama BPMN
-- [ ] DER
+- [x] [Relatório gerencial](docs/relatorio-gerencial.md)
+- [x] [Diagrama de Caso de Uso (UML)](docs/caso-de-uso.md)
+- [x] [Diagrama BPMN](docs/bpmn.md)
+- [x] [DER](docs/der.md)
 
 ## Prazos do evento
 

@@ -11,11 +11,14 @@ from sqlalchemy import text
 
 from app.agendamento.router import router as agendamento_router
 from app.agendamento.router_fluxo import router as fluxo_router
+from app.boletim.router import router as boletim_router
 from app.cadastros.router import router as cadastros_router
 from app.core.config import get_settings
 from app.core.db import get_engine
 from app.core.errors import registrar_handlers
 from app.core.migrate import aplicar
+from app.painel.router import pagina as painel_pagina
+from app.painel.router import router as painel_router
 
 log = logging.getLogger("skycef")
 
@@ -47,6 +50,9 @@ def create_app() -> FastAPI:
     app.include_router(agendamento_router)
     app.include_router(fluxo_router)
     app.include_router(cadastros_router)
+    app.include_router(boletim_router)
+    app.include_router(painel_router)
+    app.include_router(painel_pagina)
     app.mount(
         "/app",
         StaticFiles(directory=Path(__file__).with_name("static"), html=True),

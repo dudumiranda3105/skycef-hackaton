@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel Gerencial</title>
+<style>
+  :root {
+    --bg: #f5f6f4; --card: #ffffff; --ink: #1d2a21; --muted: #5f6b63; --line: #dfe3dd;
+    --verde: #2f7d4f; --sobra: #c9822b; --falta: #b23b3b; --ok: #3a7a9c; --neutro: #8a948d;
+    --sobra-bg: #fbefdc; --falta-bg: #f6e0e0; --ok-bg: #dfeef5; --verde-bg: #e0f0e6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141a16; --card: #1d2520; --ink: #e6ece7; --muted: #9aa69d; --line: #2f3a33;
+      --verde: #5bbf84; --sobra: #e0a04f; --falta: #e07575; --ok: #6bb5d6; --neutro: #7e8981;
+      --sobra-bg: #3a2f1d; --falta-bg: #3a2222; --ok-bg: #1f3340; --verde-bg: #1f3427;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, "Segoe UI", sans-serif; }
+  header { background: var(--verde); color: #fff; padding: 18px 16px; }
+  header h1 { margin: 0; font-size: 20px; font-weight: 650; }
+  header p { margin: 2px 0 0; opacity: .9; font-size: 13px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 16px; }
+  .filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+  .filtros label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+  input, select, button { font: inherit; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px;
+    background: var(--card); color: var(--ink); }
+  button { background: var(--verde); color: #fff; border-color: var(--verde); cursor: pointer; font-weight: 600; }
+  section { margin-bottom: 22px; }
+  h2 { font-size: 17px; margin: 0 0 8px; }
+  h3 { font-size: 14px; margin: 14px 0 6px; color: var(--muted); font-weight: 600; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .hero { border-left: 5px solid var(--verde); }
+  .hero .manchete { font-size: 18px; font-weight: 650; margin: 0 0 6px; }
+  .hero p { margin: 6px 0; }
+  .grid { display: grid; gap: 12px; }
+  .g4 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+  .kpi .v { font-size: 24px; font-weight: 700; }
+  .kpi .l { font-size: 12px; color: var(--muted); }
+  .kpi .n { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .tabela { overflow-x: auto; }
+  .pill { display: inline-block; padding: 1px 9px; border-radius: 99px; font-size: 12px; font-weight: 650; }
+  .SOBRA { background: var(--sobra-bg); color: var(--sobra); }
+  .FALTA { background: var(--falta-bg); color: var(--falta); }
+  .EQUILIBRADO { background: var(--ok-bg); color: var(--ok); }
+  .SEM_DADOS { background: var(--line); color: var(--muted); }
+  .origem { display: inline-block; font-size: 11px; padding: 0 7px; border-radius: 4px; border: 1px solid var(--line);
+    color: var(--muted); margin-left: 6px; vertical-align: middle; }
+  .nota { color: var(--muted); font-size: 12.5px; }
+  .leg { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin: 4px 0 2px; flex-wrap: wrap; }
+  .leg i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; }
+  svg text { fill: var(--muted); font-size: 11px; }
+  .vazio { color: var(--muted); padding: 10px 0; }
+  ul.lim { margin: 6px 0 0; padding-left: 18px; }
+  ul.lim li { margin: 3px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Painel gerencial — Recebimento Inteligente</h1>
+  <p>Cocapec · a quantidade de chapas está sobrando ou faltando? Quanto isso vale em R$?</p>
+  <nav aria-label="Módulos"><a style="color:#fff" href="/app/">Agendamentos</a> · <a style="color:#fff" href="/app/boletim.html">Boletim diário</a></nav>
+</header>
+<main>
+  <div class="filtros">
+    <label>De <input type="date" id="de"></label>
+    <label>Até <input type="date" id="ate"></label>
+    <label>Armazém
+      <select id="armazem"><option value="">Todos</option></select></label>
+    <label>Origem dos registros
+      <select id="origem">
+        <option value="">Todas</option><option>PLATAFORMA</option><option>TESTE</option>
+      </select></label>
+    <label>Agrupar boletins por
+      <select id="agrupar"><option value="semana">Semana</option><option value="mes">Mês</option>
+        <option value="dia">Dia</option></select></label>
+    <button id="aplicar">Atualizar</button>
+    <span class="nota" id="status"></span>
+  </div>
+
+  <section id="resposta"></section>
+  <section id="plataforma"></section>
+  <section id="historico"></section>
+  <section id="histInd"></section>
+  <section id="operacao"></section>
+  <section id="origens"></section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const nf = (n, d = 0) => (n == null ? "—" : Number(n).toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }));
+const brl = (v, d = 0) => (v == null ? "—" : "R$ " + nf(v, d));
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const rotuloMes = (m) => MESES[Number(m.slice(5, 7)) - 1] + "/" + m.slice(2, 4);
+const ROTULO_SIT = { SOBRA: "Sobra", FALTA: "Falta", EQUILIBRADO: "Equilibrado", SEM_DADOS: "Sem dados" };
+const pill = (s) => `<span class="pill ${s}">${ROTULO_SIT[s] || s}</span>`;
+const origem = (o) => `<span class="origem">origem: ${o}</span>`;
+const DIAS = { 1: "seg", 2: "ter", 3: "qua", 4: "qui", 5: "sex", 6: "sáb", 7: "dom" };
+const MOTIVOS = {
+  DIVERGENCIA_NF_PEDIDO: "Divergência nota × pedido", SEM_AGENDAMENTO_SEM_VAGA: "Sem agendamento e sem vaga",
+  CASO_FORTUITO: "Caso fortuito", OUTRO: "Outro",
+};
+
+async function api(rota, params) {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) q.set(k, v);
+  const r = await fetch(`/api/painel/${rota}?${q}`);
+  if (!r.ok) throw new Error(`${rota}: ${r.status}`);
+  return r.json();
+}
+
+/* ---------- gráficos (SVG simples, sem bibliotecas) ---------- */
+function barras(alvo, itens, { altura = 190, formato = (v) => nf(v, 0), duasCores = false } = {}) {
+  // itens: [{rotulo, valor, cor?}] — valores negativos descem do eixo
+  if (!itens.length) { alvo.innerHTML = '<div class="vazio">Sem dados no período.</div>'; return; }
+  const W = Math.max(320, itens.length * 44), padT = 16, padB = 28;
+  const max = Math.max(...itens.map((i) => Math.max(i.valor, 0)), 0), min = Math.min(...itens.map((i) => Math.min(i.valor, 0)), 0);
+  const amplitude = (max - min) || 1, h = altura - padT - padB;
+  const y = (v) => padT + ((max - v) / amplitude) * h, zero = y(0), larg = W / itens.length;
+  const cor = (i) => i.cor || (duasCores ? (i.valor >= 0 ? "var(--sobra)" : "var(--falta)") : "var(--verde)");
+  const partes = itens.map((i, k) => {
+    const x = k * larg + larg * 0.18, w = larg * 0.64, topo = Math.min(y(i.valor), zero), alt = Math.abs(y(i.valor) - zero) || 1;
+    const rotY = i.valor >= 0 ? topo - 3 : topo + alt + 11;
+    return `<rect x="${x}" y="${topo}" width="${w}" height="${alt}" rx="2" fill="${cor(i)}"><title>${i.rotulo}: ${formato(i.valor)}</title></rect>
+      <text x="${x + w / 2}" y="${rotY}" text-anchor="middle">${formato(i.valor)}</text>
+      <text x="${x + w / 2}" y="${altura - 8}" text-anchor="middle">${i.rotulo}</text>`;
+  });
+  alvo.innerHTML = `<svg viewBox="0 0 ${W} ${altura}" width="100%" style="min-width:${W}px;max-height:${altura}px">
+    <line x1="0" x2="${W}" y1="${zero}" y2="${zero}" stroke="var(--line)"/>${partes.join("")}</svg>`;
+  alvo.style.overflowX = "auto";
+}
+
+function linhas(alvo, rotulos, series, altura = 200) {
+  // series: [{nome, cor, valores[]}] — duas séries no mesmo eixo
+  const W = Math.max(420, rotulos.length * 46), padT = 14, padB = 28, padL = 30, h = altura - padT - padB;
+  const max = Math.max(...series.flatMap((s) => s.valores), 1), passo = (W - padL - 10) / Math.max(rotulos.length - 1, 1);
+  const y = (v) => padT + (1 - v / max) * h, x = (k) => padL + k * passo;
+  const caminhos = series.map((s) => {
+    const pts = s.valores.map((v, k) => `${x(k)},${y(v)}`).join(" ");
+    return `<polyline points="${pts}" fill="none" stroke="${s.cor}" stroke-width="2.4"/>` +
+      s.valores.map((v, k) => `<circle cx="${x(k)}" cy="${y(v)}" r="3" fill="${s.cor}"><title>${s.nome} em ${rotulos[k]}: ${nf(v, 1)}</title></circle>`).join("");
+  });
+  const eixo = [0, 0.5, 1].map((f) => `<line x1="${padL}" x2="${W}" y1="${y(max * f)}" y2="${y(max * f)}" stroke="var(--line)"/>
+    <text x="${padL - 4}" y="${y(max * f) + 4}" text-anchor="end">${nf(max * f, 0)}</text>`).join("");
+  const rot = rotulos.map((r, k) => `<text x="${x(k)}" y="${altura - 8}" text-anchor="middle">${r}</text>`).join("");
+  alvo.innerHTML = `<svg viewBox="0 0 ${W} ${altura}" width="100%" style="min-width:${W}px;max-height:${altura}px">${eixo}${caminhos.join("")}${rot}</svg>
+    <div class="leg">${series.map((s) => `<span><i style="background:${s.cor}"></i>${s.nome}</span>`).join("")}</div>`;
+  alvo.style.overflowX = "auto";
+}
+
+/* ---------- seções ---------- */
+const lista = (m) => (m.length === 0 ? "" : m.length <= 6 ? ": " + m.join(", ") : ", em " + m.length + " meses");
+function secaoResposta(h, p) {
+  const t = h.totais, safra = h.estacoes.find((e) => e.estacao === "SAFRA"), ent = h.estacoes.find((e) => e.estacao === "ENTRESSAFRA");
+  const folga = h.meses.filter((m) => m.situacao === "SOBRA").map((m) => rotuloMes(m.mes));
+  const pressao = h.meses.filter((m) => m.situacao === "FALTA").map((m) => rotuloMes(m.mes));
+  const corr = h.robustez.correlacaoEquipeEDemanda;
+  const manchete = h.meses.length
+    ? "Não é sobra nem falta permanente: a equipe não acompanha a demanda. Sobra nos meses calmos e fica curta no pico."
+    : "Sem histórico no período escolhido.";
+  let html = `<div class="card hero"><p class="manchete">${manchete}</p>`;
+  if (h.meses.length) {
+    html += `<p><b>Histórico</b>${origem("HISTORICO")} — ${rotuloMes(h.periodo.de)} a ${rotuloMes(h.periodo.ate)}:
+      correlação entre chapas presentes e recebimentos por dia = <b>${nf(corr, 2)}</b> (quase zero: a equipe não segue a carga).
+      ${safra && ent ? `Na safra (out–mar) são <b>${nf(safra.chapasPorDia, 1)} chapas/dia</b> para ${nf(safra.recebimentosPorDia, 1)} recebimentos/dia;
+      na entressafra, ${nf(ent.chapasPorDia, 1)} chapas para ${nf(ent.recebimentosPorDia, 1)} recebimentos.` : ""}</p>
+      <p>Em reais, valorando ao piso do boletim (${brl(h.piso, 2)}/diária): <b>${brl(t.sobraReais)}</b> de folga em meses de baixa demanda
+      (${nf(t.sobraDiarias, 0)} diárias${lista(folga)}) contra <b>${brl(t.faltaReais)}</b> de pressão em meses de pico
+      (${nf(t.faltaDiarias, 0)} diárias${lista(pressao)}). É o mesmo dinheiro mal posicionado: o reforço de pessoal chega depois do pico.</p>`;
+  }
+  const tp = p.total;
+  if (tp.boletins) {
+    html += `<p><b>Boletins da plataforma</b>${origem(Object.keys(p.origens).join(" + "))} — ${tp.boletins} boletins:
+      sobra de <b>${brl(tp.sobraReais)}</b> (complemento do piso: diária paga sem produção que a justifique) e
+      falta de <b>${brl(tp.faltaReais)}</b> (produção acima do piso). Aproveitamento geral da equipe: ${nf(tp.aproveitamento * 100, 0)}% do piso.</p>`;
+  }
+  html += `<p class="nota">O histórico só enxerga o recebimento (o carregamento de cooperados divide a mesma equipe e nunca foi registrado):
+    ele mostra se a equipe acompanhou a demanda, não o tamanho absoluto ideal. O tamanho absoluto fecha com os boletins da plataforma.</p></div>`;
+  $("resposta").innerHTML = html;
+}
+
+function secaoPlataforma(p, agrupar) {
+  const el = $("plataforma");
+  if (!p.total.boletins) { el.innerHTML = `<h2>Sobra e falta pelo boletim ${origem("PLATAFORMA/TESTE")}</h2><div class="card vazio">Nenhum boletim no período/filtro.</div>`; return; }
+  const linhasArm = p.porArmazem.map((a) => `<tr><td>${a.armazem}</td><td>${pill(a.situacao)}</td><td>${nf(a.aproveitamento * 100, 0)}%</td>
+    <td>${brl(a.sobraReais)}</td><td>${brl(a.faltaReais)}</td><td>${a.diasComComplemento}</td><td>${a.diasAcimaDoPiso}</td><td>${brl(a.totalAPagar)}</td></tr>`).join("");
+  el.innerHTML = `<h2>Sobra e falta por armazém, em R$ ${origem(Object.keys(p.origens).join(" + "))}</h2>
+    <div class="card"><div class="tabela"><table>
+      <tr><th>Armazém</th><th>Situação</th><th>Aproveitamento do piso</th><th>Sobra (complemento)</th><th>Falta (acima do piso)</th><th>Dias c/ complemento</th><th>Dias acima do piso</th><th>Custo (total a pagar)</th></tr>
+      ${linhasArm}
+      <tr><td><b>Total</b></td><td>${pill(p.total.situacao)}</td><td>${nf(p.total.aproveitamento * 100, 0)}%</td><td><b>${brl(p.total.sobraReais)}</b></td><td><b>${brl(p.total.faltaReais)}</b></td><td>${p.total.diasComComplemento}</td><td>${p.total.diasAcimaDoPiso}</td><td><b>${brl(p.total.totalAPagar)}</b></td></tr>
+    </table></div>
+    <p class="nota">${p.comoLer} Aproveitamento = produção ÷ (piso × diárias): abaixo de 90% é sobra, acima de 110% é falta.</p>
+    <h3>Por ${agrupar === "mes" ? "mês" : agrupar === "dia" ? "dia" : "semana"} e armazém</h3>
+    <div class="tabela"><table><tr><th>Período</th><th>Armazém</th><th>Situação</th><th>Aproveitamento</th><th>Sobra</th><th>Falta</th><th>Total a pagar</th></tr>
+    ${p.porPeriodo.map((r) => `<tr><td>${r.periodo}</td><td>${r.armazem}</td><td>${pill(r.situacao)}</td><td>${nf(r.aproveitamento * 100, 0)}%</td><td>${brl(r.sobraReais)}</td><td>${brl(r.faltaReais)}</td><td>${brl(r.totalAPagar)}</td></tr>`).join("")}
+    </table></div>
+    ${p.alertas.matriculasEmMaisDeUmBoletimNoMesmoDia ? `<p class="nota">⚠ ${p.alertas.matriculasEmMaisDeUmBoletimNoMesmoDia} matrícula(s) aparecem em mais de um boletim no mesmo dia. ${p.alertas.observacao}</p>` : ""}
+    </div>`;
+}
+
+function secaoHistorico(h) {
+  const el = $("historico");
+  if (!h.meses.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<h2>Histórico da Cocapec: a equipe acompanhou a demanda? ${origem("HISTORICO")}</h2>
+    <div class="grid g2">
+      <div class="card"><h3>Saldo mensal de diárias (sobra acima do eixo, falta abaixo)</h3><div id="g-saldo"></div>
+        <div class="leg"><span><i style="background:var(--sobra)"></i>sobra de chapas</span><span><i style="background:var(--falta)"></i>falta de chapas</span></div></div>
+      <div class="card"><h3>Recebimentos por dia × chapas por dia</h3><div id="g-lin"></div></div>
+    </div>
+    <div class="card" style="margin-top:12px"><div class="tabela"><table>
+      <tr><th>Mês</th><th>Estação</th><th>Dias úteis</th><th>Recebimentos/dia</th><th>Chapas/dia</th><th>Chapas necessárias/dia*</th><th>Saldo (diárias)</th><th>Saldo (R$)</th><th>Situação</th></tr>
+      ${h.meses.map((m) => `<tr><td>${rotuloMes(m.mes)}</td><td>${m.estacao === "SAFRA" ? "safra" : "entressafra"}</td><td>${m.diasUteis}</td><td>${nf(m.recebimentosPorDia, 1)}</td><td>${nf(m.chapasPorDia, 1)}</td><td>${nf(m.chapasNecessariasPorDia, 1)}</td><td>${nf(m.saldoDiarias, 0)}</td><td>${brl(m.saldoReais)}</td><td>${pill(m.situacao)}</td></tr>`).join("")}
+    </table></div>
+    <p class="nota">* Chapas necessárias = esforço dos recebimentos do mês (norma do dossiê) ÷ o ritmo médio que a equipe teve em todo o histórico (${nf(h.equilibrio.pessoaMinutosPorChapaDia, 0)} pessoa-minutos por chapa-dia).
+    Situação: sobra/falta quando o saldo passa de ±10% da equipe do mês. R$ = diárias × piso do boletim.</p></div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card"><h3>Por armazém (a folha não separa chapas por armazém: o saldo é repartido pela necessidade)</h3><div class="tabela"><table>
+        <tr><th>Armazém</th><th>Recebimentos</th><th>% da necessidade</th><th>Folga (R$)</th><th>Pressão (R$)</th></tr>
+        ${h.armazens.map((a) => `<tr><td title="${a.premissa}">${a.armazem}</td><td>${nf(a.recebimentos)}</td><td>${nf(a.participacaoNaNecessidade * 100, 0)}%</td><td>${brl(a.parcelaDaSobraReais)}</td><td>${brl(a.parcelaDaFaltaReais)}</td></tr>`).join("")}
+        </table></div></div>
+      <div class="card"><h3>Quão sensível é o resultado ao ponto de equilíbrio?</h3><div class="tabela"><table>
+        <tr><th>Referência</th><th>Folga (R$)</th><th>Pressão (R$)</th><th>Saldo (R$)</th></tr>
+        ${h.cenarios.map((c) => `<tr><td>${c.nome}</td><td>${brl(c.sobraReais)}</td><td>${brl(c.faltaReais)}</td><td>${brl(c.saldoReais)}</td></tr>`).join("")}
+        </table></div>
+        <p class="nota">Com a referência mais exigente (capacidade já demonstrada pela equipe), o conjunto passa a mostrar sobra líquida.
+        O desalinhamento sazonal aparece nas duas.</p></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3>Demanda por armazém ao longo do ano (recebimentos por mês, toda a série)</h3><div id="g-demanda"></div>
+      <h3>Limitações (declaradas)</h3><ul class="lim">${h.limitacoes.map((l) => `<li>${l}</li>`).join("")}</ul></div>`;
+  barras($("g-saldo"), h.meses.map((m) => ({ rotulo: rotuloMes(m.mes), valor: Math.round(m.saldoDiarias) })), { duasCores: true });
+  linhas($("g-lin"), h.meses.map((m) => rotuloMes(m.mes)), [
+    { nome: "recebimentos/dia", cor: "var(--ok)", valores: h.meses.map((m) => m.recebimentosPorDia) },
+    { nome: "chapas/dia", cor: "var(--sobra)", valores: h.meses.map((m) => m.chapasPorDia) },
+  ]);
+  const meses = [...new Set(h.demandaPorMesEArmazem.map((d) => d.mes))].sort();
+  const porMes = meses.map((m) => ({ rotulo: rotuloMes(m), valor: h.demandaPorMesEArmazem.filter((d) => d.mes === m).reduce((s, d) => s + d.recebimentos, 0) }));
+  barras($("g-demanda"), porMes, { altura: 180 });
+}
+
+function secaoHistInd(i) {
+  const el = $("histInd"), anos = [...new Set(i.porAnoEArmazem.map((x) => x.ano))].sort(), arms = [...new Set(i.porAnoEArmazem.map((x) => x.armazem))];
+  const valor = (a, m) => (i.porAnoEArmazem.find((x) => x.ano === a && x.armazem === m) || {}).recebimentos || 0;
+  el.innerHTML = `<h2>Recebimentos no histórico da Cocapec ${origem("HISTORICO")}</h2>
+    <div class="grid g2">
+      <div class="card"><h3>Recebimentos por ano e armazém</h3><div class="tabela"><table>
+        <tr><th>Ano</th>${arms.map((m) => `<th>${m}</th>`).join("")}<th>Total</th></tr>
+        ${anos.map((a) => `<tr><td>${a}</td>${arms.map((m) => `<td>${nf(valor(a, m))}</td>`).join("")}<td><b>${nf(arms.reduce((s, m) => s + valor(a, m), 0))}</b></td></tr>`).join("")}
+        </table></div><p class="nota">Unidade: ${i.unidade}.</p></div>
+      <div class="card"><h3>Dia da semana de maior movimento (média de recebimentos por dia)</h3><div id="g-hdow"></div>
+        <h3>Fornecedores com maior volume</h3><div class="tabela"><table><tr><th>Fornecedor</th><th>Recebimentos</th></tr>
+        ${i.fornecedoresMaiorVolume.map((f) => `<tr><td>${f.fornecedor}</td><td>${nf(f.recebimentos)}</td></tr>`).join("")}</table></div></div>
+    </div><p class="nota">${i.observacao}</p>`;
+  barras($("g-hdow"), i.porDiaDaSemana.map((x) => ({ rotulo: DIAS[x.diaSemana], valor: x.mediaPorDia })), { altura: 160, formato: (v) => nf(v, 1) });
+}
+
+function secaoOperacao(o) {
+  const c = o.custoDaOperacao, el = $("operacao");
+  el.innerHTML = `<h2>Indicadores da operação ${origem(Object.keys(o.origens).join(" + ") || "—")}</h2>
+    <div class="grid g4">
+      <div class="card kpi"><div class="l">Cargas recebidas</div><div class="v">${nf(o.cargasRecebidas.total)}</div><div class="n">${o.cargasRecebidas.unidade}</div></div>
+      <div class="card kpi"><div class="l">Espera média</div><div class="v">${nf(o.tempoMedioEsperaMin.media, 1)} min</div><div class="n">${o.tempoMedioEsperaMin.definicao} · n=${o.tempoMedioEsperaMin.amostra}</div></div>
+      <div class="card kpi"><div class="l">Descarga média</div><div class="v">${nf(o.tempoMedioDescargaMin.media, 1)} min</div><div class="n">${o.tempoMedioDescargaMin.definicao} · n=${o.tempoMedioDescargaMin.amostra}</div></div>
+      <div class="card kpi"><div class="l">Chapas por recebimento</div><div class="v">${nf(o.chapasPorRecebimento.media, 1)}</div><div class="n">${o.chapasPorRecebimento.observacao}</div></div>
+      <div class="card kpi"><div class="l">Custo estimado da operação</div><div class="v">${brl(c.totalAPagar)}</div><div class="n">${c.boletins} boletins · complemento ${brl(c.complemento)}${c.boletinsInconsistentes ? " · " + c.boletinsInconsistentes + " inconsistente(s)" : ""}</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card"><h3>Cargas por dia</h3><div id="g-dia"></div></div>
+      <div class="card"><h3>Horário de maior movimento (hora da entrada)</h3><div id="g-hora"></div></div>
+      <div class="card"><h3>Dia da semana de maior movimento</h3><div id="g-dow"></div></div>
+      <div class="card"><h3>Não recebimentos, por motivo</h3><div id="g-nao"></div></div>
+    </div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card"><h3>Utilização dos locais de descarga</h3><div class="tabela"><table>
+        <tr><th>Armazém</th><th>Cargas</th><th>Dias com movimento</th><th>Horas ocupadas</th><th>Espera média</th><th>Descarga média</th><th>Chapas/receb.</th></tr>
+        ${o.porArmazem.map((a) => `<tr><td>${a.armazem}</td><td>${a.cargas}</td><td>${a.diasComMovimento}</td><td>${nf(a.horasOcupadas, 1)} h</td><td>${nf(a.esperaMediaMin, 1)} min</td><td>${nf(a.descargaMediaMin, 1)} min</td><td>${nf(a.chapasPorRecebimento, 1)}</td></tr>`).join("")}
+        </table></div><p class="nota">${o.utilizacao.observacao}</p></div>
+      <div class="card"><h3>Fornecedores com maior volume</h3><div class="tabela"><table>
+        <tr><th>Fornecedor</th><th>Recebimentos</th></tr>
+        ${o.fornecedoresMaiorVolume.map((f) => `<tr><td>${f.fornecedor}</td><td>${f.recebimentos}</td></tr>`).join("")}
+        </table></div><p class="nota">Unidade: ${o.fornecedoresUnidade}.</p></div>
+    </div>`;
+  const porDia = {};
+  for (const d of o.cargasRecebidas.porDiaEArmazem) porDia[d.data] = (porDia[d.data] || 0) + d.cargas;
+  barras($("g-dia"), Object.entries(porDia).sort().map(([d, n]) => ({ rotulo: d.slice(8) + "/" + d.slice(5, 7), valor: n })), { altura: 170 });
+  barras($("g-hora"), o.movimento.porHoraDeEntrada.map((x) => ({ rotulo: x.hora + "h", valor: x.cargas })), { altura: 170 });
+  barras($("g-dow"), o.movimento.porDiaDaSemana.map((x) => ({ rotulo: DIAS[x.diaSemana], valor: x.cargas })), { altura: 170 });
+  barras($("g-nao"), o.naoRecebimentos.map((x) => ({ rotulo: (MOTIVOS[x.motivo] || x.motivo).split(" ")[0], valor: x.quantidade, cor: "var(--falta)" })), { altura: 170 });
+}
+
+function secaoOrigens(o, p, h) {
+  $("origens").innerHTML = `<div class="card"><h3>De onde vem cada número</h3><ul class="lim">
+    <li><b>HISTORICO</b>: planilha de movimentação (41.779 linhas, 2022–2026) e folha diária de chapas (fev/2025–ago/2026), do pacote da Cocapec.</li>
+    <li><b>TESTE</b>: registros gerados pela equipe para a demonstração (${nf(o.origens.TESTE || 0)} descargas${p.origens.TESTE ? ", " + p.origens.TESTE + " boletins" : ""} no filtro atual).</li>
+    <li><b>PLATAFORMA</b>: registros reais feitos no uso do sistema (${nf(o.origens.PLATAFORMA || 0)} descargas${p.origens.PLATAFORMA ? ", " + p.origens.PLATAFORMA + " boletins" : ""} no filtro atual).</li>
+    </ul><p class="nota">Nunca foram inventados horários, chapas ou equipamentos para o histórico: a cooperativa não os registrou. As estimativas de tempo do dossiê são parâmetros, não medições.</p></div>`;
+}
+
+/* ---------- carga ---------- */
+async function carregar() {
+  $("status").textContent = "carregando…";
+  const f = { de: $("de").value, ate: $("ate").value, armazemId: $("armazem").value, origem: $("origem").value };
+  try {
+    const [o, p, h, hi] = await Promise.all([
+      api("operacao", f),
+      api("dimensionamento/plataforma", { ...f, agrupar: $("agrupar").value }),
+      api("dimensionamento/historico", { de: f.de, ate: f.ate }),
+      api("historico/indicadores", { de: f.de, ate: f.ate }),
+    ]);
+    secaoResposta(h, p); secaoPlataforma(p, $("agrupar").value); secaoHistorico(h); secaoHistInd(hi); secaoOperacao(o); secaoOrigens(o, p, h);
+    $("status").textContent = "";
+  } catch (e) { $("status").textContent = "Erro ao carregar: " + e.message; }
+}
+
+async function iniciar() {
+  try {
+    const arm = await (await fetch("/api/armazens")).json();
+    for (const a of arm) $("armazem").insertAdjacentHTML("beforeend", `<option value="${a.id}">${a.nome}</option>`);
+  } catch (_) { /* o filtro de armazém fica só com "Todos" */ }
+  $("aplicar").addEventListener("click", carregar);
+  for (const id of ["armazem", "origem", "agrupar"]) $(id).addEventListener("change", carregar);
+  carregar();
+}
+iniciar();
+</script>
+</body>
+</html>

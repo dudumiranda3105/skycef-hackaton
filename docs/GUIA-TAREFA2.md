@@ -14,16 +14,16 @@ qualidade de engenharia e domínio na apresentação. O custo apurado aqui alime
 | Tabelas do boletim, preços (14 tipos) e piso | migrations V1, V2 e V5 | no banco, validadas |
 | Modelos SQLAlchemy | `api/app/boletim/models.py` | prontos, testados contra o banco |
 | Cadastro de **51 chapas** (`CHAPA_nn`) | `api/app/etl/chapas.py` | carregado; `python -m app.etl.chapas --dados <zip>` |
-| Testes | `tests/test_boletim_piso.py`, `test_boletim_modelo.py`, `test_etl_chapas.py` | 60+ casos |
+| Testes | `tests/test_boletim_piso.py`, `test_boletim_modelo.py`, `test_etl_chapas.py`, `test_boletim_service.py`, `test_boletim_api.py` | 60+ casos |
 
-## 2. O que falta (o trabalho da Tarefa 2)
+## 2. O que foi feito na API (e o que falta)
 
-1. **Serviço** `api/app/boletim/service.py`: lançar o boletim (linhas + equipe), calcular, gravar e consultar.
-2. **Rotas e contratos** `router.py` / `schemas.py` (JSON em camelCase, `extra="forbid"`), registrar em `app/main.py`.
-3. **Testes de serviço e HTTP** (casos da seção 5).
-4. Tela do boletim (o front é à parte).
+Implementado: **serviço** (`api/app/boletim/service.py`), **contratos** (`schemas.py`), **rotas** (`router.py`,
+registrado em `app/main.py`) e **testes de serviço e HTTP** (`tests/test_boletim_service.py`,
+`tests/test_boletim_api.py`). O contrato completo está em [`API-TAREFA2.md`](API-TAREFA2.md).
+Falta a **tela do boletim** (o front é à parte).
 
-### Endpoints sugeridos
+### Endpoints (implementados; detalhes em `API-TAREFA2.md`)
 
 | Rota | Função |
 |---|---|
@@ -31,7 +31,7 @@ qualidade de engenharia e domínio na apresentação. O custo apurado aqui alime
 | `GET /api/chapas` | cadastro para o seletor por matrícula |
 | `POST /api/boletins` | lança o boletim: `armazemId, data, linhas[{tipoItem, descarga, remocao, transferencia}], equipe[{matricula, tipoDiaria}]` |
 | `GET /api/boletins?armazemId=&de=&ate=` · `GET /api/boletins/{id}` | consulta (alimenta o painel) |
-| `GET /api/boletins/calculo` (ou prévia no `POST`) | prévia do cálculo antes de gravar |
+| `POST /api/boletins/calculo` | prévia do cálculo antes de gravar (sem gravar) |
 
 Resposta: linhas com `quantidadeTotal` e `valor`, `producaoTotal`, `diariasEquivalentes`, `valorPorDiaria`, `totalAPagar`,
 `complemento`, `situacao`. Os valores vão com 4 casas; **arredonde para 2 casas só na exibição** (`arredondar_exibicao`).
@@ -73,10 +73,10 @@ Resposta: linhas com `quantidadeTotal` e `valor`, `producaoTotal`, `diariasEquiv
 | Exemplo oficial (Adubo, 17/11/2025): 2.378+400 Fertilizantes, 30 Agroquímico, 40 Serviços diversos; 11 completas | produção 918,1952 (R$ 918,20); valor/diária 83,47; total 991,9041 (R$ 991,90); complemento 73,7089 (R$ 73,71) | sim (domínio e com preços do banco) |
 | Variação: 10 completas e 1 meia | valor/diária 87,45; total 946,8176 (R$ 946,82); complemento 28,6224 (R$ 28,62) | sim |
 | Acima do piso | total = produção; complemento = 0 | sim |
-| Zero diárias | `INCONSISTENTE`, sem divisão | sim (domínio); falta o teste de **serviço** |
-| 21º chapa | bloqueado | regra pronta (`validar_equipe`); falta o teste de **serviço/HTTP** |
-| Boletim duplicado (mesmo armazém e dia) | bloqueado (409) | o banco recusa; falta o teste de **serviço/HTTP** |
-| Mesma matrícula em 2 armazéns no mesmo dia | permitido | o banco permite; falta o teste de **serviço/HTTP** |
+| Zero diárias | `INCONSISTENTE`, sem divisão | sim (domínio, serviço e HTTP) |
+| 21º chapa | bloqueado | sim (serviço: 422; HTTP: 422) |
+| Boletim duplicado (mesmo armazém e dia) | bloqueado (409) | sim (serviço e HTTP: 409) |
+| Mesma matrícula em 2 armazéns no mesmo dia | permitido | sim (serviço e HTTP) |
 
 As 11 chapas do exemplo, por `CHAPA_nn`: `08, 09, 15, 48, 30, 49, 37, 38, 41, 42, 43`.
 

@@ -1,4 +1,4 @@
-# CLAUDE.md — Recebimento Inteligente (COCAPEC · X Hackathon Uni-FACEF 2026)
+# Contexto.md — Recebimento Inteligente (COCAPEC · X Hackathon Uni-FACEF 2026)
 
 > Contexto para o Claude Code. Leia inteiro antes de escrever código.
 > Precedência das fontes: **Regulamento > Dossiê > esclarecimentos da Cocapec > este arquivo > spec antiga (`recebimento_inteligente_cocapec.pdf`)**.

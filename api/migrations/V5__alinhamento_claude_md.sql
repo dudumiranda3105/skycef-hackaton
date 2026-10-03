@@ -1,5 +1,5 @@
 -- =====================================================================
--- V5: alinha o modelo ao CLAUDE.md (secao 6, "17 entidades")
+-- V5: alinha o modelo ao Contexto.md (secao 6, "17 entidades")
 --
 --  * varias NFs por agendamento           -> nota_fiscal
 --  * decisao de Compras                   -> validacao_compras (AUTORIZADO | NAO_AUTORIZADO)
@@ -190,7 +190,7 @@ create table reagendamento (
 create index ix_reagendamento_agendamento on reagendamento (agendamento_id);
 
 -- ---------------------------------------------------------------------
--- Equipamentos individuais (CLAUDE.md, secao 4). Nao ha numero patrimonial
+-- Equipamentos individuais (Contexto.md, secao 4). Nao ha numero patrimonial
 -- oficial: as identificacoes sao geradas por nos.
 -- ---------------------------------------------------------------------
 drop table descarga_equipamento;
@@ -280,7 +280,7 @@ alter table agendamento
     drop column autorizado_em,
     drop column motivo_cancelamento;
 
--- Nao recebimento e 1:N com o agendamento (CLAUDE.md, DQ-017)
+-- Nao recebimento e 1:N com o agendamento (Contexto.md, DQ-017)
 drop index ux_nao_recebimento_agendamento;
 
 -- ---------------------------------------------------------------------

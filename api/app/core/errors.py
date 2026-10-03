@@ -79,3 +79,10 @@ def registrar_handlers(app: FastAPI) -> None:
     async def _inesperado(_: Request, e: Exception) -> JSONResponse:
         log.exception("Erro inesperado", exc_info=e)
         return problema(500, "ERRO_INTERNO", "Erro interno. Tente novamente; se persistir, avise a equipe.")
+
+
+class ArquivoGrandeError(ErroDeAplicacao):
+    """Arquivo acima do limite permitido. HTTP 413."""
+
+    status = 413
+    codigo = "ARQUIVO_MUITO_GRANDE"

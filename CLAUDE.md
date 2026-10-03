@@ -175,7 +175,9 @@ Decisões: sem `armazem_id` em Agendamento (destinos = descargas); sem entidade 
 - **Fluxo:** Compras decide (`validacao_compras`) → o armazém define os destinos, o que cria **uma `Descarga` por armazém** (status continua `AUTORIZADO`).
 - **Interpretação:** `NAO_AUTORIZADO` (Compras recusou) libera a vaga e as NFs e registra também um `NaoRecebimento` com motivo `DIVERGENCIA_NF_PEDIDO`, para o indicador de não recebimentos por motivo. *(Assunção nossa.)*
 - **NF:** `nota_fiscal.ativa` impede a mesma NF-e em dois agendamentos ativos; vira falso quando o agendamento libera a vaga.
-- **Aberto:** a `Descarga` só existe depois que Compras autoriza e o armazém define os destinos; a chegada de um caminhão antes disso ainda não tem onde ser registrada (afeta o tempo de espera).
+- **Chegada antes da autorização (resolvido na V6):** a chegada do caminhão fica em `agendamento.chegada_em` e é copiada para cada `Descarga` (existente ou criada depois). Entrada/saída são por descarga. O tempo de espera é `entrada − chegada` da descarga.
+- **Fluxos de desvio:** cancelamento em duas etapas (solicitar → efetivar) gera `vaga_liberada` `ABERTA`, que continua contando como ocupada até o armazém atribuí-la a um agendamento ou liberá-la ao público (sem seleção automática). Reagendamento por caso fortuito pode exceder a capacidade e grava data/horário anteriores. API completa em `docs/API-TAREFA1.md`.
+- **Anexo da NF:** `.pdf`/`.xml` até 10 MB, tipo definido pela extensão (não pelo cliente); XML lido com `defusedxml` (sem DTD/entidades). Nas 460 NF-e do pacote, 29 não têm peso bruto (usa-se o líquido quando existe) e há 458 chaves distintas em 460 arquivos.
 - **Equipamentos:** 19 unidades individuais (`INS-EMPG-01` etc.), geradas por nós; Loja tem 1 unidade provisória (a Cocapec não informou a quantidade).
 - **Origem do dado:** `PLATAFORMA`, `TESTE` ou `HISTORICO`.
 

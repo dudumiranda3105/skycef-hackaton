@@ -2,10 +2,12 @@
 
 from datetime import date
 from typing import Annotated
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
+from app.agendamento.arquivos import LIMITE_BYTES, ArquivoService
 from app.agendamento.cancelamento import CancelamentoService
 from app.agendamento.domain import MotivoNaoRecebimento, StatusVagaLiberada
 from app.agendamento.marcos import MarcosService
@@ -212,3 +214,44 @@ def listar_nao_recebimentos(
     motivo: Annotated[MotivoNaoRecebimento | None, Query()] = None,
 ) -> list[NaoRecebimentoOut]:
     return [NaoRecebimentoOut.desde(n) for n in servico.listar(data, motivo)]
+
+
+# ---------------------------------------------------------------- arquivo da nota fiscal
+
+
+def get_arquivos(session: SessaoDep, relogio: RelogioDep) -> ArquivoService:
+    return ArquivoService(session, relogio)
+
+
+Arquivos = Annotated[ArquivoService, Depends(get_arquivos)]
+
+
+@router.post(
+    "/agendamentos/{agendamento_id}/notas/{nota_id}/arquivo",
+    response_model=AgendamentoOut,
+    summary="Anexar o arquivo (PDF ou XML, até 10 MB) de uma nota fiscal do agendamento",
+)
+def anexar_arquivo(
+    agendamento_id: int, nota_id: int, arquivo: UploadFile, servico: Arquivos
+) -> AgendamentoOut:
+    # lê 1 byte além do limite para detectar o excesso sem carregar um arquivo gigante
+    conteudo = arquivo.file.read(LIMITE_BYTES + 1)
+    servico.anexar(agendamento_id, nota_id, arquivo.filename, conteudo)
+    return montar_saida(servico.base, servico.base.obter(agendamento_id))
+
+
+@router.get(
+    "/agendamentos/{agendamento_id}/notas/{nota_id}/arquivo",
+    summary="Baixar o arquivo anexado da nota fiscal",
+    response_class=Response,
+)
+def baixar_arquivo(agendamento_id: int, nota_id: int, servico: Arquivos) -> Response:
+    nota = servico.obter(agendamento_id, nota_id)
+    return Response(
+        content=nota.conteudo,
+        media_type=nota.content_type,
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(nota.arquivo_nome or 'nota')}",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )

@@ -60,7 +60,7 @@ uv sync                         # cria o .venv e instala as dependências
 uv run uvicorn app.main:app --reload
 ```
 
-- API: http://localhost:8000
+- API: http://localhost:8000 (contrato completo em [`docs/API-TAREFA1.md`](docs/API-TAREFA1.md))
 - Swagger: http://localhost:8000/docs
 - Health: http://localhost:8000/health
 

@@ -347,11 +347,16 @@ class AgendamentoService:
         return agendamento
 
     def listar_por_data(self, data: date) -> list[Agendamento]:
-        consulta = (
-            select(Agendamento)
-            .where(Agendamento.data_agendada == data)
-            .order_by(Agendamento.horario, Agendamento.id)
+        return self.listar(data=data)
+
+    def listar(self, data: date | None = None, status: StatusAgendamento | None = None) -> list[Agendamento]:
+        consulta = select(Agendamento).order_by(
+            Agendamento.data_agendada, Agendamento.horario, Agendamento.id
         )
+        if data is not None:
+            consulta = consulta.where(Agendamento.data_agendada == data)
+        if status is not None:
+            consulta = consulta.where(Agendamento.status == status)
         return list(self.session.scalars(consulta))
 
     def eventos(self, agendamento_id: int) -> list[EventoAgendamento]:

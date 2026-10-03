@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
+from app.agendamento.domain import StatusAgendamento
 from app.agendamento.models import Agendamento
 from app.agendamento.schemas import (
     AgendamentoOut,
@@ -63,9 +64,13 @@ def agendar(corpo: AgendarIn, servico: Servico) -> AgendamentoOut:
     return montar_saida(servico, criado)
 
 
-@router.get("/agendamentos", response_model=list[AgendamentoOut], summary="Agendamentos de um dia")
-def listar(servico: Servico, data: DataConsulta) -> list[AgendamentoOut]:
-    agendamentos = servico.listar_por_data(data)
+@router.get("/agendamentos", response_model=list[AgendamentoOut], summary="Agendamentos, por dia e/ou status")
+def listar(
+    servico: Servico,
+    data: Annotated[date | None, Query(description="AAAA-MM-DD")] = None,
+    situacao: Annotated[StatusAgendamento | None, Query(alias="status")] = None,
+) -> list[AgendamentoOut]:
+    agendamentos = servico.listar(data, situacao)
     detalhes = servico.detalhes([a.id for a in agendamentos])
     return [AgendamentoOut.desde(a, detalhes[a.id]) for a in agendamentos]
 

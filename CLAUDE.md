@@ -198,15 +198,16 @@ Filtros: **período** e **armazém** (mínimo). Indicadores:
 
 O histórico **não tem** horários de chegada/descarga, chapas ou equipamentos por recebimento → nunca inventar esses valores; estimativas do Dossiê (ex.: 10 paletes ≈ 15 min) são parâmetros, não medições.
 
-### Metodologia já fechada para o histórico (ver `/docs/07-relatorio-gerencial.md`)
-- Unidade de carga: **evento recebimento-destino** = único `(data_recebimento, nº recebimento, armazém físico)` em `pedido_recebimento_notafiscal.xlsx` (1 linha = 1 item de pedido, não 1 caminhão).
-- Mapeamento depósito → armazém: `MATFerti`, `MATFert2` → Adubo · `MATDefe`, `MATDef2`, `MATGeral`, `MATGer2` → Insumos · `MATMaq` → Pátio de Máquinas · `MATLoja` → Loja. Outros (≈11 linhas) ficam fora da quebra por armazém. `MATProv`/`MATReserva` não recebem.
-- Disponível/dia = `chapas_presentes − chapas_operacao_cafe` de `chapas_por_dia.csv`; excluir sábados, jan/2025 (parcial), ago/2025 e dez/2025 (sem dados).
-- Recorte: 03/02/2025–31/08/2026, 352 dias úteis; 7.422 eventos; 2.948 chapa-dias → benchmark **2,5176 eventos/chapa-dia**.
-- Resultado: out–mar 2,09 eventos/chapa-dia × abr–set 2,86 (+36,7%); diferença ±222,78 pessoa-dias; correlação diária ≈ 0,06.
-- R$: faixa de sensibilidade ao piso **R$ 10.044 (meia) a R$ 20.088 (completa)** — não é economia comprovada.
-- Conclusão: **não há sobra ou falta permanente; há desalinhamento sazonal** (folga relativa out–mar, pressão abr–set, pico jul–out). Sobra = capacidade realocável (Cocapec confirma que realoca chapas para outros setores), não ociosidade.
-- Tratamentos já identificados: 540 linhas duplicadas exatas (476 grupos); 1.281 pares pedido-item com qtd/peso repetidos em recebimentos parciais (não somar peso/qtd como carga); chaves de acesso ausentes/malformadas; código de item do XML é do **fornecedor** (não casa com o catálogo Cocapec); 460 XMLs são amostra não proporcional.
+### Metodologia do histórico (implementada em `api/app/painel`; números em `docs/relatorio-gerencial.md`)
+- Unidade de carga: **evento recebimento-destino** = único `(data_recebimento, nº recebimento, armazém físico)` em `pedido_recebimento_notafiscal.xlsx` (1 linha = 1 item de pedido, não 1 caminhão; a mediana é de 15 recebimentos por dia com movimento, contra "5 a 6 caminhões" do dossiê: confirmar com a Cocapec).
+- Mapeamento depósito → armazém na tabela `deposito_armazem` (V7). Depósitos fora do dossiê (11 linhas) ficam fora da quebra por armazém. `MATProv`/`MATReser` não recebem.
+- Carga: `python -m app.etl.historico --dados <zip>` (descarta 540 duplicatas; conta sábados, recebimento antes do documento, chaves ausentes/malformadas). **Não usar a coluna de peso** (mediana do Adubo ≈ 573 t por recebimento).
+- Equipe: `chapas_presentes − chapas_operacao_cafe` de `chapas_por_dia.csv`, só segunda a sexta, só meses com ≥ 10 dias de folha (fora: jan/2025, ago/2025, dez/2025). Resultado: 350 dias úteis, fev/2025–ago/2026.
+- Necessidade = recebimentos × esforço da norma do dossiê por armazém (Adubo 225, Insumos 100, Pátio 17,5, Loja 0 pessoa-min), com premissa de acondicionamento declarada. Equilíbrio = Σ necessidade ÷ Σ chapas líquidas de TODO o histórico (194,3 pessoa-min/chapa-dia); recortes de período não o alteram. R$ = saldo em diárias × piso R$ 90,1731.
+- Resultado: correlação diária equipe × demanda ≈ 0,08; safra (out–mar) 9,3 chapas/dia para 19,4 recebimentos/dia × entressafra 7,8 para 22,5; folga ≈ pressão ≈ R$ 58 mil em 17 meses (ao piso; **ordem de grandeza, não economia comprovada**); com a capacidade demonstrada (3º quartil mensal) o saldo vira sobra líquida de ≈ R$ 22 mil.
+- Conclusão: **não há sobra ou falta permanente; há descompasso no tempo**: a demanda sobe em julho (todo ano desde 2023) e o reforço (out–mar) chega depois e fica após a queda. O histórico só enxerga o recebimento (o carregamento de cooperados não foi registrado): mostra se a equipe acompanhou a demanda, não o tamanho absoluto ideal. O absoluto vem do **boletim**: sobra = complemento pago; falta = produção acima do piso; aproveitamento = produção ÷ (piso × diárias) (< 0,90 sobra · > 1,10 falta).
+- Painel: `/painel`, API em `docs/API-TAREFA3.md`. Dados de demonstração (origem `TESTE`): `python -m app.seed.demo --recriar` (apaga os dados operacionais).
+- Outros tratamentos já identificados: 1.281 pares pedido-item com qtd/peso repetidos em recebimentos parciais (não somar peso/qtd como carga); código de item do XML é do **fornecedor** (não casa com o catálogo Cocapec); 460 XMLs são amostra não proporcional.
 
 Implementar o painel de forma que, com dados da plataforma, o cálculo vire direto:
 `necessidade (regra de chapas × descargas agendadas por slot/armazém) × efetivo do boletim × custo real do boletim`.

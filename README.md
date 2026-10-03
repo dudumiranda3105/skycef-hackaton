@@ -9,7 +9,7 @@ sobrando ou faltando?**
 ## Estrutura
 
 ```
-api/        Backend (Java 21 + Spring Boot 3.5, monolito modular)
+api/        Backend (Python + FastAPI + SQLAlchemy + Alembic)
 web/        Front-end (a definir)
 etl/        Scripts de carga: lêem os dados de ./data e populam o banco
 docs/       Artefatos obrigatórios: relatório gerencial, caso de uso, BPMN, DER
@@ -17,50 +17,45 @@ data/       Pasta LOCAL dos dados da Cocapec (ignorada pelo Git, nunca commitar)
 docker-compose.yml   PostgreSQL + API
 ```
 
-### Módulos do backend (`api/src/main/java/com/skycef/recebimento`)
+### Backend da Tarefa 1 (`api/app`)
 
-| Módulo | Responsabilidade |
+| Arquivo | Responsabilidade |
 |---|---|
-| `cadastros` | Fornecedores, produtos, armazéns, chapas, equipamentos |
-| `agendamento` | Tarefa 1: vagas, validação de Compras, autorização do armazém, chegada/entrada/saída, cancelamento, reagendamento, não recebimento |
-| `nfe` | Leitura do XML da nota fiscal (diferencial) |
-| `boletim` | Tarefa 2: produção, equipe, regra do piso e complemento |
-| `painel` | Tarefa 3: indicadores e dimensionamento sobra/falta de chapas |
-| `consulta` | Pergunta em linguagem natural → SQL somente leitura (diferencial) |
-| `shared` | Configuração e tratamento de erros |
+| `main.py` | Rotas HTTP, upload da nota fiscal e tratamento de erros |
+| `service.py` | Vagas, validação de Compras, autorização, descarga, cancelamento, reagendamento e não recebimento |
+| `models.py` | Modelo persistente SQLAlchemy |
+| `schemas.py` | Contratos de entrada e saída Pydantic |
+| `database.py` | Sessões e conexão com o PostgreSQL |
 
-Cada módulo segue `controller → service → domain → repository`. O pacote `domain` contém
-só regra de negócio pura (sem Spring nem banco) e é onde ficam os testes mais importantes:
+O backend separa contratos Pydantic, modelos SQLAlchemy, serviços de domínio e rotas FastAPI.
+As regras críticas possuem testes automatizados:
 
-- `PisoCalculator` — regra do piso, validada contra o exemplo do dossiê (Adubo, 17/11/2025)
-- `PoliticaDeVagas` — ocupação de horário (batido exclusivo, até 2 paletizados/big bag)
-- `StatusAgendamento` — máquina de estados do agendamento
+- ocupação de horário (batido exclusivo, até 2 paletizados/big bag);
+- dias úteis e horários fixos de recebimento;
+- máquina de estados do agendamento e fluxo completo da descarga.
 
 ### Banco
 
-PostgreSQL com migrations Flyway em `api/src/main/resources/db/migration`.
-Toda tabela alimentada por carga ou simulação tem a coluna `origem`
-(`PLATAFORMA`, `SIMULADO`, `HISTORICO`), porque o regulamento exige declarar a origem de
-cada dado do painel.
+PostgreSQL com migrations Alembic em `api/migrations`.
 
 ## Como rodar
 
-Pré-requisitos: JDK 21 e Maven 3.9+ (ou apenas Docker).
+Pré-requisitos: Python 3.12+ (ou apenas Docker).
 
 ```bash
 # Banco + API
 docker compose up --build
 
-# Ou local: só o banco no Docker, API pelo Maven
+# Ou local: banco no Docker e API pelo Uvicorn
 docker compose up -d db
-cd api && mvn spring-boot:run
+cd api && uvicorn app.main:app --reload
 ```
 
-- API: http://localhost:8080
-- Swagger: http://localhost:8080/swagger-ui.html
-- Health: http://localhost:8080/actuator/health
+- API: http://localhost:8000
+- Swagger: http://localhost:8000/docs
+- Health: http://localhost:8000/health
 
-Testes: `cd api && mvn test`
+Testes: `cd api && pytest`
 
 ## Dados
 

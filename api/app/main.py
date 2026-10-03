@@ -14,6 +14,8 @@ from app.core.config import get_settings
 from app.core.db import get_engine
 from app.core.errors import registrar_handlers
 from app.core.migrate import aplicar
+from app.painel.router import pagina as painel_pagina
+from app.painel.router import router as painel_router
 
 log = logging.getLogger("skycef")
 
@@ -46,6 +48,8 @@ def create_app() -> FastAPI:
     app.include_router(fluxo_router)
     app.include_router(cadastros_router)
     app.include_router(boletim_router)
+    app.include_router(painel_router)
+    app.include_router(painel_pagina)
 
     @app.get("/health", tags=["Infra"], summary="Saúde da aplicação e do banco")
     def health() -> dict[str, str]:

@@ -13,4 +13,5 @@ visíveis direto na página do GitHub.
 Outros documentos:
 
 - [`API-TAREFA1.md`](API-TAREFA1.md) — fluxo, status, regras e todos os endpoints da Tarefa 1 (contrato para o front).
+- [`GUIA-TAREFA2.md`](GUIA-TAREFA2.md) — o que já existe e o que falta para a Tarefa 2 (boletim dos chapas).
 - [`ALINHAMENTO-BACKEND.md`](ALINHAMENTO-BACKEND.md) — histórico da comparação com a branch do Codex.

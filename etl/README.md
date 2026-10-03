@@ -3,6 +3,12 @@
 Scripts de carga dos dados da Cocapec, em Python (pandas + openpyxl). Leem de `../data`
 (fora do Git) e gravam no PostgreSQL, reaproveitando os modelos de `api/app`.
 
+Já existe: `api/app/etl/chapas.py` (cadastro de chapas, 51). Rode, na pasta `api`:
+
+```bash
+uv run python -m app.etl.chapas --dados C:/caminho/DADOS_HACKATHON_2026.zip   # pasta ou .zip; idempotente
+```
+
 Ordem prevista:
 
 1. `cadastros`: `fornecedores.xlsx`, `produtos.xlsx`, `chapas` (matrículas CHAPA_nn)

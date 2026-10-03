@@ -121,7 +121,7 @@ Gerar identificações tipo `INS-EMPG-01`. Não há número patrimonial oficial 
 | Acessórios agropecuários | 0,3224 |
 | Serviços diversos | 0,3224 |
 
-⚠️ Um resumo auxiliar troca Sementes (0,3387) e Alimentação animal (0,3224). A spec segue o Dossiê oficial (valores acima). **Conferir na foto do Dossiê / `boletim_diario_chapas.xlsx`** e deixar os preços editáveis.
+✅ Conferido no `boletim_diario_chapas.xlsx` original: Sementes 0,3224 e Alimentação animal 0,3387 (valores acima). Os preços ficam editáveis (`tipo_item`).
 
 ### Cálculo (decimal, 4 casas)
 ```
@@ -180,6 +180,7 @@ Decisões: sem `armazem_id` em Agendamento (destinos = descargas); sem entidade 
 - **Anexo da NF:** `.pdf`/`.xml` até 10 MB, tipo definido pela extensão (não pelo cliente); XML lido com `defusedxml` (sem DTD/entidades). Nas 460 NF-e do pacote, 29 não têm peso bruto (usa-se o líquido quando existe) e há 458 chaves distintas em 460 arquivos.
 - **Equipamentos:** 19 unidades individuais (`INS-EMPG-01` etc.), geradas por nós; Loja tem 1 unidade provisória (a Cocapec não informou a quantidade).
 - **Origem do dado:** `PLATAFORMA`, `TESTE` ou `HISTORICO`.
+- **Chapas (T2):** o identificador é o `CHAPA_nn` da folha (51 cadastrados via `app.etl.chapas`). O boletim de exemplo usa matrículas numéricas, mas só há correspondência conhecida para 15 pares (tabela na própria planilha). Preços do boletim conferidos no `boletim_diario_chapas.xlsx` (Sementes 0,3224; Alimentação animal 0,3387). Dinheiro do boletim em 4 casas, arredondando só na exibição; sem equipe = `INCONSISTENTE`. Guia: `docs/GUIA-TAREFA2.md`.
 
 ## 7. Tarefa 3 — Painel gerencial
 

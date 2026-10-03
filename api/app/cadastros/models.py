@@ -25,6 +25,15 @@ class Fornecedor(Base):
     cnpj: Mapped[str | None] = mapped_column(String(14))
 
 
+class Chapa(Base):
+    """Ensacador. A matrícula é o identificador `CHAPA_nn` da folha (nome anonimizado)."""
+
+    __tablename__ = "chapa"
+
+    matricula: Mapped[str] = mapped_column(String(20), primary_key=True)
+    nome: Mapped[str | None] = mapped_column(String(120))
+
+
 class DataNaoOperacional(Base):
     """Dias sem recebimento além dos fins de semana (feriados), cadastrados manualmente."""
 

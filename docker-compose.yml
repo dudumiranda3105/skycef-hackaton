@@ -23,14 +23,12 @@ services:
       db:
         condition: service_healthy
     environment:
-      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-skycef}
-      DB_USER: ${POSTGRES_USER:-skycef}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-skycef}
+      DB_URL: postgresql+psycopg://${POSTGRES_USER:-skycef}:${POSTGRES_PASSWORD:-skycef}@db:5432/${POSTGRES_DB:-skycef}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       TZ: America/Sao_Paulo
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8000:8000"
 
   # web: sera adicionado quando o front for definido (ver web/README.md)
 

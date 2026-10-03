@@ -7,11 +7,14 @@ data/*
 DADOS_HACKATHON_2026*
 DADOS_HACKATHON_2026.zip
 
-# Java / Maven
-target/
-*.class
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 *.log
-.mvn/wrapper/maven-wrapper.jar
 
 # Node / front
 node_modules/

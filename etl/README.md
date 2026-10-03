@@ -1,13 +1,16 @@
 # ETL
 
-Scripts de carga dos dados da Cocapec. Leem de `../data` (fora do Git) e gravam no PostgreSQL.
+Scripts de carga dos dados da Cocapec, em Python (pandas + openpyxl). Leem de `../data`
+(fora do Git) e gravam no PostgreSQL, reaproveitando os modelos de `api/app`.
 
 Ordem prevista:
 
 1. `cadastros`: `fornecedores.xlsx`, `produtos.xlsx`, `chapas` (matrículas CHAPA_nn)
 2. `historico de recebimentos`: `pedido_recebimento_notafiscal.xlsx` → `hist_recebimento_item`
 3. `folha dos chapas`: `chapas_por_dia_2025/2026.xlsx` → `hist_chapa_dia`, `hist_chapa_presenca`
-4. `equipamentos`: `equipamentos_descarga.xlsx` → `equipamento`
+
+Os equipamentos por local já vêm da migration V4 (dossiê, seção 6); a planilha
+`equipamentos_descarga.xlsx` só lista tipos e finalidades.
 
 Pontos de atenção (dados não limpos):
 

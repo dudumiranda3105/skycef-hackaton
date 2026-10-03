@@ -8,12 +8,12 @@ from app.agendamento.models import Agendamento
 from app.agendamento.schemas import (
     AgendamentoOut,
     AgendarIn,
-    AutorizacaoIn,
+    DecisaoComprasIn,
+    DestinosIn,
     EventoOut,
     GradeOut,
-    ValidacaoComprasIn,
 )
-from app.agendamento.service import AgendamentoService, AgendarCommand
+from app.agendamento.service import AgendamentoService, AgendarCommand, NotaFiscalCmd
 from app.core.clock import Relogio, get_relogio
 from app.core.db import get_session
 
@@ -32,8 +32,7 @@ DataConsulta = Annotated[date, Query(description="AAAA-MM-DD")]
 
 
 def _saida(servico: AgendamentoService, agendamento: Agendamento) -> AgendamentoOut:
-    destinos = servico.destinos_por_agendamento([agendamento.id])
-    return AgendamentoOut.desde(agendamento, destinos[agendamento.id])
+    return AgendamentoOut.desde(agendamento, servico.detalhes([agendamento.id])[agendamento.id])
 
 
 @router.get("/agenda", response_model=GradeOut, summary="Disponibilidade dos 4 horários de um dia")
@@ -45,7 +44,7 @@ def consultar_agenda(servico: Servico, data: DataConsulta) -> GradeOut:
     "/agendamentos",
     response_model=AgendamentoOut,
     status_code=status.HTTP_201_CREATED,
-    summary="Agendar uma entrega",
+    summary="Agendar uma entrega (uma ou mais notas fiscais)",
 )
 def agendar(corpo: AgendarIn, servico: Servico) -> AgendamentoOut:
     criado = servico.agendar(
@@ -54,9 +53,10 @@ def agendar(corpo: AgendarIn, servico: Servico) -> AgendamentoOut:
             data=corpo.data,
             horario=corpo.horario,
             acondicionamento=corpo.acondicionamento,
-            nf_chave=corpo.nf_chave,
-            nf_numero=corpo.nf_numero,
-            peso_total_kg=corpo.peso_total_kg,
+            notas=tuple(
+                NotaFiscalCmd(nf_chave=n.nf_chave, nf_numero=n.nf_numero, peso_total_kg=n.peso_total_kg)
+                for n in corpo.notas
+            ),
             agendado_na_hora=corpo.agendado_na_hora,
         )
     )
@@ -66,8 +66,8 @@ def agendar(corpo: AgendarIn, servico: Servico) -> AgendamentoOut:
 @router.get("/agendamentos", response_model=list[AgendamentoOut], summary="Agendamentos de um dia")
 def listar(servico: Servico, data: DataConsulta) -> list[AgendamentoOut]:
     agendamentos = servico.listar_por_data(data)
-    destinos = servico.destinos_por_agendamento([a.id for a in agendamentos])
-    return [AgendamentoOut.desde(a, destinos[a.id]) for a in agendamentos]
+    detalhes = servico.detalhes([a.id for a in agendamentos])
+    return [AgendamentoOut.desde(a, detalhes[a.id]) for a in agendamentos]
 
 
 @router.get(
@@ -91,18 +91,20 @@ def eventos(agendamento_id: int, servico: Servico) -> list[EventoOut]:
 @router.post(
     "/agendamentos/{agendamento_id}/validacao-compras",
     response_model=AgendamentoOut,
-    summary="Compras: confirmar conformidade entre nota e pedido, ou registrar divergência",
+    summary="Compras: autorizar (nota confere com o pedido) ou não autorizar (divergência)",
 )
-def validar_compras(agendamento_id: int, corpo: ValidacaoComprasIn, servico: Servico) -> AgendamentoOut:
-    validado = servico.validar_compras(agendamento_id, corpo.conforme, corpo.pedido_compra, corpo.observacao)
-    return _saida(servico, validado)
+def decidir_compras(agendamento_id: int, corpo: DecisaoComprasIn, servico: Servico) -> AgendamentoOut:
+    decidido = servico.decidir_compras(
+        agendamento_id, corpo.decisao, corpo.pedido_referencia, corpo.observacao
+    )
+    return _saida(servico, decidido)
 
 
 @router.post(
-    "/agendamentos/{agendamento_id}/autorizacao",
+    "/agendamentos/{agendamento_id}/destinos",
     response_model=AgendamentoOut,
-    summary="Armazém: autorizar a descarga e informar o(s) armazém(ns) de destino",
+    summary="Armazém: definir o(s) armazém(ns) de destino (uma descarga por destino)",
 )
-def autorizar(agendamento_id: int, corpo: AutorizacaoIn, servico: Servico) -> AgendamentoOut:
-    autorizado = servico.autorizar(agendamento_id, corpo.armazem_ids, corpo.observacao)
-    return _saida(servico, autorizado)
+def definir_destinos(agendamento_id: int, corpo: DestinosIn, servico: Servico) -> AgendamentoOut:
+    definido = servico.definir_destinos(agendamento_id, corpo.armazem_ids, corpo.observacao)
+    return _saida(servico, definido)

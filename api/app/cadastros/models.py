@@ -25,8 +25,23 @@ class Fornecedor(Base):
     cnpj: Mapped[str | None] = mapped_column(String(14))
 
 
-class Feriado(Base):
-    __tablename__ = "feriado"
+class DataNaoOperacional(Base):
+    """Dias sem recebimento além dos fins de semana (feriados), cadastrados manualmente."""
+
+    __tablename__ = "data_nao_operacional"
 
     data: Mapped[date] = mapped_column(Date, primary_key=True)
     descricao: Mapped[str] = mapped_column(String(80))
+
+
+class Equipamento(Base):
+    """Cada unidade é um equipamento (ex.: INS-EMPG-01). Não há número patrimonial oficial:
+    as identificações foram geradas pela equipe."""
+
+    __tablename__ = "equipamento"
+
+    id: Mapped[int] = mapped_column(SmallInteger, primary_key=True, autoincrement=True)
+    armazem_id: Mapped[int] = mapped_column(SmallInteger)
+    identificacao: Mapped[str] = mapped_column(String(20))
+    tipo: Mapped[str] = mapped_column(String(60))
+    observacao: Mapped[str | None] = mapped_column(String(200))

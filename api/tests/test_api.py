@@ -1,5 +1,7 @@
 """Endpoints HTTP de ponta a ponta (FastAPI + PostgreSQL real)."""
 
+from itertools import count
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -21,12 +23,17 @@ def cliente(db, relogio):
     return TestClient(app)  # sem `with`: não dispara o lifespan (migrations)
 
 
+_SEQ = count(1)
+
+
 def _corpo(fornecedor_id, **extra):
+    """Cada chamada usa uma NF diferente: a mesma NF ativa não pode estar em dois agendamentos."""
     return {
         "fornecedorId": fornecedor_id,
         "data": "2026-10-06",
         "horario": "08:00",
         "acondicionamento": "PALETIZADO",
+        "notas": [{"nfChave": str(next(_SEQ)).zfill(44), "nfNumero": "100"}],
         **extra,
     }
 
@@ -36,16 +43,17 @@ def test_health(cliente):
 
 
 def test_agendar_devolve_201_em_camel_case_e_depois_lista(cliente, fornecedor_id):
-    resposta = cliente.post("/api/agendamentos", json=_corpo(fornecedor_id, nfChave="4" * 44))
+    enviado = _corpo(fornecedor_id)
+    resposta = cliente.post("/api/agendamentos", json=enviado)
 
     assert resposta.status_code == 201
     corpo = resposta.json()
-    assert corpo["status"] == "AGENDADO"
+    assert corpo["status"] == "PENDENTE_COMPRAS"
     assert corpo["origem"] == "PLATAFORMA"
     assert corpo["horario"] == "08:00"
     assert corpo["data"] == "2026-10-06"
     assert corpo["fornecedorId"] == fornecedor_id
-    assert corpo["nfChave"] == "4" * 44
+    assert corpo["notas"][0]["nfChave"] == enviado["notas"][0]["nfChave"]
 
     detalhe = cliente.get(f"/api/agendamentos/{corpo['id']}").json()
     assert detalhe["id"] == corpo["id"]
@@ -53,7 +61,7 @@ def test_agendar_devolve_201_em_camel_case_e_depois_lista(cliente, fornecedor_id
         corpo["id"]
     ]
     eventos = cliente.get(f"/api/agendamentos/{corpo['id']}/eventos").json()
-    assert [e["paraStatus"] for e in eventos] == ["AGENDADO"]
+    assert [e["paraStatus"] for e in eventos] == ["PENDENTE_COMPRAS"]
 
 
 @pytest.mark.parametrize("campo", ["status", "origem", "limiteIgnorado", "id"])

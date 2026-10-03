@@ -1,13 +1,19 @@
 """Serviço de agendamento contra o PostgreSQL real. Relógio fixo: segunda-feira 05/10/2026, 10h00."""
 
 from datetime import date, time
+from decimal import Decimal
 
 import pytest
 from sqlalchemy import select
 
-from app.agendamento.domain import Acondicionamento, StatusAgendamento, StatusVagaLiberada
-from app.agendamento.models import Agendamento, EventoAgendamento, VagaLiberada
-from app.agendamento.service import AgendamentoService, AgendarCommand
+from app.agendamento.domain import (
+    Acondicionamento,
+    DecisaoCompras,
+    StatusAgendamento,
+    StatusVagaLiberada,
+)
+from app.agendamento.models import Agendamento, EventoAgendamento, NotaFiscal, VagaLiberada
+from app.agendamento.service import AgendamentoService, AgendarCommand, NotaFiscalCmd
 from app.core.errors import ConflitoError, NaoEncontradoError, RegraDeNegocioError
 from app.shared.domain import Origem
 
@@ -24,12 +30,18 @@ B, P, G = Acondicionamento.BATIDO, Acondicionamento.PALETIZADO, Acondicionamento
 def agendar(db, relogio, fornecedor_id):
     """Agenda em uma sessão nova a cada chamada, como faria cada requisição."""
 
-    def _agendar(data=AMANHA, horario=H08, acond=P, **extra):
+    def _agendar(data=AMANHA, horario=H08, acond=P, nf_chave=None, nf_numero=None, **extra):
+        notas = extra.pop("notas", None)
+        if notas is None:
+            notas = (
+                (NotaFiscalCmd(nf_chave=nf_chave, nf_numero=nf_numero),) if (nf_chave or nf_numero) else ()
+            )
         cmd = AgendarCommand(
             fornecedor_id=extra.pop("fornecedor_id", fornecedor_id),
             data=data,
             horario=horario,
             acondicionamento=acond,
+            notas=tuple(notas),
             **extra,
         )
         with db() as sessao:
@@ -42,7 +54,7 @@ def test_agenda_com_sucesso_e_grava_o_evento_de_auditoria(agendar, db):
     criado = agendar()
 
     assert criado.id is not None
-    assert criado.status == StatusAgendamento.AGENDADO
+    assert criado.status == StatusAgendamento.PENDENTE_COMPRAS
     assert criado.origem == Origem.PLATAFORMA
     assert criado.limite_ignorado is False
     with db() as sessao:
@@ -51,7 +63,7 @@ def test_agenda_com_sucesso_e_grava_o_evento_de_auditoria(agendar, db):
         eventos = list(sessao.scalars(select(EventoAgendamento)))
         assert len(eventos) == 1
         assert eventos[0].de_status is None
-        assert eventos[0].para_status == StatusAgendamento.AGENDADO
+        assert eventos[0].para_status == StatusAgendamento.PENDENTE_COMPRAS
 
 
 def test_dados_sobrevivem_a_uma_nova_sessao(agendar, db):
@@ -59,9 +71,45 @@ def test_dados_sobrevivem_a_uma_nova_sessao(agendar, db):
 
     with db() as sessao:  # "gravado e recuperado"
         lido = sessao.get(Agendamento, criado.id)
-        assert lido.nf_chave == "1" * 44
-        assert lido.nf_numero == "123"
         assert lido.criado_em.isoformat().startswith("2026-10-05T10:00")
+        nota = sessao.scalars(select(NotaFiscal).where(NotaFiscal.agendamento_id == criado.id)).one()
+        assert nota.nf_chave == "1" * 44
+        assert nota.nf_numero == "123"
+        assert nota.ativa is True
+
+
+def test_um_agendamento_pode_ter_varias_notas_fiscais(agendar, db):
+    criado = agendar(
+        notas=[
+            NotaFiscalCmd(nf_chave="7" * 44, nf_numero="1", peso_total_kg=Decimal("1200.5")),
+            NotaFiscalCmd(nf_chave="8" * 44, nf_numero="2", peso_total_kg=Decimal("800")),
+        ]
+    )
+
+    with db() as sessao:
+        notas = list(sessao.scalars(select(NotaFiscal).where(NotaFiscal.agendamento_id == criado.id)))
+        assert sorted(n.nf_numero for n in notas) == ["1", "2"]
+        assert sum(n.peso_total_kg for n in notas) == Decimal("2000.5")
+
+
+def test_rejeita_a_mesma_nota_repetida_no_pedido(agendar):
+    with pytest.raises(RegraDeNegocioError, match="mais de uma vez"):
+        agendar(notas=[NotaFiscalCmd(nf_chave="5" * 44), NotaFiscalCmd(nf_chave="5" * 44)])
+
+
+def test_anexo_da_nota_fica_gravado_com_o_tamanho(agendar, db):
+    criado = agendar(
+        notas=[NotaFiscalCmd(arquivo_nome="nota.xml", content_type="application/xml", conteudo=b"<nfe/>")]
+    )
+
+    with db() as sessao:
+        nota = sessao.scalars(select(NotaFiscal).where(NotaFiscal.agendamento_id == criado.id)).one()
+        assert (nota.arquivo_nome, nota.content_type, nota.tamanho_bytes) == (
+            "nota.xml",
+            "application/xml",
+            6,
+        )
+        assert nota.conteudo == b"<nfe/>"
 
 
 def test_rejeita_data_passada(agendar):
@@ -190,17 +238,21 @@ def test_rejeita_fornecedor_inexistente(agendar):
 def test_rejeita_nota_fiscal_ja_agendada(agendar):
     agendar(nf_chave="2" * 44, horario=H08)
 
-    with pytest.raises(ConflitoError, match="nota fiscal"):
+    with pytest.raises(ConflitoError, match="notas fiscais"):
         agendar(nf_chave="2" * 44, horario=H10)
 
 
-def test_nota_de_agendamento_cancelado_pode_ser_reagendada(agendar, db):
+def test_nota_de_agendamento_recusado_pode_ser_agendada_de_novo(agendar, db, relogio):
     primeiro = agendar(nf_chave="3" * 44)
-    with db() as sessao:
-        sessao.get(Agendamento, primeiro.id).status = StatusAgendamento.CANCELADO
-        sessao.commit()
+    with db() as sessao:  # Compras recusa: o status libera a vaga e, junto, a nota fiscal
+        AgendamentoService(sessao, relogio).decidir_compras(
+            primeiro.id, DecisaoCompras.NAO_AUTORIZADO, observacao="Quantidade diferente do pedido"
+        )
 
     assert agendar(nf_chave="3" * 44, horario=H10).id is not None
+    with db() as sessao:
+        notas = list(sessao.scalars(select(NotaFiscal).order_by(NotaFiscal.id)))
+        assert [n.ativa for n in notas] == [False, True]
 
 
 @pytest.mark.parametrize("chave", ["1" * 43, "1" * 45, "a" * 44])

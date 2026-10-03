@@ -4,7 +4,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.cadastros.models import Armazem, Feriado, Fornecedor
+from app.cadastros.models import Armazem, DataNaoOperacional, Fornecedor
 from app.core.errors import ConflitoError, NaoEncontradoError, RegraDeNegocioError
 
 _SABADO, _DOMINGO = 5, 6  # date.weekday()
@@ -20,9 +20,9 @@ class CalendarioService:
         """Devolve o motivo pelo qual não há recebimento na data, ou None se for dia útil."""
         if data.weekday() in (_SABADO, _DOMINGO):
             return "Não há recebimento aos sábados e domingos."
-        feriado = self.session.get(Feriado, data)
-        if feriado is not None:
-            return f"Não há recebimento em feriados ({feriado.descricao})."
+        dia = self.session.get(DataNaoOperacional, data)
+        if dia is not None:
+            return f"Não há recebimento em feriados ({dia.descricao})."
         return None
 
 

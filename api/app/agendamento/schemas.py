@@ -1,13 +1,17 @@
-from collections.abc import Sequence
 from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Annotated, Any
 
 from pydantic import Field, field_serializer
 
-from app.agendamento.domain import Acondicionamento, StatusAgendamento, TipoEvento
-from app.agendamento.models import Agendamento, EventoAgendamento
-from app.agendamento.service import GradeDoDia
+from app.agendamento.domain import (
+    Acondicionamento,
+    DecisaoCompras,
+    StatusAgendamento,
+    TipoEvento,
+)
+from app.agendamento.models import Agendamento, EventoAgendamento, NotaFiscal, ValidacaoCompras
+from app.agendamento.service import DetalhesAgendamento, GradeDoDia
 from app.shared.domain import Origem
 from app.shared.schemas import EsquemaBase, EsquemaEntrada
 
@@ -16,30 +20,85 @@ def _hhmm(valor: time) -> str:
     return valor.strftime("%H:%M")
 
 
+# ---------------------------------------------------------------- entrada
+
+
+class NotaFiscalIn(EsquemaEntrada):
+    nf_chave: Annotated[str | None, Field(pattern=r"^[0-9]{44}$")] = None
+    nf_numero: Annotated[str | None, Field(max_length=20)] = None
+    peso_total_kg: Annotated[Decimal | None, Field(ge=0)] = None
+
+
 class AgendarIn(EsquemaEntrada):
     fornecedor_id: int
     data: date
     horario: time
     acondicionamento: Acondicionamento
-    nf_chave: Annotated[str | None, Field(pattern=r"^[0-9]{44}$")] = None
-    nf_numero: Annotated[str | None, Field(max_length=20)] = None
-    peso_total_kg: Annotated[Decimal | None, Field(ge=0)] = None
+    notas: Annotated[list[NotaFiscalIn], Field(min_length=1, max_length=20)]
     agendado_na_hora: bool = False
 
 
-class ValidacaoComprasIn(EsquemaEntrada):
-    """Decisão de Compras sobre a conformidade entre a nota fiscal e o pedido de compra."""
+class DecisaoComprasIn(EsquemaEntrada):
+    """Decisão de Compras sobre a nota fiscal x pedido de compra."""
 
-    conforme: bool
-    pedido_compra: Annotated[str | None, Field(max_length=20)] = None  # obrigatório se conforme
-    observacao: Annotated[str | None, Field(max_length=250)] = None  # obrigatória se divergente
+    decisao: DecisaoCompras
+    pedido_referencia: Annotated[str | None, Field(max_length=20)] = None  # obrigatório se AUTORIZADO
+    observacao: Annotated[str | None, Field(max_length=250)] = None  # obrigatória se NAO_AUTORIZADO
 
 
-class AutorizacaoIn(EsquemaEntrada):
-    """Autorização do responsável do armazém, com o(s) armazém(ns) de destino."""
+class DestinosIn(EsquemaEntrada):
+    """Armazém(ns) onde a carga será descarregada; gera uma descarga por destino."""
 
     armazem_ids: Annotated[list[int], Field(min_length=1, max_length=4)]
     observacao: Annotated[str | None, Field(max_length=250)] = None
+
+
+# ---------------------------------------------------------------- saída
+
+
+class NotaFiscalOut(EsquemaBase):
+    id: int
+    nf_numero: str | None
+    nf_chave: str | None
+    peso_total_kg: Decimal | None
+    arquivo_nome: str | None
+    ativa: bool
+
+    @classmethod
+    def desde(cls, n: NotaFiscal) -> "NotaFiscalOut":
+        return cls(
+            id=n.id,
+            nf_numero=n.nf_numero,
+            nf_chave=n.nf_chave,
+            peso_total_kg=n.peso_total_kg,
+            arquivo_nome=n.arquivo_nome,
+            ativa=n.ativa,
+        )
+
+
+class ValidacaoComprasOut(EsquemaBase):
+    decisao: DecisaoCompras
+    pedido_referencia: str | None
+    observacao: str | None
+    decidido_em: datetime
+
+    @classmethod
+    def desde(cls, v: ValidacaoCompras) -> "ValidacaoComprasOut":
+        return cls(
+            decisao=v.decisao,
+            pedido_referencia=v.pedido_referencia,
+            observacao=v.observacao,
+            decidido_em=v.decidido_em,
+        )
+
+
+class DescargaOut(EsquemaBase):
+    id: int
+    armazem_id: int
+    chegada_em: datetime | None
+    entrada_em: datetime | None
+    saida_em: datetime | None
+    quantidade_chapas: int | None
 
 
 class AgendamentoOut(EsquemaBase):
@@ -50,24 +109,21 @@ class AgendamentoOut(EsquemaBase):
     acondicionamento: Acondicionamento
     status: StatusAgendamento
     status_rotulo: str
-    nf_numero: str | None
-    nf_chave: str | None
-    peso_total_kg: Decimal | None
-    pedido_compra: str | None
-    destinos: list[int]
     agendado_na_hora: bool
     limite_ignorado: bool
     origem: Origem
     criado_em: datetime
-    compras_em: datetime | None
-    autorizado_em: datetime | None
+    notas: list[NotaFiscalOut]
+    validacao_compras: ValidacaoComprasOut | None
+    descargas: list[DescargaOut]
 
     @field_serializer("horario")
     def _serializa_horario(self, valor: time) -> str:
         return _hhmm(valor)
 
     @classmethod
-    def desde(cls, a: Agendamento, destinos: Sequence[int] = ()) -> "AgendamentoOut":
+    def desde(cls, a: Agendamento, detalhes: DetalhesAgendamento | None = None) -> "AgendamentoOut":
+        d = detalhes or DetalhesAgendamento()
         return cls(
             id=a.id,
             fornecedor_id=a.fornecedor_id,
@@ -76,17 +132,23 @@ class AgendamentoOut(EsquemaBase):
             acondicionamento=a.acondicionamento,
             status=a.status,
             status_rotulo=a.status.rotulo,
-            nf_numero=a.nf_numero,
-            nf_chave=a.nf_chave,
-            peso_total_kg=a.peso_total_kg,
-            pedido_compra=a.pedido_compra,
-            destinos=list(destinos),
             agendado_na_hora=a.agendado_na_hora,
             limite_ignorado=a.limite_ignorado,
             origem=a.origem,
             criado_em=a.criado_em,
-            compras_em=a.compras_em,
-            autorizado_em=a.autorizado_em,
+            notas=[NotaFiscalOut.desde(n) for n in d.notas],
+            validacao_compras=ValidacaoComprasOut.desde(d.validacao) if d.validacao else None,
+            descargas=[
+                DescargaOut(
+                    id=x.id,
+                    armazem_id=x.armazem_id,
+                    chegada_em=x.chegada_em,
+                    entrada_em=x.entrada_em,
+                    saida_em=x.saida_em,
+                    quantidade_chapas=x.quantidade_chapas,
+                )
+                for x in d.descargas
+            ],
         )
 
 

@@ -2,13 +2,27 @@ from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, Enum, Integer, Numeric, SmallInteger, String, Time
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Date,
+    DateTime,
+    Enum,
+    Integer,
+    LargeBinary,
+    Numeric,
+    SmallInteger,
+    String,
+    Time,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.agendamento.domain import (
     Acondicionamento,
+    DecisaoCompras,
     MotivoNaoRecebimento,
+    SituacaoCancelamento,
     StatusAgendamento,
     StatusVagaLiberada,
     TipoEvento,
@@ -33,19 +47,12 @@ class Agendamento(Base):
     horario: Mapped[time] = mapped_column(Time)
     acondicionamento: Mapped[Acondicionamento] = mapped_column(_enum(Acondicionamento, 12))
     status: Mapped[StatusAgendamento] = mapped_column(_enum(StatusAgendamento, 20))
-    nf_numero: Mapped[str | None] = mapped_column(String(20))
-    nf_chave: Mapped[str | None] = mapped_column(String(44))
-    peso_total_kg: Mapped[Decimal | None] = mapped_column(Numeric(14, 3))
-    pedido_compra: Mapped[str | None] = mapped_column(String(20))
     # caminhão que chegou sem aviso e agendou no ato
     agendado_na_hora: Mapped[bool] = mapped_column(Boolean, default=False)
     # reagendamento por caso fortuito que desconsiderou o limite de caminhões do horário
     limite_ignorado: Mapped[bool] = mapped_column(Boolean, default=False)
     origem: Mapped[Origem] = mapped_column(_enum(Origem, 12), default=Origem.PLATAFORMA)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    compras_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    autorizado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    motivo_cancelamento: Mapped[str | None] = mapped_column(String(300))
     versao: Mapped[int] = mapped_column(Integer)
 
     # Evita que duas transições concorrentes sobrescrevam uma à outra
@@ -86,13 +93,83 @@ class VagaLiberada(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
-class AgendamentoDestino(Base):
-    """Armazém(ns) onde a carga será descarregada; um caminhão pode ir a mais de um."""
+class NotaFiscal(Base):
+    """Uma ou mais notas fiscais por agendamento. `ativa` vira falso quando o agendamento
+    libera a vaga, para a mesma NF-e poder ser agendada de novo."""
 
-    __tablename__ = "agendamento_destino"
+    __tablename__ = "nota_fiscal"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    agendamento_id: Mapped[int] = mapped_column(BigInteger)
+    nf_numero: Mapped[str | None] = mapped_column(String(20))
+    nf_chave: Mapped[str | None] = mapped_column(String(44))
+    peso_total_kg: Mapped[Decimal | None] = mapped_column(Numeric(14, 3))
+    arquivo_nome: Mapped[str | None] = mapped_column(String(200))
+    content_type: Mapped[str | None] = mapped_column(String(80))
+    tamanho_bytes: Mapped[int | None] = mapped_column(Integer)
+    conteudo: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)  # só carrega se pedido
+    ativa: Mapped[bool] = mapped_column(Boolean, default=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ValidacaoCompras(Base):
+    """Decisão de Compras sobre a conformidade entre a nota e o pedido (no máximo uma)."""
+
+    __tablename__ = "validacao_compras"
 
     agendamento_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    armazem_id: Mapped[int] = mapped_column(SmallInteger, primary_key=True)
+    decisao: Mapped[DecisaoCompras] = mapped_column(_enum(DecisaoCompras, 15))
+    pedido_referencia: Mapped[str | None] = mapped_column(String(20))
+    observacao: Mapped[str | None] = mapped_column(String(250))
+    decidido_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class Descarga(Base):
+    """Uma por armazém de destino. chegada -> entrada -> saída são os três marcos.
+
+    `quantidade_chapas` mede a intensidade DESTA descarga e nunca deve ser somada ao longo do
+    dia como efetivo (a mesma equipe atende várias descargas); o efetivo vem do boletim."""
+
+    __tablename__ = "descarga"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    agendamento_id: Mapped[int] = mapped_column(BigInteger)
+    armazem_id: Mapped[int] = mapped_column(SmallInteger)
+    chegada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    entrada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    saida_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    quantidade_chapas: Mapped[int | None] = mapped_column(SmallInteger)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class Reagendamento(Base):
+    """Histórico de mudanças de data/horário (por caso fortuito pode exceder a capacidade)."""
+
+    __tablename__ = "reagendamento"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    agendamento_id: Mapped[int] = mapped_column(BigInteger)
+    data_anterior: Mapped[date] = mapped_column(Date)
+    horario_anterior: Mapped[time] = mapped_column(Time)
+    data_nova: Mapped[date] = mapped_column(Date)
+    horario_novo: Mapped[time] = mapped_column(Time)
+    motivo: Mapped[str] = mapped_column(String(300))
+    limite_excedido: Mapped[bool] = mapped_column(Boolean, default=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class Cancelamento(Base):
+    """Cancelamento do agendamento: solicitação, depois efetivação (que libera a vaga)."""
+
+    __tablename__ = "cancelamento"
+
+    agendamento_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    motivo: Mapped[str] = mapped_column(String(300))
+    situacao: Mapped[SituacaoCancelamento] = mapped_column(
+        _enum(SituacaoCancelamento, 12), default=SituacaoCancelamento.SOLICITADO
+    )
+    solicitado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    efetivado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class NaoRecebimento(Base):

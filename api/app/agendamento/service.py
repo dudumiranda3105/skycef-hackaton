@@ -1,10 +1,10 @@
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from decimal import Decimal
 
-from sqlalchemy import exists, func, select
+from sqlalchemy import exists, func, select, update
 from sqlalchemy.orm import Session
 
 from app.agendamento import domain
@@ -12,6 +12,7 @@ from app.agendamento.domain import (
     HORARIOS,
     STATUS_QUE_LIBERAM_VAGA,
     Acondicionamento,
+    DecisaoCompras,
     MotivoNaoRecebimento,
     StatusAgendamento,
     StatusVagaLiberada,
@@ -19,10 +20,12 @@ from app.agendamento.domain import (
 )
 from app.agendamento.models import (
     Agendamento,
-    AgendamentoDestino,
+    Descarga,
     EventoAgendamento,
     NaoRecebimento,
+    NotaFiscal,
     VagaLiberada,
+    ValidacaoCompras,
 )
 from app.cadastros.service import ArmazemService, CalendarioService, FornecedorService
 from app.core.clock import Relogio
@@ -34,17 +37,27 @@ _CHAVE_NFE = re.compile(r"[0-9]{44}")
 
 
 @dataclass(frozen=True)
+class NotaFiscalCmd:
+    """Uma nota anexada ao agendamento; os dados vêm do parser do módulo nfe (ou do formulário)."""
+
+    nf_chave: str | None = None
+    nf_numero: str | None = None
+    peso_total_kg: Decimal | None = None
+    arquivo_nome: str | None = None
+    content_type: str | None = None
+    conteudo: bytes | None = None
+
+
+@dataclass(frozen=True)
 class AgendarCommand:
-    """Pedido de agendamento já interpretado. A nota (chave, número, peso) vem do parser do
-    módulo nfe; o serviço nunca aceita status nem origem vindos do cliente."""
+    """Pedido de agendamento já interpretado. O serviço nunca aceita status nem origem vindos
+    do cliente."""
 
     fornecedor_id: int
     data: date
     horario: time
     acondicionamento: Acondicionamento
-    nf_chave: str | None = None
-    nf_numero: str | None = None
-    peso_total_kg: Decimal | None = None
+    notas: tuple[NotaFiscalCmd, ...] = ()
     agendado_na_hora: bool = False
 
 
@@ -62,6 +75,15 @@ class GradeDoDia:
     dia_util: bool
     motivo_indisponivel: str | None
     slots: list[Slot]
+
+
+@dataclass
+class DetalhesAgendamento:
+    """O que acompanha um agendamento: notas, decisão de Compras e descargas (uma por destino)."""
+
+    notas: list[NotaFiscal] = field(default_factory=list)
+    validacao: ValidacaoCompras | None = None
+    descargas: list[Descarga] = field(default_factory=list)
 
 
 def travar_slot(session: Session, data: date, horario: time) -> None:
@@ -96,8 +118,9 @@ class AgendamentoService:
             self._validar_calendario(cmd)
             self.fornecedores.exigir_existente(cmd.fornecedor_id)
 
-            if cmd.nf_chave is not None and self._nf_ja_agendada(cmd.nf_chave):
-                raise ConflitoError("Esta nota fiscal já está agendada.")
+            chaves = [n.nf_chave for n in cmd.notas if n.nf_chave]
+            if chaves and self._chaves_ja_agendadas(chaves):
+                raise ConflitoError("Uma das notas fiscais já está agendada.")
 
             travar_slot(self.session, cmd.data, cmd.horario)
 
@@ -111,22 +134,34 @@ class AgendamentoService:
                 data_agendada=cmd.data,
                 horario=cmd.horario,
                 acondicionamento=cmd.acondicionamento,
-                status=StatusAgendamento.AGENDADO,
-                nf_chave=cmd.nf_chave,
-                nf_numero=cmd.nf_numero,
-                peso_total_kg=cmd.peso_total_kg,
+                status=StatusAgendamento.PENDENTE_COMPRAS,
                 agendado_na_hora=cmd.agendado_na_hora,
                 limite_ignorado=False,
                 origem=Origem.PLATAFORMA,
                 criado_em=agora,
             )
             self.session.add(agendamento)
-            self.session.flush()  # gera o id para a trilha de auditoria
+            self.session.flush()  # gera o id para as notas e a trilha de auditoria
+            self.session.add_all(
+                NotaFiscal(
+                    agendamento_id=agendamento.id,
+                    nf_chave=nota.nf_chave,
+                    nf_numero=nota.nf_numero,
+                    peso_total_kg=nota.peso_total_kg,
+                    arquivo_nome=nota.arquivo_nome,
+                    content_type=nota.content_type,
+                    tamanho_bytes=len(nota.conteudo) if nota.conteudo else None,
+                    conteudo=nota.conteudo,
+                    ativa=True,
+                    criado_em=agora,
+                )
+                for nota in cmd.notas
+            )
             self.session.add(
                 EventoAgendamento(
                     agendamento_id=agendamento.id,
                     de_status=None,
-                    para_status=StatusAgendamento.AGENDADO,
+                    para_status=StatusAgendamento.PENDENTE_COMPRAS,
                     tipo=TipoEvento.STATUS,
                     observacao=(
                         "Agendado na hora pelo caminhão sem aviso prévio"
@@ -140,43 +175,42 @@ class AgendamentoService:
 
     # ------------------------------------------------------------------ Compras e armazém
 
-    def validar_compras(
+    def decidir_compras(
         self,
         agendamento_id: int,
-        conforme: bool,
-        pedido_compra: str | None = None,
+        decisao: DecisaoCompras,
+        pedido_referencia: str | None = None,
         observacao: str | None = None,
     ) -> Agendamento:
-        """1ª etapa da dupla validação: Compras confirma se os itens da nota conferem com o
-        pedido de compra. Conforme -> Validado por Compras; divergente -> Não recebido, com o
-        motivo registrado e a vaga liberada."""
-        pedido = _texto(pedido_compra, 20)
+        """1ª etapa da dupla validação: Compras confere a nota contra o pedido de compra.
+
+        AUTORIZADO (exige o pedido de referência) -> o agendamento segue para o armazém.
+        NAO_AUTORIZADO (exige o motivo) -> a vaga e as notas são liberadas, e a divergência
+        entra nos não recebimentos."""
+        pedido = _texto(pedido_referencia, 20)
         nota = _texto(observacao, 250)
-        if conforme and pedido is None:
-            raise RegraDeNegocioError("Informe o número do pedido de compra para confirmar a conformidade.")
-        if not conforme and nota is None:
+        if decisao == DecisaoCompras.AUTORIZADO and pedido is None:
+            raise RegraDeNegocioError("Informe o pedido de compra de referência para autorizar.")
+        if decisao == DecisaoCompras.NAO_AUTORIZADO and nota is None:
             raise RegraDeNegocioError("Descreva a divergência encontrada entre a nota e o pedido.")
 
         with transacao(self.session):
             agendamento = self._carregar_travado(agendamento_id)
             agora = self.relogio.agora()
-            if conforme:
+            if decisao == DecisaoCompras.AUTORIZADO:
                 self._mudar_status(
                     agendamento,
-                    StatusAgendamento.VALIDADO_COMPRAS,
+                    StatusAgendamento.AUTORIZADO,
                     agora,
                     nota or "Nota conferida com o pedido de compra",
                 )
-                agendamento.pedido_compra = pedido
-                agendamento.compras_em = agora
             else:
                 self._mudar_status(
                     agendamento,
-                    StatusAgendamento.NAO_RECEBIDO,
+                    StatusAgendamento.NAO_AUTORIZADO,
                     agora,
                     f"Divergência entre nota e pedido: {nota}",
                 )
-                agendamento.pedido_compra = pedido
                 self.session.add(
                     NaoRecebimento(
                         agendamento_id=agendamento.id,
@@ -188,38 +222,55 @@ class AgendamentoService:
                         criado_em=agora,
                     )
                 )
+            self.session.add(
+                ValidacaoCompras(
+                    agendamento_id=agendamento.id,
+                    decisao=decisao,
+                    pedido_referencia=pedido,
+                    observacao=nota,
+                    decidido_em=agora,
+                )
+            )
         return agendamento
 
-    def autorizar(
+    def definir_destinos(
         self, agendamento_id: int, armazem_ids: Sequence[int], observacao: str | None = None
     ) -> Agendamento:
         """2ª etapa: o responsável do armazém verifica a autorização de Compras e informa em
-        qual(is) armazém(ns) a carga será descarregada (pode ser mais de um)."""
+        qual(is) armazém(ns) a carga será descarregada. Cria uma Descarga por destino."""
         destinos = sorted(set(armazem_ids))
         if not destinos:
             raise RegraDeNegocioError("Informe ao menos um armazém de destino.")
 
         with transacao(self.session):
             agendamento = self._carregar_travado(agendamento_id)
+            if agendamento.status != StatusAgendamento.AUTORIZADO:
+                if agendamento.status == StatusAgendamento.PENDENTE_COMPRAS:
+                    raise ConflitoError(
+                        "Compras precisa autorizar o agendamento antes de definir os destinos."
+                    )
+                raise ConflitoError(
+                    f"O agendamento está '{agendamento.status.rotulo}' e não aceita definir destinos."
+                )
             self.armazens.exigir_existentes(destinos)
-            agora = self.relogio.agora()
-            self._mudar_status(
-                agendamento,
-                StatusAgendamento.AUTORIZADO,
-                agora,
-                _texto(observacao, 250) or "Autorizado pelo armazém",
+            ja_definidos = self.session.scalar(
+                select(exists().where(Descarga.agendamento_id == agendamento.id))
             )
-            agendamento.autorizado_em = agora
+            if ja_definidos:
+                raise ConflitoError("Os armazéns de destino já foram definidos para este agendamento.")
+
+            agora = self.relogio.agora()
             self.session.add_all(
-                AgendamentoDestino(agendamento_id=agendamento.id, armazem_id=armazem) for armazem in destinos
+                Descarga(agendamento_id=agendamento.id, armazem_id=armazem, criado_em=agora)
+                for armazem in destinos
             )
             self.session.add(
                 EventoAgendamento(
                     agendamento_id=agendamento.id,
-                    de_status=StatusAgendamento.AUTORIZADO,
-                    para_status=StatusAgendamento.AUTORIZADO,
+                    de_status=agendamento.status,
+                    para_status=agendamento.status,
                     tipo=TipoEvento.DESTINO,
-                    observacao="Armazém(ns) de destino definido(s)",
+                    observacao=_texto(observacao, 250) or "Armazém(ns) de destino definido(s)",
                     detalhe={"armazemIds": destinos},
                     ocorrido_em=agora,
                 )
@@ -228,17 +279,25 @@ class AgendamentoService:
 
     # ------------------------------------------------------------------ consultas
 
-    def destinos_por_agendamento(self, agendamento_ids: Sequence[int]) -> dict[int, list[int]]:
-        resultado: dict[int, list[int]] = {i: [] for i in agendamento_ids}
+    def detalhes(self, agendamento_ids: Sequence[int]) -> dict[int, DetalhesAgendamento]:
+        """Notas, decisão de Compras e descargas de vários agendamentos, em 3 consultas."""
+        resultado = {i: DetalhesAgendamento() for i in agendamento_ids}
         if not agendamento_ids:
             return resultado
-        linhas = self.session.execute(
-            select(AgendamentoDestino.agendamento_id, AgendamentoDestino.armazem_id)
-            .where(AgendamentoDestino.agendamento_id.in_(agendamento_ids))
-            .order_by(AgendamentoDestino.agendamento_id, AgendamentoDestino.armazem_id)
-        )
-        for agendamento_id, armazem_id in linhas:
-            resultado[agendamento_id].append(armazem_id)
+        for nota in self.session.scalars(
+            select(NotaFiscal).where(NotaFiscal.agendamento_id.in_(agendamento_ids)).order_by(NotaFiscal.id)
+        ):
+            resultado[nota.agendamento_id].notas.append(nota)
+        for validacao in self.session.scalars(
+            select(ValidacaoCompras).where(ValidacaoCompras.agendamento_id.in_(agendamento_ids))
+        ):
+            resultado[validacao.agendamento_id].validacao = validacao
+        for descarga in self.session.scalars(
+            select(Descarga)
+            .where(Descarga.agendamento_id.in_(agendamento_ids))
+            .order_by(Descarga.agendamento_id, Descarga.armazem_id)
+        ):
+            resultado[descarga.agendamento_id].descargas.append(descarga)
         return resultado
 
     def consultar_grade(self, data: date) -> GradeDoDia:
@@ -301,7 +360,8 @@ class AgendamentoService:
     def _mudar_status(
         self, agendamento: Agendamento, novo: StatusAgendamento, agora: datetime, observacao: str
     ) -> None:
-        """Aplica uma transição válida e registra o evento; senão, 409 com o estado atual."""
+        """Aplica uma transição válida e registra o evento; senão, 409 com o estado atual.
+        Os status que liberam a vaga também liberam as notas fiscais para novo agendamento."""
         atual = agendamento.status
         if not atual.pode_ir(novo):
             if atual == novo:
@@ -310,6 +370,10 @@ class AgendamentoService:
                 f"O agendamento está '{atual.rotulo}' e não pode passar para '{novo.rotulo}'."
             )
         agendamento.status = novo
+        if novo in STATUS_QUE_LIBERAM_VAGA:
+            self.session.execute(
+                update(NotaFiscal).where(NotaFiscal.agendamento_id == agendamento.id).values(ativa=False)
+            )
         self.session.add(
             EventoAgendamento(
                 agendamento_id=agendamento.id,
@@ -339,22 +403,20 @@ class AgendamentoService:
         )
         return [*ativos, *abertas]
 
-    def _nf_ja_agendada(self, nf_chave: str) -> bool:
-        consulta = select(
-            exists().where(
-                Agendamento.nf_chave == nf_chave,
-                Agendamento.status.not_in(STATUS_QUE_LIBERAM_VAGA),
-            )
-        )
+    def _chaves_ja_agendadas(self, chaves: Sequence[str]) -> bool:
+        consulta = select(exists().where(NotaFiscal.nf_chave.in_(chaves), NotaFiscal.ativa.is_(True)))
         return bool(self.session.scalar(consulta))
 
     @staticmethod
     def _validar_entrada(cmd: AgendarCommand) -> None:
         if not domain.horario_valido(cmd.horario):
             raise RegraDeNegocioError("Horário inválido. Escolha entre 08h00, 10h00, 13h00 e 15h00.")
-        if cmd.nf_chave is not None and not _CHAVE_NFE.fullmatch(cmd.nf_chave):
+        chaves = [n.nf_chave for n in cmd.notas if n.nf_chave]
+        if any(not _CHAVE_NFE.fullmatch(c) for c in chaves):
             raise RegraDeNegocioError("A chave de acesso da nota fiscal deve ter 44 dígitos.")
-        if cmd.peso_total_kg is not None and cmd.peso_total_kg < 0:
+        if len(chaves) != len(set(chaves)):
+            raise RegraDeNegocioError("A mesma nota fiscal foi informada mais de uma vez.")
+        if any(n.peso_total_kg is not None and n.peso_total_kg < 0 for n in cmd.notas):
             raise RegraDeNegocioError("O peso da carga não pode ser negativo.")
 
     def _validar_calendario(self, cmd: AgendarCommand) -> None:

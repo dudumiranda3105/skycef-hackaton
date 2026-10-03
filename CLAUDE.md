@@ -170,6 +170,15 @@ BoletimDiario N:N Chapa(matricula PK, nome)  via ParticipacaoChapaBoletim(tipo_d
 ```
 Decisões: sem `armazem_id` em Agendamento (destinos = descargas); sem entidade PedidoCompra/SAP; sem usuários/perfis; indicadores calculados por query/view, não persistidos. Status do agendamento é decisão técnica nossa (ex.: `PENDENTE_COMPRAS`, `AUTORIZADO`, `NAO_AUTORIZADO`, `EM_DESCARGA`, `CONCLUIDO`, `CANCELADO`, `NAO_RECEBIDO`) — não apresentar como regra da Cocapec. Opcional: tabela de auditoria simples (quem/quando alterou).
 
+### Decisões de implementação da T1 (migration V5, 03/10/2026) — corrigir se a Cocapec/equipe discordar
+- **Status do agendamento:** `PENDENTE_COMPRAS → AUTORIZADO → EM_DESCARGA → CONCLUIDO`, mais `NAO_AUTORIZADO`, `CANCELADO` e `NAO_RECEBIDO`. Chegada, entrada e saída são marcos de cada `Descarga`, não status.
+- **Fluxo:** Compras decide (`validacao_compras`) → o armazém define os destinos, o que cria **uma `Descarga` por armazém** (status continua `AUTORIZADO`).
+- **Interpretação:** `NAO_AUTORIZADO` (Compras recusou) libera a vaga e as NFs e registra também um `NaoRecebimento` com motivo `DIVERGENCIA_NF_PEDIDO`, para o indicador de não recebimentos por motivo. *(Assunção nossa.)*
+- **NF:** `nota_fiscal.ativa` impede a mesma NF-e em dois agendamentos ativos; vira falso quando o agendamento libera a vaga.
+- **Aberto:** a `Descarga` só existe depois que Compras autoriza e o armazém define os destinos; a chegada de um caminhão antes disso ainda não tem onde ser registrada (afeta o tempo de espera).
+- **Equipamentos:** 19 unidades individuais (`INS-EMPG-01` etc.), geradas por nós; Loja tem 1 unidade provisória (a Cocapec não informou a quantidade).
+- **Origem do dado:** `PLATAFORMA`, `TESTE` ou `HISTORICO`.
+
 ## 7. Tarefa 3 — Painel gerencial
 
 Filtros: **período** e **armazém** (mínimo). Indicadores:

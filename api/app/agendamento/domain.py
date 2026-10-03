@@ -14,15 +14,16 @@ class Acondicionamento(StrEnum):
 
 
 class StatusAgendamento(StrEnum):
-    """Máquina de estados do agendamento. Reagendar e trocar destino não mudam o status:
-    ficam registrados na trilha de eventos."""
+    """Máquina de estados do agendamento (decisão técnica nossa, não regra da Cocapec).
 
-    AGENDADO = "AGENDADO"
-    VALIDADO_COMPRAS = "VALIDADO_COMPRAS"  # Compras confirmou nota x pedido
-    AUTORIZADO = "AUTORIZADO"  # o armazém verificou a autorização e definiu o(s) destino(s)
-    CHEGOU = "CHEGOU"  # marco 1: encostou e entrou na fila
-    EM_DESCARGA = "EM_DESCARGA"  # marco 2: liberado, descarga iniciada
-    CONCLUIDO = "CONCLUIDO"  # marco 3: descarga terminada
+    Chegada, entrada e saída são marcos de cada Descarga, não status do agendamento.
+    Reagendar e definir destinos não mudam o status: ficam na trilha de eventos."""
+
+    PENDENTE_COMPRAS = "PENDENTE_COMPRAS"  # agendado; aguardando a decisão de Compras
+    AUTORIZADO = "AUTORIZADO"  # Compras autorizou: a nota confere com o pedido
+    NAO_AUTORIZADO = "NAO_AUTORIZADO"  # Compras recusou: a nota diverge do pedido
+    EM_DESCARGA = "EM_DESCARGA"  # alguma descarga começou (marco de entrada)
+    CONCLUIDO = "CONCLUIDO"  # todas as descargas terminaram
     CANCELADO = "CANCELADO"
     NAO_RECEBIDO = "NAO_RECEBIDO"
 
@@ -44,29 +45,29 @@ class StatusAgendamento(StrEnum):
 
 _S = StatusAgendamento
 _TRANSICOES: dict[StatusAgendamento, frozenset[StatusAgendamento]] = {
-    _S.AGENDADO: frozenset({_S.VALIDADO_COMPRAS, _S.CANCELADO, _S.NAO_RECEBIDO}),
-    _S.VALIDADO_COMPRAS: frozenset({_S.AUTORIZADO, _S.CANCELADO, _S.NAO_RECEBIDO}),
-    # o caminhão pode chegar antes de ser autorizado (sem aviso prévio): ver o dossiê, seção 4
-    _S.AUTORIZADO: frozenset({_S.CHEGOU, _S.CANCELADO, _S.NAO_RECEBIDO}),
-    _S.CHEGOU: frozenset({_S.EM_DESCARGA, _S.NAO_RECEBIDO}),
+    _S.PENDENTE_COMPRAS: frozenset({_S.AUTORIZADO, _S.NAO_AUTORIZADO, _S.CANCELADO, _S.NAO_RECEBIDO}),
+    _S.AUTORIZADO: frozenset({_S.EM_DESCARGA, _S.CANCELADO, _S.NAO_RECEBIDO}),
     _S.EM_DESCARGA: frozenset({_S.CONCLUIDO}),  # descarga iniciada não é interrompida
+    _S.NAO_AUTORIZADO: frozenset(),
     _S.CONCLUIDO: frozenset(),
     _S.CANCELADO: frozenset(),
     _S.NAO_RECEBIDO: frozenset(),
 }
 
 _ROTULOS: dict[StatusAgendamento, str] = {
-    _S.AGENDADO: "Agendado",
-    _S.VALIDADO_COMPRAS: "Validado por Compras",
+    _S.PENDENTE_COMPRAS: "Aguardando Compras",
     _S.AUTORIZADO: "Autorizado",
-    _S.CHEGOU: "Na fila",
+    _S.NAO_AUTORIZADO: "Não autorizado",
     _S.EM_DESCARGA: "Descarregando",
     _S.CONCLUIDO: "Concluído",
     _S.CANCELADO: "Cancelado",
     _S.NAO_RECEBIDO: "Não recebido",
 }
 
-STATUS_QUE_LIBERAM_VAGA: frozenset[StatusAgendamento] = frozenset({_S.CANCELADO, _S.NAO_RECEBIDO})
+# Cancelado, recusado por Compras e não recebido não vão mais descarregar: liberam a vaga e a NF
+STATUS_QUE_LIBERAM_VAGA: frozenset[StatusAgendamento] = frozenset(
+    {_S.CANCELADO, _S.NAO_AUTORIZADO, _S.NAO_RECEBIDO}
+)
 
 
 class TipoEvento(StrEnum):
@@ -93,6 +94,20 @@ class MotivoNaoRecebimento(StrEnum):
     SEM_AGENDAMENTO_SEM_VAGA = "SEM_AGENDAMENTO_SEM_VAGA"
     CASO_FORTUITO = "CASO_FORTUITO"
     OUTRO = "OUTRO"  # exige descrição
+
+
+class DecisaoCompras(StrEnum):
+    """Decisão do setor de Compras ao conferir a nota fiscal contra o pedido."""
+
+    AUTORIZADO = "AUTORIZADO"
+    NAO_AUTORIZADO = "NAO_AUTORIZADO"
+
+
+class SituacaoCancelamento(StrEnum):
+    """Cancelamento: solicitação, depois efetivação (que é quando a vaga é liberada)."""
+
+    SOLICITADO = "SOLICITADO"
+    EFETIVADO = "EFETIVADO"
 
 
 # Os quatro horários disponíveis (dossiê, seção 4)

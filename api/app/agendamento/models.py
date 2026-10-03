@@ -142,6 +142,15 @@ class Descarga(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
+class DescargaEquipamento(Base):
+    """Equipamentos individuais efetivamente utilizados em uma descarga."""
+
+    __tablename__ = "descarga_equipamento"
+
+    descarga_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    equipamento_id: Mapped[int] = mapped_column(SmallInteger, primary_key=True)
+
+
 class Reagendamento(Base):
     """Histórico de mudanças de data/horário (por caso fortuito pode exceder a capacidade)."""
 

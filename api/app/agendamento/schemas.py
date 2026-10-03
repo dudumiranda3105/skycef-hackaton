@@ -99,6 +99,7 @@ class DescargaOut(EsquemaBase):
     entrada_em: datetime | None
     saida_em: datetime | None
     quantidade_chapas: int | None
+    equipamento_ids: list[int] = Field(default_factory=list)
 
 
 class AgendamentoOut(EsquemaBase):
@@ -146,6 +147,7 @@ class AgendamentoOut(EsquemaBase):
                     entrada_em=x.entrada_em,
                     saida_em=x.saida_em,
                     quantidade_chapas=x.quantidade_chapas,
+                    equipamento_ids=d.equipamentos_por_descarga.get(x.id, []),
                 )
                 for x in d.descargas
             ],

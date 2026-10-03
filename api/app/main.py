@@ -1,11 +1,15 @@
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
+from app.agendamento.operacao_router import router as operacao_router
 from app.agendamento.router import router as agendamento_router
 from app.cadastros.router import router as cadastros_router
 from app.core.config import get_settings
@@ -41,7 +45,17 @@ def create_app() -> FastAPI:
     )
     registrar_handlers(app)
     app.include_router(agendamento_router)
+    app.include_router(operacao_router)
     app.include_router(cadastros_router)
+    app.mount(
+        "/app",
+        StaticFiles(directory=Path(__file__).with_name("static"), html=True),
+        name="tarefa-1",
+    )
+
+    @app.get("/", include_in_schema=False)
+    def inicio() -> RedirectResponse:
+        return RedirectResponse("/app/")
 
     @app.get("/health", tags=["Infra"], summary="Saúde da aplicação e do banco")
     def health() -> dict[str, str]:

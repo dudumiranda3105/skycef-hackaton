@@ -4,7 +4,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.cadastros.models import Armazem, DataNaoOperacional, Fornecedor
+from app.cadastros.models import Armazem, DataNaoOperacional, Equipamento, Fornecedor
 from app.core.errors import ConflitoError, NaoEncontradoError, RegraDeNegocioError
 
 _SABADO, _DOMINGO = 5, 6  # date.weekday()
@@ -38,6 +38,12 @@ class ArmazemService:
         faltando = sorted(set(ids) - achados)
         if faltando:
             raise RegraDeNegocioError(f"Armazém inválido: {', '.join(str(i) for i in faltando)}.")
+
+    def listar_equipamentos(self, armazem_id: int | None = None) -> list[Equipamento]:
+        consulta = select(Equipamento)
+        if armazem_id is not None:
+            consulta = consulta.where(Equipamento.armazem_id == armazem_id)
+        return list(self.session.scalars(consulta.order_by(Equipamento.identificacao)))
 
 
 class FornecedorService:

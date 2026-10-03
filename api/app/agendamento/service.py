@@ -21,6 +21,7 @@ from app.agendamento.domain import (
 from app.agendamento.models import (
     Agendamento,
     Descarga,
+    DescargaEquipamento,
     EventoAgendamento,
     NaoRecebimento,
     NotaFiscal,
@@ -84,6 +85,7 @@ class DetalhesAgendamento:
     notas: list[NotaFiscal] = field(default_factory=list)
     validacao: ValidacaoCompras | None = None
     descargas: list[Descarga] = field(default_factory=list)
+    equipamentos_por_descarga: dict[int, list[int]] = field(default_factory=dict)
 
 
 def travar_slot(session: Session, data: date, horario: time) -> None:
@@ -298,6 +300,24 @@ class AgendamentoService:
             .order_by(Descarga.agendamento_id, Descarga.armazem_id)
         ):
             resultado[descarga.agendamento_id].descargas.append(descarga)
+        ids_descargas = [
+            descarga.id for detalhe in resultado.values() for descarga in detalhe.descargas
+        ]
+        if ids_descargas:
+            descarga_para_agendamento = {
+                descarga.id: agendamento_id
+                for agendamento_id, detalhe in resultado.items()
+                for descarga in detalhe.descargas
+            }
+            for vinculo in self.session.scalars(
+                select(DescargaEquipamento).where(
+                    DescargaEquipamento.descarga_id.in_(ids_descargas)
+                )
+            ):
+                agendamento_id = descarga_para_agendamento[vinculo.descarga_id]
+                resultado[agendamento_id].equipamentos_por_descarga.setdefault(
+                    vinculo.descarga_id, []
+                ).append(vinculo.equipamento_id)
         return resultado
 
     def consultar_grade(self, data: date) -> GradeDoDia:

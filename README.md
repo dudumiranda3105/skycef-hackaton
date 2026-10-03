@@ -10,7 +10,7 @@ sobrando ou faltando?**
 
 ```
 api/        Backend (Python + FastAPI + SQLAlchemy + PostgreSQL)
-web/        Front-end (React + Vite + TypeScript)
+web/        Notas sobre a interface web
 etl/        Scripts de carga: lêem os dados de ./data e populam o banco
 docs/       Artefatos obrigatórios: relatório gerencial, caso de uso, BPMN, DER
 data/       Pasta LOCAL dos dados da Cocapec (ignorada pelo Git, nunca commitar)
@@ -60,11 +60,46 @@ uv sync                         # cria o .venv e instala as dependências
 uv run uvicorn app.main:app --reload
 ```
 
+- Interface da Tarefa 1: http://localhost:8000/app/
 - API: http://localhost:8000
 - Swagger: http://localhost:8000/docs
 - Health: http://localhost:8000/health
 
 Com Docker: `docker compose up --build` sobe o PostgreSQL e a API.
+
+### Fluxo funcional da Tarefa 1
+
+A Tarefa 1 está disponível em uma interface web leve servida pela própria API, sem precisar
+iniciar um segundo processo. O fluxo implementado é:
+
+1. cadastrar ou selecionar o fornecedor;
+2. escolher data, horário e acondicionamento (`BATIDO`, `PALETIZADO` ou `BIG_BAG`);
+3. anexar uma ou mais notas fiscais em XML/PDF, gravadas no PostgreSQL;
+4. Compras autorizar ou recusar após a conferência com o pedido;
+5. o responsável definir um ou mais armazéns, gerando uma descarga independente por destino;
+6. registrar chegada, entrada e saída de cada descarga;
+7. informar, na saída, quantos chapas e quais equipamentos individuais foram utilizados.
+
+Também estão implementados o cancelamento em duas etapas, a decisão do responsável sobre a
+vaga liberada, o reagendamento com histórico, a exceção de capacidade por caso fortuito e o
+registro de não recebimentos — inclusive para caminhão sem agendamento e sem vaga.
+
+Regras de ocupação aplicadas globalmente à cooperativa:
+
+- carga batida ocupa sozinha o horário;
+- sem carga batida, cabem até dois caminhões paletizados ou big bag;
+- horários disponíveis: 08h00, 10h00, 13h00 e 15h00;
+- recebimentos somente em dias úteis e fora dos feriados cadastrados;
+- a reserva é protegida contra concorrência no PostgreSQL.
+
+O contrato completo está documentado no Swagger (`/docs`). Os testes de aceite específicos
+estão em `api/tests/test_tarefa1_fluxo_completo.py` e
+`api/tests/test_tarefa1_contrato.py`.
+
+Esses registros pertencem exclusivamente à Tarefa 1. A quantidade de chapas de uma descarga
+mede a intensidade daquela carga e não altera nem substitui a equipe do boletim diário da
+Tarefa 2. Nenhum cálculo de boletim ou indicador da Tarefa 3 é alterado pela operação da
+Tarefa 1.
 
 ### Testes
 

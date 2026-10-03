@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.net.URI;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -145,13 +144,6 @@ class PainelPostgresIntegrationTest {
     private static ConnectionInfo connection(String value){
         String user=System.getenv("TEST_DB_USER"),password=System.getenv("TEST_DB_PASSWORD");
         if(value.startsWith("jdbc:postgresql:"))return new ConnectionInfo(value,user,password);
-        String normal=value.replace("postgresql+psycopg://","postgresql://");
-        URI uri=URI.create(normal);
-        if(!uri.getScheme().equals("postgresql"))throw new IllegalArgumentException("TEST_DB_URL deve apontar para PostgreSQL");
-        String[] auth=uri.getUserInfo()==null?new String[0]:uri.getUserInfo().split(":",2);
-        String jdbc="jdbc:postgresql://"+uri.getHost()+(uri.getPort()<0?"":":"+uri.getPort())+uri.getPath()
-            +(uri.getQuery()==null?"":"?"+uri.getQuery());
-        return new ConnectionInfo(jdbc,user!=null?user:auth.length>0?auth[0]:null,
-            password!=null?password:auth.length>1?auth[1]:null);
+        throw new IllegalArgumentException("TEST_DB_URL deve ser uma URL JDBC PostgreSQL");
     }
 }

@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * Bancos criados pela API Python já têm V1–V7 em schema_migrations.
+ * Bancos existentes podem ter V1–V7 registrados em schema_migrations.
  * Registra essa versão como baseline do Flyway antes de aplicar migrações futuras.
  */
 @Configuration

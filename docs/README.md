@@ -26,4 +26,3 @@ Outros documentos:
 - [`API-TAREFA2.md`](API-TAREFA2.md) — contrato da API do boletim dos chapas (regra do piso, endpoints, erros).
 - [`API-TAREFA3.md`](API-TAREFA3.md) — contrato do painel gerencial (indicadores, sobra/falta de chapas em R$, histórico) e a página `/painel`.
 - [`GUIA-TAREFA2.md`](GUIA-TAREFA2.md) — guia da Tarefa 2 (regras, armadilhas e achados nos dados).
-- [`ALINHAMENTO-BACKEND.md`](ALINHAMENTO-BACKEND.md) — histórico da comparação com a branch do Codex.

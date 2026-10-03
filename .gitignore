@@ -7,17 +7,9 @@ data/*
 DADOS_HACKATHON_2026*
 DADOS_HACKATHON_2026.zip
 
-# Python
-.venv/
-__pycache__/
-*.pyc
 *.db
 api/target/
 .pg-test/
-.pytest_tmp/
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
 *.log
 
 # Node / front

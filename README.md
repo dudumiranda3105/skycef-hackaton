@@ -7,7 +7,6 @@ Projeto do X Hackathon Uni-FACEF 2026. Implementa agendamento e recebimento (Tar
 - Backend: **Java 21 + Spring Boot 3.5**, Spring JDBC, Flyway e PostgreSQL.
 - Interface: HTML, CSS e JavaScript servidos pelo Spring Boot, sem outro processo.
 - Dados: migrations PostgreSQL em `api/migrations/V*.sql`; carga opcional do histórico com Apache POI.
-- O runtime não usa Python nem SQLite. O banco SQLite antigo, se existir localmente, não contém registros operacionais e não é usado.
 
 ## Executar
 

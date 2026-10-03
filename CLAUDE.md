@@ -34,7 +34,6 @@ Três módulos encadeados:
 - **Front:** React + Vite + TypeScript (`web/`). JSON da API em camelCase.
 - **Análise do histórico / ETL:** Java + Apache POI, ativado explicitamente por `--dados=<zip>`.
 - **Testes:** JUnit/Maven; integrações usam PostgreSQL real em schema temporário quando `TEST_DB_URL` estiver definido.
-- O backend Python/FastAPI fica preservado no histórico da branch `dev-dudu`; não faz parte do runtime Java.
 
 Requisitos técnicos que valem para qualquer stack:
 

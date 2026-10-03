@@ -130,7 +130,7 @@ class AgendamentoService:
 
             ocupantes = self.ocupantes_do_slot(cmd.data, cmd.horario)
             if not domain.cabe(ocupantes, cmd.acondicionamento):
-                raise ConflitoError(_motivo_sem_vaga(ocupantes, cmd.acondicionamento))
+                raise ConflitoError(motivo_sem_vaga(ocupantes, cmd.acondicionamento))
 
             agora = self.relogio.agora()
             agendamento = Agendamento(
@@ -191,8 +191,8 @@ class AgendamentoService:
         AUTORIZADO (exige o pedido de referência) -> o agendamento segue para o armazém.
         NAO_AUTORIZADO (exige o motivo) -> a vaga e as notas são liberadas, e a divergência
         entra nos não recebimentos."""
-        pedido = _texto(pedido_referencia, 20)
-        nota = _texto(observacao, 250)
+        pedido = texto_livre(pedido_referencia, 20)
+        nota = texto_livre(observacao, 250)
         if decisao == DecisaoCompras.AUTORIZADO and pedido is None:
             raise RegraDeNegocioError("Informe o pedido de compra de referência para autorizar.")
         if decisao == DecisaoCompras.NAO_AUTORIZADO and nota is None:
@@ -279,7 +279,7 @@ class AgendamentoService:
                     de_status=agendamento.status,
                     para_status=agendamento.status,
                     tipo=TipoEvento.DESTINO,
-                    observacao=_texto(observacao, 250) or "Armazém(ns) de destino definido(s)",
+                    observacao=texto_livre(observacao, 250) or "Armazém(ns) de destino definido(s)",
                     detalhe={"armazemIds": destinos},
                     ocorrido_em=agora,
                 )
@@ -471,19 +471,22 @@ class AgendamentoService:
             raise RegraDeNegocioError("O peso da carga não pode ser negativo.")
 
     def _validar_calendario(self, cmd: AgendarCommand) -> None:
+        self.validar_data_horario(cmd.data, cmd.horario, cmd.agendado_na_hora)
+
+    def validar_data_horario(self, data: date, horario: time, agendado_na_hora: bool = False) -> None:
+        """Data não passada, dia útil e (hoje) horário ainda não vencido."""
         agora = self.relogio.agora()
-        if cmd.data < agora.date():
-            raise RegraDeNegocioError("Não é possível agendar em uma data passada.")
-        motivo = self.calendario.motivo_dia_nao_util(cmd.data)
+        if data < agora.date():
+            raise RegraDeNegocioError("Não é possível usar uma data passada.")
+        motivo = self.calendario.motivo_dia_nao_util(data)
         if motivo is not None:
             raise RegraDeNegocioError(motivo)
         # O caminhão sem aviso pode agendar "na hora", mesmo em horário já iniciado
-        if cmd.data == agora.date() and cmd.horario < agora.time().replace(tzinfo=None):
-            if not cmd.agendado_na_hora:
-                raise RegraDeNegocioError("Este horário já passou. Escolha um horário posterior.")
+        if data == agora.date() and horario < agora.time().replace(tzinfo=None) and not agendado_na_hora:
+            raise RegraDeNegocioError("Este horário já passou. Escolha um horário posterior.")
 
 
-def _texto(valor: str | None, limite: int) -> str | None:
+def texto_livre(valor: str | None, limite: int) -> str | None:
     """Texto livre do usuário: sem espaços nas pontas; vazio vira None; respeita o tamanho da coluna."""
     if valor is None or not valor.strip():
         return None
@@ -493,7 +496,7 @@ def _texto(valor: str | None, limite: int) -> str | None:
     return limpo
 
 
-def _motivo_sem_vaga(ocupantes: list[Acondicionamento], novo: Acondicionamento) -> str:
+def motivo_sem_vaga(ocupantes: list[Acondicionamento], novo: Acondicionamento) -> str:
     if Acondicionamento.BATIDO in ocupantes:
         return "Horário sem vaga: já há uma carga batida, que reserva o horário inteiro."
     if novo == Acondicionamento.BATIDO:

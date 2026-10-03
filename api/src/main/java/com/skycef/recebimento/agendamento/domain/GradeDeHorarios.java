@@ -16,6 +16,6 @@ public final class GradeDeHorarios {
     }
 
     public static boolean valido(LocalTime horario) {
-        return HORARIOS.contains(horario);
+        return horario != null && HORARIOS.contains(horario);
     }
 }

@@ -20,7 +20,9 @@ from app.agendamento.domain import (
 )
 from app.agendamento.models import (
     Agendamento,
+    Cancelamento,
     Descarga,
+    DescargaEquipamento,
     EventoAgendamento,
     NaoRecebimento,
     NotaFiscal,
@@ -84,6 +86,8 @@ class DetalhesAgendamento:
     notas: list[NotaFiscal] = field(default_factory=list)
     validacao: ValidacaoCompras | None = None
     descargas: list[Descarga] = field(default_factory=list)
+    cancelamento: Cancelamento | None = None
+    equipamentos: dict[int, list[int]] = field(default_factory=dict)  # descarga_id -> equipamento_ids
 
 
 def travar_slot(session: Session, data: date, horario: time) -> None:
@@ -124,7 +128,7 @@ class AgendamentoService:
 
             travar_slot(self.session, cmd.data, cmd.horario)
 
-            ocupantes = self._ocupantes_do_slot(cmd.data, cmd.horario)
+            ocupantes = self.ocupantes_do_slot(cmd.data, cmd.horario)
             if not domain.cabe(ocupantes, cmd.acondicionamento):
                 raise ConflitoError(_motivo_sem_vaga(ocupantes, cmd.acondicionamento))
 
@@ -195,17 +199,17 @@ class AgendamentoService:
             raise RegraDeNegocioError("Descreva a divergência encontrada entre a nota e o pedido.")
 
         with transacao(self.session):
-            agendamento = self._carregar_travado(agendamento_id)
+            agendamento = self.carregar_travado(agendamento_id)
             agora = self.relogio.agora()
             if decisao == DecisaoCompras.AUTORIZADO:
-                self._mudar_status(
+                self.mudar_status(
                     agendamento,
                     StatusAgendamento.AUTORIZADO,
                     agora,
                     nota or "Nota conferida com o pedido de compra",
                 )
             else:
-                self._mudar_status(
+                self.mudar_status(
                     agendamento,
                     StatusAgendamento.NAO_AUTORIZADO,
                     agora,
@@ -243,7 +247,7 @@ class AgendamentoService:
             raise RegraDeNegocioError("Informe ao menos um armazém de destino.")
 
         with transacao(self.session):
-            agendamento = self._carregar_travado(agendamento_id)
+            agendamento = self.carregar_travado(agendamento_id)
             if agendamento.status != StatusAgendamento.AUTORIZADO:
                 if agendamento.status == StatusAgendamento.PENDENTE_COMPRAS:
                     raise ConflitoError(
@@ -261,7 +265,12 @@ class AgendamentoService:
 
             agora = self.relogio.agora()
             self.session.add_all(
-                Descarga(agendamento_id=agendamento.id, armazem_id=armazem, criado_em=agora)
+                Descarga(
+                    agendamento_id=agendamento.id,
+                    armazem_id=armazem,
+                    chegada_em=agendamento.chegada_em,  # o caminhão pode já estar na fila
+                    criado_em=agora,
+                )
                 for armazem in destinos
             )
             self.session.add(
@@ -298,6 +307,19 @@ class AgendamentoService:
             .order_by(Descarga.agendamento_id, Descarga.armazem_id)
         ):
             resultado[descarga.agendamento_id].descargas.append(descarga)
+        descarga_dono = {d.id: d.agendamento_id for r in resultado.values() for d in r.descargas}
+        if descarga_dono:
+            for item in self.session.scalars(
+                select(DescargaEquipamento)
+                .where(DescargaEquipamento.descarga_id.in_(list(descarga_dono)))
+                .order_by(DescargaEquipamento.descarga_id, DescargaEquipamento.equipamento_id)
+            ):
+                dono = resultado[descarga_dono[item.descarga_id]]
+                dono.equipamentos.setdefault(item.descarga_id, []).append(item.equipamento_id)
+        for cancelamento in self.session.scalars(
+            select(Cancelamento).where(Cancelamento.agendamento_id.in_(agendamento_ids))
+        ):
+            resultado[cancelamento.agendamento_id].cancelamento = cancelamento
         return resultado
 
     def consultar_grade(self, data: date) -> GradeDoDia:
@@ -307,7 +329,7 @@ class AgendamentoService:
             return GradeDoDia(data, False, motivo, [])
         slots = []
         for horario in HORARIOS:
-            ocupantes = self._ocupantes_do_slot(data, horario)
+            ocupantes = self.ocupantes_do_slot(data, horario)
             slots.append(
                 Slot(
                     horario=horario,
@@ -343,7 +365,7 @@ class AgendamentoService:
 
     # ------------------------------------------------------------------ internos
 
-    def _carregar_travado(self, agendamento_id: int) -> Agendamento:
+    def carregar_travado(self, agendamento_id: int) -> Agendamento:
         """Carrega o agendamento com lock de linha (SELECT ... FOR UPDATE): duas pessoas agindo
         sobre o mesmo agendamento são atendidas uma de cada vez, e a segunda vê o estado novo."""
         consulta = (
@@ -357,7 +379,7 @@ class AgendamentoService:
             raise NaoEncontradoError(f"Agendamento não encontrado: {agendamento_id}")
         return agendamento
 
-    def _mudar_status(
+    def mudar_status(
         self, agendamento: Agendamento, novo: StatusAgendamento, agora: datetime, observacao: str
     ) -> None:
         """Aplica uma transição válida e registra o evento; senão, 409 com o estado atual.
@@ -385,23 +407,52 @@ class AgendamentoService:
             )
         )
 
-    def _ocupantes_do_slot(self, data: date, horario: time) -> list[Acondicionamento]:
-        """Quem ocupa o horário: agendamentos ativos e vagas canceladas ainda em aberto."""
-        ativos = self.session.scalars(
-            select(Agendamento.acondicionamento).where(
-                Agendamento.data_agendada == data,
-                Agendamento.horario == horario,
-                Agendamento.status.not_in(STATUS_QUE_LIBERAM_VAGA),
-            )
+    def ocupantes_do_slot(
+        self,
+        data: date,
+        horario: time,
+        excluir_agendamento_id: int | None = None,
+        excluir_vaga_id: int | None = None,
+    ) -> list[Acondicionamento]:
+        """Quem ocupa o horário: agendamentos ativos e vagas canceladas ainda em aberto.
+
+        As exclusões servem para perguntar "caberia se esta pessoa/vaga saísse dali?"
+        (reagendamento e atribuição de vaga liberada)."""
+        consulta_ativos = select(Agendamento.acondicionamento).where(
+            Agendamento.data_agendada == data,
+            Agendamento.horario == horario,
+            Agendamento.status.not_in(STATUS_QUE_LIBERAM_VAGA),
         )
-        abertas = self.session.scalars(
-            select(VagaLiberada.acondicionamento).where(
-                VagaLiberada.data_vaga == data,
-                VagaLiberada.horario == horario,
-                VagaLiberada.status == StatusVagaLiberada.ABERTA,
-            )
+        if excluir_agendamento_id is not None:
+            consulta_ativos = consulta_ativos.where(Agendamento.id != excluir_agendamento_id)
+        consulta_abertas = select(VagaLiberada.acondicionamento).where(
+            VagaLiberada.data_vaga == data,
+            VagaLiberada.horario == horario,
+            VagaLiberada.status == StatusVagaLiberada.ABERTA,
         )
-        return [*ativos, *abertas]
+        if excluir_vaga_id is not None:
+            consulta_abertas = consulta_abertas.where(VagaLiberada.id != excluir_vaga_id)
+        return [*self.session.scalars(consulta_ativos), *self.session.scalars(consulta_abertas)]
+
+    def carregar_com_slots(
+        self, agendamento_id: int, extras: Sequence[tuple[date, time]] = ()
+    ) -> Agendamento:
+        """Trava os horários envolvidos e DEPOIS a linha do agendamento.
+
+        Ordem única de locks no sistema (primeiro os advisory locks dos horários, em ordem
+        crescente; depois as linhas), para dois fluxos concorrentes (cancelar, reagendar,
+        atribuir vaga) nunca esperarem um pelo outro. Se o agendamento mudou de horário entre
+        a leitura e o lock, devolve 409 e o cliente tenta de novo."""
+        lido = self.session.get(Agendamento, agendamento_id)
+        if lido is None:
+            raise NaoEncontradoError(f"Agendamento não encontrado: {agendamento_id}")
+        slot_original = (lido.data_agendada, lido.horario)
+        for data, horario in sorted({slot_original, *extras}):
+            travar_slot(self.session, data, horario)
+        agendamento = self.carregar_travado(agendamento_id)
+        if (agendamento.data_agendada, agendamento.horario) != slot_original:
+            raise ConflitoError("O agendamento foi alterado por outra pessoa; tente novamente.")
+        return agendamento
 
     def _chaves_ja_agendadas(self, chaves: Sequence[str]) -> bool:
         consulta = select(exists().where(NotaFiscal.nf_chave.in_(chaves), NotaFiscal.ativa.is_(True)))

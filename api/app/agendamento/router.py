@@ -31,7 +31,7 @@ Servico = Annotated[AgendamentoService, Depends(get_service)]
 DataConsulta = Annotated[date, Query(description="AAAA-MM-DD")]
 
 
-def _saida(servico: AgendamentoService, agendamento: Agendamento) -> AgendamentoOut:
+def montar_saida(servico: AgendamentoService, agendamento: Agendamento) -> AgendamentoOut:
     return AgendamentoOut.desde(agendamento, servico.detalhes([agendamento.id])[agendamento.id])
 
 
@@ -60,7 +60,7 @@ def agendar(corpo: AgendarIn, servico: Servico) -> AgendamentoOut:
             agendado_na_hora=corpo.agendado_na_hora,
         )
     )
-    return _saida(servico, criado)
+    return montar_saida(servico, criado)
 
 
 @router.get("/agendamentos", response_model=list[AgendamentoOut], summary="Agendamentos de um dia")
@@ -76,7 +76,7 @@ def listar(servico: Servico, data: DataConsulta) -> list[AgendamentoOut]:
     summary="Detalhe de um agendamento",
 )
 def obter(agendamento_id: int, servico: Servico) -> AgendamentoOut:
-    return _saida(servico, servico.obter(agendamento_id))
+    return montar_saida(servico, servico.obter(agendamento_id))
 
 
 @router.get(
@@ -97,7 +97,7 @@ def decidir_compras(agendamento_id: int, corpo: DecisaoComprasIn, servico: Servi
     decidido = servico.decidir_compras(
         agendamento_id, corpo.decisao, corpo.pedido_referencia, corpo.observacao
     )
-    return _saida(servico, decidido)
+    return montar_saida(servico, decidido)
 
 
 @router.post(
@@ -107,4 +107,4 @@ def decidir_compras(agendamento_id: int, corpo: DecisaoComprasIn, servico: Servi
 )
 def definir_destinos(agendamento_id: int, corpo: DestinosIn, servico: Servico) -> AgendamentoOut:
     definido = servico.definir_destinos(agendamento_id, corpo.armazem_ids, corpo.observacao)
-    return _saida(servico, definido)
+    return montar_saida(servico, definido)

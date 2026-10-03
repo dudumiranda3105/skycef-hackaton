@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.agendamento.router import router as agendamento_router
+from app.agendamento.router_fluxo import router as fluxo_router
 from app.cadastros.router import router as cadastros_router
 from app.core.config import get_settings
 from app.core.db import get_engine
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     )
     registrar_handlers(app)
     app.include_router(agendamento_router)
+    app.include_router(fluxo_router)
     app.include_router(cadastros_router)
 
     @app.get("/health", tags=["Infra"], summary="Saúde da aplicação e do banco")

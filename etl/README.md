@@ -1,26 +1,11 @@
-# ETL
+# Carga de dados
 
-Scripts de carga dos dados da Cocapec, em Python (pandas + openpyxl). Leem de `../data`
-(fora do Git) e gravam no PostgreSQL, reaproveitando os modelos de `api/app`.
-
-Já existe: `api/app/etl/chapas.py` (cadastro de chapas, 51). Rode, na pasta `api`:
+O importador foi incorporado ao backend Java em `api/src/main/java/com/skycef/recebimento/dados`. Ele lê o ZIP original somente de um caminho local, importa os chapas e o histórico para PostgreSQL e marca a origem como `HISTORICO`. Os arquivos da Cocapec não são versionados.
 
 ```bash
-uv run python -m app.etl.chapas --dados C:/caminho/DADOS_HACKATHON_2026.zip   # pasta ou .zip; idempotente
+cd api
+mvn package
+java -jar target/recebimento-1.0.0.jar --dados=C:/caminho/DADOS_HACKATHON_2026.zip
 ```
 
-Ordem prevista:
-
-1. `cadastros`: `fornecedores.xlsx`, `produtos.xlsx`, `chapas` (matrículas CHAPA_nn)
-2. `historico de recebimentos`: `pedido_recebimento_notafiscal.xlsx` → `hist_recebimento_item`
-3. `folha dos chapas`: `chapas_por_dia_2025/2026.xlsx` → `hist_chapa_dia`, `hist_chapa_presenca`
-
-Os equipamentos por local já vêm da migration V4 (dossiê, seção 6); a planilha
-`equipamentos_descarga.xlsx` só lista tipos e finalidades.
-
-Pontos de atenção (dados não limpos):
-
-- Não há registro de agosto e dezembro de 2025 na folha.
-- O código de produto dentro do XML da NF é do fornecedor; o da planilha é o da Cocapec.
-  A ligação NF ↔ pedido é pela chave de acesso.
-- Documentar no relatório gerencial cada problema encontrado e o tratamento dado.
+A operação substitui as tabelas históricas numa transação, sem alterar os registros da plataforma. Para os dados de demonstração `TESTE`, use `--demo-seed` em uma execução separada. Consulte o [README principal](../README.md).

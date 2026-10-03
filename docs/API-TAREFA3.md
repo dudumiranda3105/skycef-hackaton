@@ -51,9 +51,8 @@ Método e premissas em [`relatorio-gerencial.md`](relatorio-gerencial.md), seç�
 
 ```bash
 cd api
-uv run python -m app.etl.historico --dados <DADOS_HACKATHON_2026.zip>   # histórico real (origem HISTORICO)
-uv run python -m app.seed.demo --recriar                                 # 3 semanas de teste (origem TESTE)
+java -jar target/recebimento-1.0.0.jar --dados=<DADOS_HACKATHON_2026.zip>  # histórico real (HISTORICO)
+java -jar target/recebimento-1.0.0.jar --demo-seed                         # 3 semanas de teste (TESTE)
 ```
 
-`--recriar` **apaga** fornecedores, agendamentos e boletins (inclusive os da plataforma). O seed passa pelos serviços
-reais da Tarefa 1 e 2 e marca tudo como `TESTE`; o painel filtra por origem.
+O seed é explícito, idempotente e preserva registros existentes. Ele marca os registros criados como `TESTE`; o painel filtra por origem.

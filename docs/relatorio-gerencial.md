@@ -201,7 +201,7 @@ da operação de café). Valoração: diárias × R$ 90,1731.
 | Chapas presentes e da operação de café por dia | `HISTORICO` | `chapas_por_dia.csv` (428 dias, jan/2025–ago/2026) |
 | Tabela de preços e piso do boletim | `HISTORICO` | `boletim_diario_chapas.xlsx` (Cocapec) e dossiê, seção 8 |
 | Esforço por recebimento | Norma do dossiê (parâmetro) | Dossiê, seções 7 e 9 |
-| Agendamentos, descargas, não recebimentos e boletins de demonstração | `TESTE` | gerados pela equipe: `python -m app.seed.demo --recriar` |
+| Agendamentos, descargas, não recebimentos e boletins de demonstração | `TESTE` | gerados pela equipe: `java -jar api/target/recebimento-1.0.0.jar --demo-seed` |
 | Agendamentos, descargas, não recebimentos e boletins feitos no uso real | `PLATAFORMA` | registrados pelo sistema |
 
 Cada registro operacional carrega a coluna `origem`, e o painel filtra por ela. A tela do painel mostra a origem ao lado
@@ -237,11 +237,10 @@ Os dados vieram sem limpeza. O ETL (`app.etl.historico`) conta cada problema e o
 
 ```bash
 cd api
-uv run python -m app.core.migrate                                    # esquema + chapas (V7)
-uv run python -m app.etl.historico --dados <DADOS_HACKATHON_2026.zip>   # histórico real
-uv run python -m app.seed.demo --recriar                              # dados de teste (apaga os operacionais!)
-uv run uvicorn app.main:app --port 8000                               # painel em http://localhost:8000/painel
-uv run pytest                                                         # 396+ testes contra PostgreSQL
+mvn clean package                                                       # compila e testa; Flyway aplica V1–V7 ao iniciar
+java -jar target/recebimento-1.0.0.jar --dados=<DADOS_HACKATHON_2026.zip>  # histórico real
+java -jar target/recebimento-1.0.0.jar --demo-seed                         # dados TESTE, sem apagar os existentes
+java -jar target/recebimento-1.0.0.jar                                     # painel em http://localhost:8000/painel
 ```
 
 Rotas do painel: `GET /api/painel/operacao`, `/api/painel/dimensionamento/plataforma`,

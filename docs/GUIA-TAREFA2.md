@@ -1,6 +1,6 @@
 # Guia da Tarefa 2 — Boletim Diário de Serviços dos Ensacadores
 
-Para quem for implementar. Peso na nota: **25%**, avaliado pela **correção do cálculo** (piso e complemento),
+Referência de implementação. Peso na nota: **25%**, avaliado pela **correção do cálculo** (piso e complemento),
 qualidade de engenharia e domínio na apresentação. O custo apurado aqui alimenta o painel da Tarefa 3
 (`total_a_pagar` do boletim = custo da operação). Fontes: dossiê (seção 8), regulamento (Tarefa 2), `CLAUDE.md` (seção 5).
 
@@ -8,20 +8,18 @@ qualidade de engenharia e domínio na apresentação. O custo apurado aqui alime
 
 | Item | Onde | Estado |
 |---|---|---|
-| Regra do piso e do complemento (Decimal, 4 casas) | `api/app/boletim/domain.py` | pronto e testado contra o exemplo oficial |
-| Produção a partir das linhas × preços; limite de 20 chapas | `domain.py` (`calcular_boletim`, `validar_equipe`) | pronto |
-| Situação `INCONSISTENTE` (sem equipe: não divide) | `domain.py` | pronto |
+| Regra do piso e do complemento (BigDecimal, 4 casas) | `api/src/main/java/com/skycef/recebimento/boletim/BoletimCalculator.java` | pronto e testado contra o exemplo oficial |
+| Produção a partir das linhas × preços; limite de 20 chapas | `BoletimService.java` | pronto |
+| Situação `INCONSISTENTE` (sem equipe: não divide) | `BoletimCalculator.java` | pronto |
 | Tabelas do boletim, preços (14 tipos) e piso | migrations V1, V2 e V5 | no banco, validadas |
-| Modelos SQLAlchemy | `api/app/boletim/models.py` | prontos, testados contra o banco |
-| Cadastro de **51 chapas** (`CHAPA_nn`) | `api/app/etl/chapas.py` | carregado; `python -m app.etl.chapas --dados <zip>` |
-| Testes | `tests/test_boletim_piso.py`, `test_boletim_modelo.py`, `test_etl_chapas.py`, `test_boletim_service.py`, `test_boletim_api.py` | 60+ casos |
+| Persistência JDBC | `BoletimService.java` | pronta, usando PostgreSQL |
+| Cadastro de **51 chapas** (`CHAPA_nn`) | migration V7 + `dados/CargaDadosService.java` | seed e carga pelo ZIP |
+| Testes | `api/src/test/java/com/skycef/recebimento/boletim/` | cálculo e integração PostgreSQL |
 
-## 2. O que foi feito na API (e o que falta)
+## 2. API e tela
 
-Implementado: **serviço** (`api/app/boletim/service.py`), **contratos** (`schemas.py`), **rotas** (`router.py`,
-registrado em `app/main.py`) e **testes de serviço e HTTP** (`tests/test_boletim_service.py`,
-`tests/test_boletim_api.py`). O contrato completo está em [`API-TAREFA2.md`](API-TAREFA2.md).
-Falta a **tela do boletim** (o front é à parte).
+Implementado em `api/src/main/java/com/skycef/recebimento/boletim/`: cálculo, serviço JDBC e controller HTTP.
+A tela é `/app/boletim.html`. O contrato completo está em [`API-TAREFA2.md`](API-TAREFA2.md).
 
 ### Endpoints (implementados; detalhes em `API-TAREFA2.md`)
 
@@ -82,13 +80,10 @@ As 11 chapas do exemplo, por `CHAPA_nn`: `08, 09, 15, 48, 30, 49, 37, 38, 41, 42
 
 ## 6. Como trabalhar (padrão do projeto)
 
-- Copie o formato da Tarefa 1 (`api/app/agendamento/`): `service.py` com `transacao(session)` (commit/rollback), erros
-  `RegraDeNegocioError` (422), `ConflitoError` (409) e `NaoEncontradoError` (404) de `app.core.errors`, JSON camelCase,
-  `EsquemaEntrada` com `extra="forbid"` (o cliente não define `situacao`, `origem` nem totais: o servidor calcula).
-- Valide no serviço e use o domínio (`calcular_boletim`, `validar_equipe`); não recalcule à mão.
-- Testes contra o **PostgreSQL real** (`tests/conftest.py`: schema temporário). Não use SQLite.
-- Rodar: `cd api && uv run pytest && uv run ruff check .`. Banco: `uv run python -m app.core.migrate`.
-- Se precisar mudar o banco, crie a **migration V7** (`api/migrations/V7__...sql`); nunca edite V1–V6.
+- Preserve JSON camelCase. O cliente envia somente produção e equipe; situação, origem e totais são calculados no servidor.
+- Valide no serviço e use `BoletimCalculator`; não recalcule à mão.
+- Execute `cd api && mvn clean test`. Testes de integração usam `TEST_DB_URL` para PostgreSQL real em schema temporário.
+- Para mudar o banco, adicione uma migration **V8 ou posterior** em `api/migrations/`; nunca edite versões já aplicadas.
 
 ## 7. Em aberto
 

@@ -27,14 +27,14 @@ Três módulos encadeados:
 
 ## 2. Stack
 
-**Definida pela equipe (03/10/2026):**
+**Atualizada na branch `codex/springboot-backend` (03/10/2026):**
 
-- **Backend:** Python 3.12+ · **FastAPI** · SQLAlchemy 2 (síncrono) · psycopg 3 · Pydantic v2 · gerenciado com **uv** (`api/pyproject.toml`).
-- **Banco:** **PostgreSQL**. Esquema em `api/migrations/V*.sql`, aplicado por `python -m app.core.migrate` (roda também ao iniciar a API).
+- **Backend:** Java 21 · **Spring Boot 3.5** · Spring JDBC · Maven (`api/pom.xml`).
+- **Banco:** **PostgreSQL**. Esquema em `api/migrations/V*.sql`, aplicado por Flyway ao iniciar a API. Bancos criados pelo backend anterior usam `schema_migrations` como baseline.
 - **Front:** React + Vite + TypeScript (`web/`). JSON da API em camelCase.
-- **Análise do histórico / ETL:** Python + pandas (`etl/`).
-- **Testes:** pytest contra PostgreSQL real, em schema temporário (`api/tests`).
-- O backend em Java (Spring Boot) foi abandonado; fica só no histórico do Git.
+- **Análise do histórico / ETL:** Java + Apache POI, ativado explicitamente por `--dados=<zip>`.
+- **Testes:** JUnit/Maven; integrações usam PostgreSQL real em schema temporário quando `TEST_DB_URL` estiver definido.
+- O backend Python/FastAPI fica preservado no histórico da branch `dev-dudu`; não faz parte do runtime Java.
 
 Requisitos técnicos que valem para qualquer stack:
 
@@ -198,15 +198,15 @@ Filtros: **período** e **armazém** (mínimo). Indicadores:
 
 O histórico **não tem** horários de chegada/descarga, chapas ou equipamentos por recebimento → nunca inventar esses valores; estimativas do Dossiê (ex.: 10 paletes ≈ 15 min) são parâmetros, não medições.
 
-### Metodologia do histórico (implementada em `api/app/painel`; números em `docs/relatorio-gerencial.md`)
+### Metodologia do histórico (implementada em `api/src/main/java/com/skycef/recebimento/painel`; números em `docs/relatorio-gerencial.md`)
 - Unidade de carga: **evento recebimento-destino** = único `(data_recebimento, nº recebimento, armazém físico)` em `pedido_recebimento_notafiscal.xlsx` (1 linha = 1 item de pedido, não 1 caminhão; a mediana é de 15 recebimentos por dia com movimento, contra "5 a 6 caminhões" do dossiê: confirmar com a Cocapec).
 - Mapeamento depósito → armazém na tabela `deposito_armazem` (V7). Depósitos fora do dossiê (11 linhas) ficam fora da quebra por armazém. `MATProv`/`MATReser` não recebem.
-- Carga: `python -m app.etl.historico --dados <zip>` (descarta 540 duplicatas; conta sábados, recebimento antes do documento, chaves ausentes/malformadas). **Não usar a coluna de peso** (mediana do Adubo ≈ 573 t por recebimento).
+- Carga: `java -jar api/target/recebimento-1.0.0.jar --dados=<zip>` (descarta 540 duplicatas; conta sábados, recebimento antes do documento, chaves ausentes/malformadas). **Não usar a coluna de peso** (mediana do Adubo ≈ 573 t por recebimento).
 - Equipe: `chapas_presentes − chapas_operacao_cafe` de `chapas_por_dia.csv`, só segunda a sexta, só meses com ≥ 10 dias de folha (fora: jan/2025, ago/2025, dez/2025). Resultado: 350 dias úteis, fev/2025–ago/2026.
 - Necessidade = recebimentos × esforço da norma do dossiê por armazém (Adubo 225, Insumos 100, Pátio 17,5, Loja 0 pessoa-min), com premissa de acondicionamento declarada. Equilíbrio = Σ necessidade ÷ Σ chapas líquidas de TODO o histórico (194,3 pessoa-min/chapa-dia); recortes de período não o alteram. R$ = saldo em diárias × piso R$ 90,1731.
 - Resultado: correlação diária equipe × demanda ≈ 0,08; safra (out–mar) 9,3 chapas/dia para 19,4 recebimentos/dia × entressafra 7,8 para 22,5; folga ≈ pressão ≈ R$ 58 mil em 17 meses (ao piso; **ordem de grandeza, não economia comprovada**); com a capacidade demonstrada (3º quartil mensal) o saldo vira sobra líquida de ≈ R$ 22 mil.
 - Conclusão: **não há sobra ou falta permanente; há descompasso no tempo**: a demanda sobe em julho (todo ano desde 2023) e o reforço (out–mar) chega depois e fica após a queda. O histórico só enxerga o recebimento (o carregamento de cooperados não foi registrado): mostra se a equipe acompanhou a demanda, não o tamanho absoluto ideal. O absoluto vem do **boletim**: sobra = complemento pago; falta = produção acima do piso; aproveitamento = produção ÷ (piso × diárias) (< 0,90 sobra · > 1,10 falta).
-- Painel: `/painel`, API em `docs/API-TAREFA3.md`. Dados de demonstração (origem `TESTE`): `python -m app.seed.demo --recriar` (apaga os dados operacionais).
+- Painel: `/painel`, API em `docs/API-TAREFA3.md`. Dados de demonstração (origem `TESTE`): `java -jar api/target/recebimento-1.0.0.jar --demo-seed` (preserva os dados existentes).
 - Outros tratamentos já identificados: 1.281 pares pedido-item com qtd/peso repetidos em recebimentos parciais (não somar peso/qtd como carga); código de item do XML é do **fornecedor** (não casa com o catálogo Cocapec); 460 XMLs são amostra não proporcional.
 
 Implementar o painel de forma que, com dados da plataforma, o cálculo vire direto:

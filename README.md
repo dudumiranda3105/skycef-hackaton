@@ -61,7 +61,7 @@ uv run uvicorn app.main:app --reload
 ```
 
 - Interface da Tarefa 1: http://localhost:8000/app/
-- API: http://localhost:8000
+- API: http://localhost:8000 (contrato completo em [`docs/API-TAREFA1.md`](docs/API-TAREFA1.md))
 - Swagger: http://localhost:8000/docs
 - Health: http://localhost:8000/health
 
@@ -92,8 +92,9 @@ Regras de ocupação aplicadas globalmente à cooperativa:
 - recebimentos somente em dias úteis e fora dos feriados cadastrados;
 - a reserva é protegida contra concorrência no PostgreSQL.
 
-O contrato completo está documentado no Swagger (`/docs`). Os testes de aceite específicos
-estão em `api/tests/test_tarefa1_fluxo_completo.py` e
+O contrato completo está documentado no Swagger (`/docs`) e em
+[`docs/API-TAREFA1.md`](docs/API-TAREFA1.md). Os cenários de aceite estão cobertos em
+`api/tests/test_fluxos.py`, `api/tests/test_marcos.py`, `api/tests/test_nfe_arquivos.py` e
 `api/tests/test_tarefa1_contrato.py`.
 
 Esses registros pertencem exclusivamente à Tarefa 1. A quantidade de chapas de uma descarga

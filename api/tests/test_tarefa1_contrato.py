@@ -5,14 +5,16 @@ from pathlib import Path
 from app.main import create_app
 
 ROTAS_OBRIGATORIAS = {
-    "/api/agendamentos/com-anexos",
+    "/api/agendamentos",
     "/api/agendamentos/{agendamento_id}/notas/{nota_id}/arquivo",
+    "/api/agendamentos/{agendamento_id}/chegada",
     "/api/descargas/{descarga_id}/chegada",
     "/api/descargas/{descarga_id}/entrada",
     "/api/descargas/{descarga_id}/saida",
     "/api/agendamentos/{agendamento_id}/cancelamento",
     "/api/agendamentos/{agendamento_id}/cancelamento/efetivacao",
     "/api/vagas-liberadas/{vaga_id}/atribuicao",
+    "/api/vagas-liberadas/{vaga_id}/liberacao-geral",
     "/api/agendamentos/{agendamento_id}/reagendamento",
     "/api/nao-recebimentos",
     "/api/equipamentos",

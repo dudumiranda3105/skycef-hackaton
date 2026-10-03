@@ -20,6 +20,7 @@ from app.agendamento.domain import (
 )
 from app.agendamento.models import (
     Agendamento,
+    Cancelamento,
     Descarga,
     DescargaEquipamento,
     EventoAgendamento,
@@ -85,7 +86,8 @@ class DetalhesAgendamento:
     notas: list[NotaFiscal] = field(default_factory=list)
     validacao: ValidacaoCompras | None = None
     descargas: list[Descarga] = field(default_factory=list)
-    equipamentos_por_descarga: dict[int, list[int]] = field(default_factory=dict)
+    cancelamento: Cancelamento | None = None
+    equipamentos: dict[int, list[int]] = field(default_factory=dict)  # descarga_id -> equipamento_ids
 
 
 def travar_slot(session: Session, data: date, horario: time) -> None:
@@ -126,9 +128,9 @@ class AgendamentoService:
 
             travar_slot(self.session, cmd.data, cmd.horario)
 
-            ocupantes = self._ocupantes_do_slot(cmd.data, cmd.horario)
+            ocupantes = self.ocupantes_do_slot(cmd.data, cmd.horario)
             if not domain.cabe(ocupantes, cmd.acondicionamento):
-                raise ConflitoError(_motivo_sem_vaga(ocupantes, cmd.acondicionamento))
+                raise ConflitoError(motivo_sem_vaga(ocupantes, cmd.acondicionamento))
 
             agora = self.relogio.agora()
             agendamento = Agendamento(
@@ -189,25 +191,25 @@ class AgendamentoService:
         AUTORIZADO (exige o pedido de referência) -> o agendamento segue para o armazém.
         NAO_AUTORIZADO (exige o motivo) -> a vaga e as notas são liberadas, e a divergência
         entra nos não recebimentos."""
-        pedido = _texto(pedido_referencia, 20)
-        nota = _texto(observacao, 250)
+        pedido = texto_livre(pedido_referencia, 20)
+        nota = texto_livre(observacao, 250)
         if decisao == DecisaoCompras.AUTORIZADO and pedido is None:
             raise RegraDeNegocioError("Informe o pedido de compra de referência para autorizar.")
         if decisao == DecisaoCompras.NAO_AUTORIZADO and nota is None:
             raise RegraDeNegocioError("Descreva a divergência encontrada entre a nota e o pedido.")
 
         with transacao(self.session):
-            agendamento = self._carregar_travado(agendamento_id)
+            agendamento = self.carregar_travado(agendamento_id)
             agora = self.relogio.agora()
             if decisao == DecisaoCompras.AUTORIZADO:
-                self._mudar_status(
+                self.mudar_status(
                     agendamento,
                     StatusAgendamento.AUTORIZADO,
                     agora,
                     nota or "Nota conferida com o pedido de compra",
                 )
             else:
-                self._mudar_status(
+                self.mudar_status(
                     agendamento,
                     StatusAgendamento.NAO_AUTORIZADO,
                     agora,
@@ -245,7 +247,7 @@ class AgendamentoService:
             raise RegraDeNegocioError("Informe ao menos um armazém de destino.")
 
         with transacao(self.session):
-            agendamento = self._carregar_travado(agendamento_id)
+            agendamento = self.carregar_travado(agendamento_id)
             if agendamento.status != StatusAgendamento.AUTORIZADO:
                 if agendamento.status == StatusAgendamento.PENDENTE_COMPRAS:
                     raise ConflitoError(
@@ -263,7 +265,12 @@ class AgendamentoService:
 
             agora = self.relogio.agora()
             self.session.add_all(
-                Descarga(agendamento_id=agendamento.id, armazem_id=armazem, criado_em=agora)
+                Descarga(
+                    agendamento_id=agendamento.id,
+                    armazem_id=armazem,
+                    chegada_em=agendamento.chegada_em,  # o caminhão pode já estar na fila
+                    criado_em=agora,
+                )
                 for armazem in destinos
             )
             self.session.add(
@@ -272,7 +279,7 @@ class AgendamentoService:
                     de_status=agendamento.status,
                     para_status=agendamento.status,
                     tipo=TipoEvento.DESTINO,
-                    observacao=_texto(observacao, 250) or "Armazém(ns) de destino definido(s)",
+                    observacao=texto_livre(observacao, 250) or "Armazém(ns) de destino definido(s)",
                     detalhe={"armazemIds": destinos},
                     ocorrido_em=agora,
                 )
@@ -300,24 +307,19 @@ class AgendamentoService:
             .order_by(Descarga.agendamento_id, Descarga.armazem_id)
         ):
             resultado[descarga.agendamento_id].descargas.append(descarga)
-        ids_descargas = [
-            descarga.id for detalhe in resultado.values() for descarga in detalhe.descargas
-        ]
-        if ids_descargas:
-            descarga_para_agendamento = {
-                descarga.id: agendamento_id
-                for agendamento_id, detalhe in resultado.items()
-                for descarga in detalhe.descargas
-            }
-            for vinculo in self.session.scalars(
-                select(DescargaEquipamento).where(
-                    DescargaEquipamento.descarga_id.in_(ids_descargas)
-                )
+        descarga_dono = {d.id: d.agendamento_id for r in resultado.values() for d in r.descargas}
+        if descarga_dono:
+            for item in self.session.scalars(
+                select(DescargaEquipamento)
+                .where(DescargaEquipamento.descarga_id.in_(list(descarga_dono)))
+                .order_by(DescargaEquipamento.descarga_id, DescargaEquipamento.equipamento_id)
             ):
-                agendamento_id = descarga_para_agendamento[vinculo.descarga_id]
-                resultado[agendamento_id].equipamentos_por_descarga.setdefault(
-                    vinculo.descarga_id, []
-                ).append(vinculo.equipamento_id)
+                dono = resultado[descarga_dono[item.descarga_id]]
+                dono.equipamentos.setdefault(item.descarga_id, []).append(item.equipamento_id)
+        for cancelamento in self.session.scalars(
+            select(Cancelamento).where(Cancelamento.agendamento_id.in_(agendamento_ids))
+        ):
+            resultado[cancelamento.agendamento_id].cancelamento = cancelamento
         return resultado
 
     def consultar_grade(self, data: date) -> GradeDoDia:
@@ -327,7 +329,7 @@ class AgendamentoService:
             return GradeDoDia(data, False, motivo, [])
         slots = []
         for horario in HORARIOS:
-            ocupantes = self._ocupantes_do_slot(data, horario)
+            ocupantes = self.ocupantes_do_slot(data, horario)
             slots.append(
                 Slot(
                     horario=horario,
@@ -345,11 +347,16 @@ class AgendamentoService:
         return agendamento
 
     def listar_por_data(self, data: date) -> list[Agendamento]:
-        consulta = (
-            select(Agendamento)
-            .where(Agendamento.data_agendada == data)
-            .order_by(Agendamento.horario, Agendamento.id)
+        return self.listar(data=data)
+
+    def listar(self, data: date | None = None, status: StatusAgendamento | None = None) -> list[Agendamento]:
+        consulta = select(Agendamento).order_by(
+            Agendamento.data_agendada, Agendamento.horario, Agendamento.id
         )
+        if data is not None:
+            consulta = consulta.where(Agendamento.data_agendada == data)
+        if status is not None:
+            consulta = consulta.where(Agendamento.status == status)
         return list(self.session.scalars(consulta))
 
     def eventos(self, agendamento_id: int) -> list[EventoAgendamento]:
@@ -363,7 +370,7 @@ class AgendamentoService:
 
     # ------------------------------------------------------------------ internos
 
-    def _carregar_travado(self, agendamento_id: int) -> Agendamento:
+    def carregar_travado(self, agendamento_id: int) -> Agendamento:
         """Carrega o agendamento com lock de linha (SELECT ... FOR UPDATE): duas pessoas agindo
         sobre o mesmo agendamento são atendidas uma de cada vez, e a segunda vê o estado novo."""
         consulta = (
@@ -377,7 +384,7 @@ class AgendamentoService:
             raise NaoEncontradoError(f"Agendamento não encontrado: {agendamento_id}")
         return agendamento
 
-    def _mudar_status(
+    def mudar_status(
         self, agendamento: Agendamento, novo: StatusAgendamento, agora: datetime, observacao: str
     ) -> None:
         """Aplica uma transição válida e registra o evento; senão, 409 com o estado atual.
@@ -405,23 +412,52 @@ class AgendamentoService:
             )
         )
 
-    def _ocupantes_do_slot(self, data: date, horario: time) -> list[Acondicionamento]:
-        """Quem ocupa o horário: agendamentos ativos e vagas canceladas ainda em aberto."""
-        ativos = self.session.scalars(
-            select(Agendamento.acondicionamento).where(
-                Agendamento.data_agendada == data,
-                Agendamento.horario == horario,
-                Agendamento.status.not_in(STATUS_QUE_LIBERAM_VAGA),
-            )
+    def ocupantes_do_slot(
+        self,
+        data: date,
+        horario: time,
+        excluir_agendamento_id: int | None = None,
+        excluir_vaga_id: int | None = None,
+    ) -> list[Acondicionamento]:
+        """Quem ocupa o horário: agendamentos ativos e vagas canceladas ainda em aberto.
+
+        As exclusões servem para perguntar "caberia se esta pessoa/vaga saísse dali?"
+        (reagendamento e atribuição de vaga liberada)."""
+        consulta_ativos = select(Agendamento.acondicionamento).where(
+            Agendamento.data_agendada == data,
+            Agendamento.horario == horario,
+            Agendamento.status.not_in(STATUS_QUE_LIBERAM_VAGA),
         )
-        abertas = self.session.scalars(
-            select(VagaLiberada.acondicionamento).where(
-                VagaLiberada.data_vaga == data,
-                VagaLiberada.horario == horario,
-                VagaLiberada.status == StatusVagaLiberada.ABERTA,
-            )
+        if excluir_agendamento_id is not None:
+            consulta_ativos = consulta_ativos.where(Agendamento.id != excluir_agendamento_id)
+        consulta_abertas = select(VagaLiberada.acondicionamento).where(
+            VagaLiberada.data_vaga == data,
+            VagaLiberada.horario == horario,
+            VagaLiberada.status == StatusVagaLiberada.ABERTA,
         )
-        return [*ativos, *abertas]
+        if excluir_vaga_id is not None:
+            consulta_abertas = consulta_abertas.where(VagaLiberada.id != excluir_vaga_id)
+        return [*self.session.scalars(consulta_ativos), *self.session.scalars(consulta_abertas)]
+
+    def carregar_com_slots(
+        self, agendamento_id: int, extras: Sequence[tuple[date, time]] = ()
+    ) -> Agendamento:
+        """Trava os horários envolvidos e DEPOIS a linha do agendamento.
+
+        Ordem única de locks no sistema (primeiro os advisory locks dos horários, em ordem
+        crescente; depois as linhas), para dois fluxos concorrentes (cancelar, reagendar,
+        atribuir vaga) nunca esperarem um pelo outro. Se o agendamento mudou de horário entre
+        a leitura e o lock, devolve 409 e o cliente tenta de novo."""
+        lido = self.session.get(Agendamento, agendamento_id)
+        if lido is None:
+            raise NaoEncontradoError(f"Agendamento não encontrado: {agendamento_id}")
+        slot_original = (lido.data_agendada, lido.horario)
+        for data, horario in sorted({slot_original, *extras}):
+            travar_slot(self.session, data, horario)
+        agendamento = self.carregar_travado(agendamento_id)
+        if (agendamento.data_agendada, agendamento.horario) != slot_original:
+            raise ConflitoError("O agendamento foi alterado por outra pessoa; tente novamente.")
+        return agendamento
 
     def _chaves_ja_agendadas(self, chaves: Sequence[str]) -> bool:
         consulta = select(exists().where(NotaFiscal.nf_chave.in_(chaves), NotaFiscal.ativa.is_(True)))
@@ -440,19 +476,22 @@ class AgendamentoService:
             raise RegraDeNegocioError("O peso da carga não pode ser negativo.")
 
     def _validar_calendario(self, cmd: AgendarCommand) -> None:
+        self.validar_data_horario(cmd.data, cmd.horario, cmd.agendado_na_hora)
+
+    def validar_data_horario(self, data: date, horario: time, agendado_na_hora: bool = False) -> None:
+        """Data não passada, dia útil e (hoje) horário ainda não vencido."""
         agora = self.relogio.agora()
-        if cmd.data < agora.date():
-            raise RegraDeNegocioError("Não é possível agendar em uma data passada.")
-        motivo = self.calendario.motivo_dia_nao_util(cmd.data)
+        if data < agora.date():
+            raise RegraDeNegocioError("Não é possível usar uma data passada.")
+        motivo = self.calendario.motivo_dia_nao_util(data)
         if motivo is not None:
             raise RegraDeNegocioError(motivo)
         # O caminhão sem aviso pode agendar "na hora", mesmo em horário já iniciado
-        if cmd.data == agora.date() and cmd.horario < agora.time().replace(tzinfo=None):
-            if not cmd.agendado_na_hora:
-                raise RegraDeNegocioError("Este horário já passou. Escolha um horário posterior.")
+        if data == agora.date() and horario < agora.time().replace(tzinfo=None) and not agendado_na_hora:
+            raise RegraDeNegocioError("Este horário já passou. Escolha um horário posterior.")
 
 
-def _texto(valor: str | None, limite: int) -> str | None:
+def texto_livre(valor: str | None, limite: int) -> str | None:
     """Texto livre do usuário: sem espaços nas pontas; vazio vira None; respeita o tamanho da coluna."""
     if valor is None or not valor.strip():
         return None
@@ -462,7 +501,7 @@ def _texto(valor: str | None, limite: int) -> str | None:
     return limpo
 
 
-def _motivo_sem_vaga(ocupantes: list[Acondicionamento], novo: Acondicionamento) -> str:
+def motivo_sem_vaga(ocupantes: list[Acondicionamento], novo: Acondicionamento) -> str:
     if Acondicionamento.BATIDO in ocupantes:
         return "Horário sem vaga: já há uma carga batida, que reserva o horário inteiro."
     if novo == Acondicionamento.BATIDO:

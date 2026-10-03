@@ -7,10 +7,17 @@ from pydantic import Field, field_serializer
 from app.agendamento.domain import (
     Acondicionamento,
     DecisaoCompras,
+    SituacaoCancelamento,
     StatusAgendamento,
     TipoEvento,
 )
-from app.agendamento.models import Agendamento, EventoAgendamento, NotaFiscal, ValidacaoCompras
+from app.agendamento.models import (
+    Agendamento,
+    Cancelamento,
+    EventoAgendamento,
+    NotaFiscal,
+    ValidacaoCompras,
+)
 from app.agendamento.service import DetalhesAgendamento, GradeDoDia
 from app.shared.domain import Origem
 from app.shared.schemas import EsquemaBase, EsquemaEntrada
@@ -92,6 +99,22 @@ class ValidacaoComprasOut(EsquemaBase):
         )
 
 
+class CancelamentoOut(EsquemaBase):
+    motivo: str
+    situacao: SituacaoCancelamento
+    solicitado_em: datetime
+    efetivado_em: datetime | None
+
+    @classmethod
+    def desde(cls, c: Cancelamento) -> "CancelamentoOut":
+        return cls(
+            motivo=c.motivo,
+            situacao=c.situacao,
+            solicitado_em=c.solicitado_em,
+            efetivado_em=c.efetivado_em,
+        )
+
+
 class DescargaOut(EsquemaBase):
     id: int
     armazem_id: int
@@ -99,7 +122,7 @@ class DescargaOut(EsquemaBase):
     entrada_em: datetime | None
     saida_em: datetime | None
     quantidade_chapas: int | None
-    equipamento_ids: list[int] = Field(default_factory=list)
+    equipamento_ids: list[int]
 
 
 class AgendamentoOut(EsquemaBase):
@@ -114,9 +137,11 @@ class AgendamentoOut(EsquemaBase):
     limite_ignorado: bool
     origem: Origem
     criado_em: datetime
+    chegada_em: datetime | None
     notas: list[NotaFiscalOut]
     validacao_compras: ValidacaoComprasOut | None
     descargas: list[DescargaOut]
+    cancelamento: CancelamentoOut | None
 
     @field_serializer("horario")
     def _serializa_horario(self, valor: time) -> str:
@@ -137,6 +162,7 @@ class AgendamentoOut(EsquemaBase):
             limite_ignorado=a.limite_ignorado,
             origem=a.origem,
             criado_em=a.criado_em,
+            chegada_em=a.chegada_em,
             notas=[NotaFiscalOut.desde(n) for n in d.notas],
             validacao_compras=ValidacaoComprasOut.desde(d.validacao) if d.validacao else None,
             descargas=[
@@ -147,10 +173,11 @@ class AgendamentoOut(EsquemaBase):
                     entrada_em=x.entrada_em,
                     saida_em=x.saida_em,
                     quantidade_chapas=x.quantidade_chapas,
-                    equipamento_ids=d.equipamentos_por_descarga.get(x.id, []),
+                    equipamento_ids=d.equipamentos.get(x.id, []),
                 )
                 for x in d.descargas
             ],
+            cancelamento=CancelamentoOut.desde(d.cancelamento) if d.cancelamento else None,
         )
 
 

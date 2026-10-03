@@ -1,5 +1,8 @@
 # Alinhamento do backend — Claude × Codex
 
+> **Histórico.** Em 03/10/2026 a equipe decidiu seguir só com a branch do Claude; os fluxos que este plano mandava portar
+> (upload da NF, marcos, cancelamento, reagendamento, não recebimento) foram implementados na própria base. Ver `docs/API-TAREFA1.md`.
+
 Elaborado em 03/10/2026 a partir da leitura (somente leitura) das branches
 `claude/tarefa-1` (commit `496cfb9`) e `codex/tarefa1-fastapi` (commit `6defbfe`).
 Fonte de verdade do negócio: `CLAUDE.md` (Regulamento > Dossiê > esclarecimentos > CLAUDE.md).

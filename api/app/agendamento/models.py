@@ -53,6 +53,8 @@ class Agendamento(Base):
     limite_ignorado: Mapped[bool] = mapped_column(Boolean, default=False)
     origem: Mapped[Origem] = mapped_column(_enum(Origem, 12), default=Origem.PLATAFORMA)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # quando o caminhão encostou e entrou na fila; copiado para cada descarga (ver V6)
+    chegada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     versao: Mapped[int] = mapped_column(Integer)
 
     # Evita que duas transições concorrentes sobrescrevam uma à outra
@@ -143,7 +145,7 @@ class Descarga(Base):
 
 
 class DescargaEquipamento(Base):
-    """Equipamentos individuais efetivamente utilizados em uma descarga."""
+    """Equipamento (unidade individual) usado em uma descarga."""
 
     __tablename__ = "descarga_equipamento"
 

@@ -33,18 +33,17 @@ class ArmazemService:
     def listar(self) -> list[Armazem]:
         return list(self.session.scalars(select(Armazem).order_by(Armazem.id)))
 
+    def listar_equipamentos(self, armazem_id: int | None = None) -> list[Equipamento]:
+        consulta = select(Equipamento).order_by(Equipamento.armazem_id, Equipamento.identificacao)
+        if armazem_id is not None:
+            consulta = consulta.where(Equipamento.armazem_id == armazem_id)
+        return list(self.session.scalars(consulta))
+
     def exigir_existentes(self, ids: Sequence[int]) -> None:
         achados = set(self.session.scalars(select(Armazem.id).where(Armazem.id.in_(ids))))
         faltando = sorted(set(ids) - achados)
         if faltando:
             raise RegraDeNegocioError(f"Armazém inválido: {', '.join(str(i) for i in faltando)}.")
-
-    def listar_equipamentos(self, armazem_id: int | None = None) -> list[Equipamento]:
-        consulta = select(Equipamento)
-        if armazem_id is not None:
-            consulta = consulta.where(Equipamento.armazem_id == armazem_id)
-        return list(self.session.scalars(consulta.order_by(Equipamento.identificacao)))
-
 
 class FornecedorService:
     def __init__(self, session: Session) -> None:

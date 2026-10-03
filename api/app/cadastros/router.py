@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import Field
 from sqlalchemy.orm import Session
 
@@ -37,18 +37,6 @@ class ArmazemOut(EsquemaBase):
         return cls(id=a.id, codigo=a.codigo, nome=a.nome)
 
 
-class EquipamentoOut(EsquemaBase):
-    id: int
-    armazem_id: int
-    identificacao: str
-    tipo: str
-    observacao: str | None
-
-    @classmethod
-    def desde(cls, e: Equipamento) -> "EquipamentoOut":
-        return cls.model_validate(e, from_attributes=True)
-
-
 def get_service(session: Annotated[Session, Depends(get_session)]) -> FornecedorService:
     return FornecedorService(session)
 
@@ -83,13 +71,31 @@ def listar_armazens(servico: Annotated[ArmazemService, Depends(get_armazens)]) -
     return [ArmazemOut.desde(a) for a in servico.listar()]
 
 
+class EquipamentoOut(EsquemaBase):
+    id: int
+    armazem_id: int
+    identificacao: str
+    tipo: str
+    observacao: str | None
+
+    @classmethod
+    def desde(cls, e: Equipamento) -> "EquipamentoOut":
+        return cls(
+            id=e.id,
+            armazem_id=e.armazem_id,
+            identificacao=e.identificacao,
+            tipo=e.tipo,
+            observacao=e.observacao,
+        )
+
+
 @router.get(
     "/equipamentos",
     response_model=list[EquipamentoOut],
-    summary="Equipamentos individuais disponíveis para registrar uma descarga",
+    summary="Equipamentos (unidades individuais), opcionalmente de um armazém",
 )
 def listar_equipamentos(
     servico: Annotated[ArmazemService, Depends(get_armazens)],
-    armazem_id: int | None = None,
+    armazem_id: Annotated[int | None, Query(alias="armazemId")] = None,
 ) -> list[EquipamentoOut]:
     return [EquipamentoOut.desde(e) for e in servico.listar_equipamentos(armazem_id)]

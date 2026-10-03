@@ -77,6 +77,8 @@ class TipoEvento(StrEnum):
     REAGENDAMENTO = "REAGENDAMENTO"
     DESTINO = "DESTINO"
     VAGA = "VAGA"
+    MARCO = "MARCO"  # chegada, entrada ou saída
+    CANCELAMENTO = "CANCELAMENTO"  # solicitação ou efetivação
 
 
 class StatusVagaLiberada(StrEnum):

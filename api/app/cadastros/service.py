@@ -1,10 +1,11 @@
+from collections.abc import Sequence
 from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.cadastros.models import Feriado, Fornecedor
-from app.core.errors import ConflitoError, NaoEncontradoError
+from app.cadastros.models import Armazem, Feriado, Fornecedor
+from app.core.errors import ConflitoError, NaoEncontradoError, RegraDeNegocioError
 
 _SABADO, _DOMINGO = 5, 6  # date.weekday()
 
@@ -23,6 +24,20 @@ class CalendarioService:
         if feriado is not None:
             return f"Não há recebimento em feriados ({feriado.descricao})."
         return None
+
+
+class ArmazemService:
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def listar(self) -> list[Armazem]:
+        return list(self.session.scalars(select(Armazem).order_by(Armazem.id)))
+
+    def exigir_existentes(self, ids: Sequence[int]) -> None:
+        achados = set(self.session.scalars(select(Armazem.id).where(Armazem.id.in_(ids))))
+        faltando = sorted(set(ids) - achados)
+        if faltando:
+            raise RegraDeNegocioError(f"Armazém inválido: {', '.join(str(i) for i in faltando)}.")
 
 
 class FornecedorService:

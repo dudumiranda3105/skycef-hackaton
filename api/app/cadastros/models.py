@@ -1,9 +1,19 @@
 from datetime import date
 
-from sqlalchemy import BigInteger, Date, String
+from sqlalchemy import BigInteger, Date, SmallInteger, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
+
+
+class Armazem(Base):
+    """Os quatro locais de descarga: Insumos, Adubo, Pátio de Máquinas e Loja."""
+
+    __tablename__ = "armazem"
+
+    id: Mapped[int] = mapped_column(SmallInteger, primary_key=True)
+    codigo: Mapped[str] = mapped_column(String(20))
+    nome: Mapped[str] = mapped_column(String(40))
 
 
 class Fornecedor(Base):

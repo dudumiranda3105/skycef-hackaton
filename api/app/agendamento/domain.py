@@ -36,6 +36,11 @@ class StatusAgendamento(StrEnum):
         """Cancelado e não recebido liberam a vaga do horário."""
         return self not in STATUS_QUE_LIBERAM_VAGA
 
+    @property
+    def rotulo(self) -> str:
+        """Nome exibido ao usuário; é o mesmo vocabulário do front."""
+        return _ROTULOS[self]
+
 
 _S = StatusAgendamento
 _TRANSICOES: dict[StatusAgendamento, frozenset[StatusAgendamento]] = {
@@ -48,6 +53,17 @@ _TRANSICOES: dict[StatusAgendamento, frozenset[StatusAgendamento]] = {
     _S.CONCLUIDO: frozenset(),
     _S.CANCELADO: frozenset(),
     _S.NAO_RECEBIDO: frozenset(),
+}
+
+_ROTULOS: dict[StatusAgendamento, str] = {
+    _S.AGENDADO: "Agendado",
+    _S.VALIDADO_COMPRAS: "Validado por Compras",
+    _S.AUTORIZADO: "Autorizado",
+    _S.CHEGOU: "Na fila",
+    _S.EM_DESCARGA: "Descarregando",
+    _S.CONCLUIDO: "Concluído",
+    _S.CANCELADO: "Cancelado",
+    _S.NAO_RECEBIDO: "Não recebido",
 }
 
 STATUS_QUE_LIBERAM_VAGA: frozenset[StatusAgendamento] = frozenset({_S.CANCELADO, _S.NAO_RECEBIDO})
@@ -68,6 +84,15 @@ class StatusVagaLiberada(StrEnum):
     ABERTA = "ABERTA"  # aguardando o responsável do armazém; continua contando como ocupada
     ATRIBUIDA = "ATRIBUIDA"  # o responsável escolheu quem a ocupa
     LIBERADA_GERAL = "LIBERADA_GERAL"  # devolvida para novos agendamentos
+
+
+class MotivoNaoRecebimento(StrEnum):
+    """Motivos de não recebimento definidos no regulamento (Tarefa 1)."""
+
+    DIVERGENCIA_NF_PEDIDO = "DIVERGENCIA_NF_PEDIDO"
+    SEM_AGENDAMENTO_SEM_VAGA = "SEM_AGENDAMENTO_SEM_VAGA"
+    CASO_FORTUITO = "CASO_FORTUITO"
+    OUTRO = "OUTRO"  # exige descrição
 
 
 # Os quatro horários disponíveis (dossiê, seção 4)

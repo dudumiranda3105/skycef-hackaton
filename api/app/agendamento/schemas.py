@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Annotated, Any
@@ -26,6 +27,21 @@ class AgendarIn(EsquemaEntrada):
     agendado_na_hora: bool = False
 
 
+class ValidacaoComprasIn(EsquemaEntrada):
+    """Decisão de Compras sobre a conformidade entre a nota fiscal e o pedido de compra."""
+
+    conforme: bool
+    pedido_compra: Annotated[str | None, Field(max_length=20)] = None  # obrigatório se conforme
+    observacao: Annotated[str | None, Field(max_length=250)] = None  # obrigatória se divergente
+
+
+class AutorizacaoIn(EsquemaEntrada):
+    """Autorização do responsável do armazém, com o(s) armazém(ns) de destino."""
+
+    armazem_ids: Annotated[list[int], Field(min_length=1, max_length=4)]
+    observacao: Annotated[str | None, Field(max_length=250)] = None
+
+
 class AgendamentoOut(EsquemaBase):
     id: int
     fornecedor_id: int
@@ -33,21 +49,25 @@ class AgendamentoOut(EsquemaBase):
     horario: time
     acondicionamento: Acondicionamento
     status: StatusAgendamento
+    status_rotulo: str
     nf_numero: str | None
     nf_chave: str | None
     peso_total_kg: Decimal | None
     pedido_compra: str | None
+    destinos: list[int]
     agendado_na_hora: bool
     limite_ignorado: bool
     origem: Origem
     criado_em: datetime
+    compras_em: datetime | None
+    autorizado_em: datetime | None
 
     @field_serializer("horario")
     def _serializa_horario(self, valor: time) -> str:
         return _hhmm(valor)
 
     @classmethod
-    def desde(cls, a: Agendamento) -> "AgendamentoOut":
+    def desde(cls, a: Agendamento, destinos: Sequence[int] = ()) -> "AgendamentoOut":
         return cls(
             id=a.id,
             fornecedor_id=a.fornecedor_id,
@@ -55,14 +75,18 @@ class AgendamentoOut(EsquemaBase):
             horario=a.horario,
             acondicionamento=a.acondicionamento,
             status=a.status,
+            status_rotulo=a.status.rotulo,
             nf_numero=a.nf_numero,
             nf_chave=a.nf_chave,
             peso_total_kg=a.peso_total_kg,
             pedido_compra=a.pedido_compra,
+            destinos=list(destinos),
             agendado_na_hora=a.agendado_na_hora,
             limite_ignorado=a.limite_ignorado,
             origem=a.origem,
             criado_em=a.criado_em,
+            compras_em=a.compras_em,
+            autorizado_em=a.autorizado_em,
         )
 
 

@@ -1,6 +1,7 @@
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, time
+from datetime import date, datetime, time
 from decimal import Decimal
 
 from sqlalchemy import exists, func, select
@@ -11,12 +12,19 @@ from app.agendamento.domain import (
     HORARIOS,
     STATUS_QUE_LIBERAM_VAGA,
     Acondicionamento,
+    MotivoNaoRecebimento,
     StatusAgendamento,
     StatusVagaLiberada,
     TipoEvento,
 )
-from app.agendamento.models import Agendamento, EventoAgendamento, VagaLiberada
-from app.cadastros.service import CalendarioService, FornecedorService
+from app.agendamento.models import (
+    Agendamento,
+    AgendamentoDestino,
+    EventoAgendamento,
+    NaoRecebimento,
+    VagaLiberada,
+)
+from app.cadastros.service import ArmazemService, CalendarioService, FornecedorService
 from app.core.clock import Relogio
 from app.core.db import transacao
 from app.core.errors import ConflitoError, NaoEncontradoError, RegraDeNegocioError
@@ -76,6 +84,7 @@ class AgendamentoService:
         self.relogio = relogio
         self.calendario = CalendarioService(session)
         self.fornecedores = FornecedorService(session)
+        self.armazens = ArmazemService(session)
 
     # ------------------------------------------------------------------ agendar
 
@@ -129,7 +138,108 @@ class AgendamentoService:
             )
         return agendamento
 
+    # ------------------------------------------------------------------ Compras e armazém
+
+    def validar_compras(
+        self,
+        agendamento_id: int,
+        conforme: bool,
+        pedido_compra: str | None = None,
+        observacao: str | None = None,
+    ) -> Agendamento:
+        """1ª etapa da dupla validação: Compras confirma se os itens da nota conferem com o
+        pedido de compra. Conforme -> Validado por Compras; divergente -> Não recebido, com o
+        motivo registrado e a vaga liberada."""
+        pedido = _texto(pedido_compra, 20)
+        nota = _texto(observacao, 250)
+        if conforme and pedido is None:
+            raise RegraDeNegocioError("Informe o número do pedido de compra para confirmar a conformidade.")
+        if not conforme and nota is None:
+            raise RegraDeNegocioError("Descreva a divergência encontrada entre a nota e o pedido.")
+
+        with transacao(self.session):
+            agendamento = self._carregar_travado(agendamento_id)
+            agora = self.relogio.agora()
+            if conforme:
+                self._mudar_status(
+                    agendamento,
+                    StatusAgendamento.VALIDADO_COMPRAS,
+                    agora,
+                    nota or "Nota conferida com o pedido de compra",
+                )
+                agendamento.pedido_compra = pedido
+                agendamento.compras_em = agora
+            else:
+                self._mudar_status(
+                    agendamento,
+                    StatusAgendamento.NAO_RECEBIDO,
+                    agora,
+                    f"Divergência entre nota e pedido: {nota}",
+                )
+                agendamento.pedido_compra = pedido
+                self.session.add(
+                    NaoRecebimento(
+                        agendamento_id=agendamento.id,
+                        fornecedor_id=agendamento.fornecedor_id,
+                        data=agendamento.data_agendada,
+                        motivo=MotivoNaoRecebimento.DIVERGENCIA_NF_PEDIDO,
+                        descricao=nota,
+                        origem=Origem.PLATAFORMA,
+                        criado_em=agora,
+                    )
+                )
+        return agendamento
+
+    def autorizar(
+        self, agendamento_id: int, armazem_ids: Sequence[int], observacao: str | None = None
+    ) -> Agendamento:
+        """2ª etapa: o responsável do armazém verifica a autorização de Compras e informa em
+        qual(is) armazém(ns) a carga será descarregada (pode ser mais de um)."""
+        destinos = sorted(set(armazem_ids))
+        if not destinos:
+            raise RegraDeNegocioError("Informe ao menos um armazém de destino.")
+
+        with transacao(self.session):
+            agendamento = self._carregar_travado(agendamento_id)
+            self.armazens.exigir_existentes(destinos)
+            agora = self.relogio.agora()
+            self._mudar_status(
+                agendamento,
+                StatusAgendamento.AUTORIZADO,
+                agora,
+                _texto(observacao, 250) or "Autorizado pelo armazém",
+            )
+            agendamento.autorizado_em = agora
+            self.session.add_all(
+                AgendamentoDestino(agendamento_id=agendamento.id, armazem_id=armazem) for armazem in destinos
+            )
+            self.session.add(
+                EventoAgendamento(
+                    agendamento_id=agendamento.id,
+                    de_status=StatusAgendamento.AUTORIZADO,
+                    para_status=StatusAgendamento.AUTORIZADO,
+                    tipo=TipoEvento.DESTINO,
+                    observacao="Armazém(ns) de destino definido(s)",
+                    detalhe={"armazemIds": destinos},
+                    ocorrido_em=agora,
+                )
+            )
+        return agendamento
+
     # ------------------------------------------------------------------ consultas
+
+    def destinos_por_agendamento(self, agendamento_ids: Sequence[int]) -> dict[int, list[int]]:
+        resultado: dict[int, list[int]] = {i: [] for i in agendamento_ids}
+        if not agendamento_ids:
+            return resultado
+        linhas = self.session.execute(
+            select(AgendamentoDestino.agendamento_id, AgendamentoDestino.armazem_id)
+            .where(AgendamentoDestino.agendamento_id.in_(agendamento_ids))
+            .order_by(AgendamentoDestino.agendamento_id, AgendamentoDestino.armazem_id)
+        )
+        for agendamento_id, armazem_id in linhas:
+            resultado[agendamento_id].append(armazem_id)
+        return resultado
 
     def consultar_grade(self, data: date) -> GradeDoDia:
         """Disponibilidade dos quatro horários de um dia (leitura; não reserva nada)."""
@@ -173,6 +283,43 @@ class AgendamentoService:
         return list(self.session.scalars(consulta))
 
     # ------------------------------------------------------------------ internos
+
+    def _carregar_travado(self, agendamento_id: int) -> Agendamento:
+        """Carrega o agendamento com lock de linha (SELECT ... FOR UPDATE): duas pessoas agindo
+        sobre o mesmo agendamento são atendidas uma de cada vez, e a segunda vê o estado novo."""
+        consulta = (
+            select(Agendamento)
+            .where(Agendamento.id == agendamento_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        agendamento = self.session.scalar(consulta)
+        if agendamento is None:
+            raise NaoEncontradoError(f"Agendamento não encontrado: {agendamento_id}")
+        return agendamento
+
+    def _mudar_status(
+        self, agendamento: Agendamento, novo: StatusAgendamento, agora: datetime, observacao: str
+    ) -> None:
+        """Aplica uma transição válida e registra o evento; senão, 409 com o estado atual."""
+        atual = agendamento.status
+        if not atual.pode_ir(novo):
+            if atual == novo:
+                raise ConflitoError(f"Este agendamento já está '{atual.rotulo}'.")
+            raise ConflitoError(
+                f"O agendamento está '{atual.rotulo}' e não pode passar para '{novo.rotulo}'."
+            )
+        agendamento.status = novo
+        self.session.add(
+            EventoAgendamento(
+                agendamento_id=agendamento.id,
+                de_status=atual,
+                para_status=novo,
+                tipo=TipoEvento.STATUS,
+                observacao=observacao[:300],
+                ocorrido_em=agora,
+            )
+        )
 
     def _ocupantes_do_slot(self, data: date, horario: time) -> list[Acondicionamento]:
         """Quem ocupa o horário: agendamentos ativos e vagas canceladas ainda em aberto."""
@@ -221,6 +368,16 @@ class AgendamentoService:
         if cmd.data == agora.date() and cmd.horario < agora.time().replace(tzinfo=None):
             if not cmd.agendado_na_hora:
                 raise RegraDeNegocioError("Este horário já passou. Escolha um horário posterior.")
+
+
+def _texto(valor: str | None, limite: int) -> str | None:
+    """Texto livre do usuário: sem espaços nas pontas; vazio vira None; respeita o tamanho da coluna."""
+    if valor is None or not valor.strip():
+        return None
+    limpo = valor.strip()
+    if len(limpo) > limite:
+        raise RegraDeNegocioError(f"O texto excede {limite} caracteres.")
+    return limpo
 
 
 def _motivo_sem_vaga(ocupantes: list[Acondicionamento], novo: Acondicionamento) -> str:

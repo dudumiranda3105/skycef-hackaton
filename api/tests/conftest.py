@@ -60,6 +60,8 @@ def sessionmaker_teste(banco: tuple[str, str]) -> sessionmaker[Session]:
 def db(sessionmaker_teste: sessionmaker[Session]) -> FabricaSessao:
     """Fábrica de sessões; as tabelas de movimento começam vazias em cada teste."""
     with sessionmaker_teste() as sessao:
+        # Se algum teste anterior deixou uma sessão aberta, falha em 5s em vez de travar a suíte
+        sessao.execute(text("set local lock_timeout = '5s'"))
         sessao.execute(text("truncate fornecedor, agendamento restart identity cascade"))
         sessao.commit()
     return sessionmaker_teste

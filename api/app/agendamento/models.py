@@ -2,11 +2,17 @@ from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, Enum, Integer, Numeric, String, Time
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Enum, Integer, Numeric, SmallInteger, String, Time
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.agendamento.domain import Acondicionamento, StatusAgendamento, StatusVagaLiberada, TipoEvento
+from app.agendamento.domain import (
+    Acondicionamento,
+    MotivoNaoRecebimento,
+    StatusAgendamento,
+    StatusVagaLiberada,
+    TipoEvento,
+)
 from app.core.db import Base
 from app.shared.domain import Origem
 
@@ -77,4 +83,30 @@ class VagaLiberada(Base):
     )
     atribuida_a_agendamento_id: Mapped[int | None] = mapped_column(BigInteger)
     decidido_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class AgendamentoDestino(Base):
+    """Armazém(ns) onde a carga será descarregada; um caminhão pode ir a mais de um."""
+
+    __tablename__ = "agendamento_destino"
+
+    agendamento_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    armazem_id: Mapped[int] = mapped_column(SmallInteger, primary_key=True)
+
+
+class NaoRecebimento(Base):
+    """Caminhão que não descarregou. `agendamento_id` e `fornecedor_id` são nulos quando o
+    caminhão chegou sem agendamento e sem vaga."""
+
+    __tablename__ = "nao_recebimento"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    agendamento_id: Mapped[int | None] = mapped_column(BigInteger)
+    fornecedor_id: Mapped[int | None] = mapped_column(BigInteger)
+    fornecedor_nome: Mapped[str | None] = mapped_column(String(200))
+    data: Mapped[date] = mapped_column(Date)
+    motivo: Mapped[MotivoNaoRecebimento] = mapped_column(_enum(MotivoNaoRecebimento, 30))
+    descricao: Mapped[str | None] = mapped_column(String(300))
+    origem: Mapped[Origem] = mapped_column(_enum(Origem, 12), default=Origem.PLATAFORMA)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))

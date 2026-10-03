@@ -14,9 +14,10 @@ Com Docker: `docker compose up --build` inicia PostgreSQL e API. As migrations s
 
 | Módulo | URL |
 |---|---|
-| Agendamentos | http://localhost:8000/app/ |
-| Boletim | http://localhost:8000/app/boletim.html |
-| Painel | http://localhost:8000/painel |
+| **Interface completa** (agenda, Compras, armazém, boletim e painel) | http://localhost:8000/ui/ |
+| Agendamentos (interface simples) | http://localhost:8000/app/ |
+| Boletim (interface simples) | http://localhost:8000/app/boletim.html |
+| Painel (página única) | http://localhost:8000/painel |
 | Swagger | http://localhost:8000/docs |
 | Saúde | http://localhost:8000/health |
 

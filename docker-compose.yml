@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-skycef}
+      POSTGRES_USER: ${POSTGRES_USER:-skycef}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-skycef}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-skycef} -d ${POSTGRES_DB:-skycef}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-skycef}
+      DB_USER: ${POSTGRES_USER:-skycef}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-skycef}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "8080:8080"
+
+  # web: sera adicionado quando o front for definido (ver web/README.md)
+
+volumes:
+  pgdata:

@@ -1,0 +1,25 @@
+# Dados da Cocapec: uso restrito ao evento, NUNCA versionar (regulamento, secao M)
+data/*
+!data/.gitkeep
+*.xlsx
+*.xls
+*.csv
+DADOS_HACKATHON_2026*
+DADOS_HACKATHON_2026.zip
+
+# Java / Maven
+target/
+*.class
+*.log
+.mvn/wrapper/maven-wrapper.jar
+
+# Node / front
+node_modules/
+dist/
+
+# Ambiente e IDE
+.env
+.idea/
+*.iml
+.vscode/
+.DS_Store

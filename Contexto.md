@@ -40,7 +40,7 @@ Três módulos encadeados:
 Requisitos técnicos que valem para qualquer stack:
 
 - Dinheiro em **tipo decimal com 4 casas** (nunca float). Arredondar só na exibição.
-- Seed com dados de demonstração para a apresentação.
+- Operação sem seed fictício: entradas operacionais devem vir do histórico oficial ou de lançamentos reais dos usuários.
 - Um comando para subir tudo (`README` com passo a passo).
 - Testes automatizados para o cálculo do Boletim (casos na seção 5).
 
@@ -48,7 +48,7 @@ Requisitos técnicos que valem para qualquer stack:
 
 - **NUNCA commitar os arquivos originais da Cocapec** (xlsx, csv, xml, pdf de NF etc.). Colocar a pasta de dados em `.gitignore` (ex.: `data/raw/`). Scripts leem de pasta local.
 - Dados vêm sujos de propósito: nulos, duplicidades, unidades misturadas, erros de digitação. **Tratar e documentar** é avaliado.
-- Separar sempre a origem do dado: `HISTORICO` (pacote) × `PLATAFORMA` (registros novos) × `TESTE`. Não misturar em silêncio.
+- Separar sempre a origem do dado: `HISTORICO` (pacote oficial) e `PLATAFORMA` (registros reais novos). Não misturar em silêncio.
 
 ## 4. Tarefa 1 — Agendamento e Recebimento
 
@@ -169,7 +169,7 @@ BoletimDiario 1:N ItemBoletim(tipo_item, qtd_descarga, qtd_remocao, qtd_transfer
 TipoItemBoletim(nome UK, preco_unitario)
 BoletimDiario N:N Chapa(matricula PK, nome)  via ParticipacaoChapaBoletim(tipo_diaria)  PK(boletim, matricula)
 ```
-Decisões: sem `armazem_id` em Agendamento (destinos = descargas); sem entidade PedidoCompra/SAP; usuários e perfis só para o login (tabelas `usuario` e `sessao`, migration V8; o DER do Regulamento não os usa); indicadores calculados por query/view, não persistidos. Status do agendamento é decisão técnica nossa (ex.: `PENDENTE_COMPRAS`, `AUTORIZADO`, `NAO_AUTORIZADO`, `EM_DESCARGA`, `CONCLUIDO`, `CANCELADO`, `NAO_RECEBIDO`) — não apresentar como regra da Cocapec. Opcional: tabela de auditoria simples (quem/quando alterou).
+Decisões: sem `armazem_id` em Agendamento (destinos = descargas); sem entidade PedidoCompra/SAP; usuários e perfis estão nas tabelas `usuario` e `sessao` (migrações V8–V9; o DER do Regulamento não os usa); indicadores calculados por query/view, não persistidos. Status do agendamento é decisão técnica nossa (ex.: `PENDENTE_COMPRAS`, `AUTORIZADO`, `NAO_AUTORIZADO`, `EM_DESCARGA`, `CONCLUIDO`, `CANCELADO`, `NAO_RECEBIDO`) — não apresentar como regra da Cocapec.
 
 ### Decisões de implementação da T1 (migration V5, 03/10/2026) — corrigir se a Cocapec/equipe discordar
 - **Status do agendamento:** `PENDENTE_COMPRAS → AUTORIZADO → EM_DESCARGA → CONCLUIDO`, mais `NAO_AUTORIZADO`, `CANCELADO` e `NAO_RECEBIDO`. Chegada, entrada e saída são marcos de cada `Descarga`, não status.
@@ -180,7 +180,7 @@ Decisões: sem `armazem_id` em Agendamento (destinos = descargas); sem entidade 
 - **Fluxos de desvio:** cancelamento em duas etapas (solicitar → efetivar) gera `vaga_liberada` `ABERTA`, que continua contando como ocupada até o armazém atribuí-la a um agendamento ou liberá-la ao público (sem seleção automática). Reagendamento por caso fortuito pode exceder a capacidade e grava data/horário anteriores. API completa em `docs/API-TAREFA1.md`.
 - **Anexo da NF:** `.pdf`/`.xml` até 10 MB, tipo definido pela extensão (não pelo cliente); XML lido com `defusedxml` (sem DTD/entidades). Nas 460 NF-e do pacote, 29 não têm peso bruto (usa-se o líquido quando existe) e há 458 chaves distintas em 460 arquivos.
 - **Equipamentos:** 19 unidades individuais (`INS-EMPG-01` etc.), geradas por nós; Loja tem 1 unidade provisória (a Cocapec não informou a quantidade).
-- **Origem do dado:** `PLATAFORMA`, `TESTE` ou `HISTORICO`.
+- **Origem do dado:** `PLATAFORMA` ou `HISTORICO`.
 - **Chapas (T2):** o identificador é o `CHAPA_nn` da folha (51 cadastrados via `app.etl.chapas`). O boletim de exemplo usa matrículas numéricas; a própria planilha traz correspondências parciais com os identificadores da folha, e nem todas as matrículas do exemplo aparecem na folha de 2025/2026. Preços do boletim conferidos no `boletim_diario_chapas.xlsx` (Sementes 0,3224; Alimentação animal 0,3387). Dinheiro do boletim em 4 casas, arredondando só na exibição; sem equipe = `INCONSISTENTE`. Guia: `docs/GUIA-TAREFA2.md`.
 
 ## 7. Tarefa 3 — Painel gerencial
@@ -207,12 +207,12 @@ O histórico **não tem** horários de chegada/descarga, chapas ou equipamentos 
 - Necessidade = recebimentos × esforço da norma do dossiê por armazém (Adubo 225, Insumos 100, Pátio 17,5, Loja 0 pessoa-min), com premissa de acondicionamento declarada. Equilíbrio = Σ necessidade ÷ Σ chapas líquidas de TODO o histórico (194,3 pessoa-min/chapa-dia); recortes de período não o alteram. R$ = saldo em diárias × piso R$ 90,1731.
 - Resultado: correlação diária equipe × demanda ≈ 0,08; safra (out–mar) 9,3 chapas/dia para 19,4 recebimentos/dia × entressafra 7,8 para 22,5; folga ≈ pressão ≈ R$ 58 mil em 17 meses (ao piso; **ordem de grandeza, não economia comprovada**); com a capacidade demonstrada (3º quartil mensal) o saldo vira sobra líquida de ≈ R$ 22 mil.
 - Conclusão: **não há sobra ou falta permanente; há descompasso no tempo**: a demanda sobe em julho (todo ano desde 2023) e o reforço (out–mar) chega depois e fica após a queda. O histórico só enxerga o recebimento (o carregamento de cooperados não foi registrado): mostra se a equipe acompanhou a demanda, não o tamanho absoluto ideal. O absoluto vem do **boletim**: sobra = complemento pago; falta = produção acima do piso; aproveitamento = produção ÷ (piso × diárias) (< 0,90 sobra · > 1,10 falta).
-- Painel: `/painel`, API em `docs/API-TAREFA3.md`. Dados de demonstração (origem `TESTE`): `java -jar api/target/recebimento-1.0.0.jar --demo-seed` (preserva os dados existentes).
+- Painel: `/painel`, API em `docs/API-TAREFA3.md`. O painel operacional considera apenas lançamentos reais (`PLATAFORMA`); a geração de registros operacionais artificiais foi removida.
 - Outros tratamentos já identificados: 1.281 pares pedido-item com qtd/peso repetidos em recebimentos parciais (não somar peso/qtd como carga); código de item do XML é do **fornecedor** (não casa com o catálogo Cocapec); 460 XMLs são amostra não proporcional.
 
 Implementar o painel de forma que, com dados da plataforma, o cálculo vire direto:
 `necessidade (regra de chapas × descargas agendadas por slot/armazém) × efetivo do boletim × custo real do boletim`.
-Cada número do painel deve indicar sua origem (`HISTORICO` / `PLATAFORMA` / `TESTE`).
+Cada número do painel deve indicar sua origem (`HISTORICO` / `PLATAFORMA`).
 
 ## 8. Dados do pacote (pasta local, fora do Git)
 
@@ -226,7 +226,7 @@ Cada número do painel deve indicar sua origem (`HISTORICO` / `PLATAFORMA` / `TE
 
 ## 9. Pontos em aberto (não inventar regra; parametrizar ou sinalizar)
 - DQ-006 Fila: "ordem de chegada" × prioridade do agendado → prevalece o Dossiê (agendado tem prioridade).
-- DQ-015 Tolerância de atraso: existe, mas sem minutos/consequência → parâmetro configurável, só sinalizar "atrasado".
+- DQ-015 A equipe informou tolerância de 15 minutos; a partir de 30 minutos perde-se o agendamento e o caminhão segue pelo fluxo de chegada sem agendamento. A API marca a agenda como não recebida e registra o motivo de atraso; Portaria encaminha para Agenda para solicitar encaixe.
 - Peso exatamente 500 kg em carga batida não está definido no Dossiê; o D-1 usa 5 como referência e sinaliza para confirmação.
 - DQ-002/003 Fórmulas de "utilização" e "volume".
 - DQ-017 Não recebimento parcial em entrega multidestino (hoje ligado ao agendamento).

@@ -6,14 +6,9 @@ import { ACOND, STATUS, STATUS_TOM } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { Acond, StatusAg } from '@/lib/types'
 
-/** Selo de origem do dado: HISTÓRICO (pacote), PLATAFORMA (uso real) ou TESTE (demonstração). */
+/** Selo de origem do dado oficial importado ou registrado por usuários na plataforma. */
 export function OrigemBadge({ origem }: { origem: string }) {
-  const cls =
-    origem === 'TESTE'
-      ? 'bg-warning-soft text-warning'
-      : origem === 'PLATAFORMA'
-        ? 'bg-success-soft text-success'
-        : 'bg-info-soft text-info'
+  const cls = origem === 'PLATAFORMA' ? 'bg-success-soft text-success' : 'bg-info-soft text-info'
   return (
     <span className={cn('inline-block rounded-[5px] px-1.5 text-[11.5px] leading-[1.6] font-semibold tracking-[.01em]', cls)}>
       {origem === 'HISTORICO' ? 'HISTÓRICO' : origem}
@@ -39,7 +34,7 @@ export function Callout({
 }: { tom?: 'info' | 'aviso' | 'ruim' | 'ok'; children: ReactNode; className?: string }) {
   const estilo = {
     info: 'border-info bg-info-soft',
-    aviso: 'border-[#b8860b] bg-warning-soft',
+    aviso: 'border-brand-yellow bg-warning-soft',
     ruim: 'border-destructive bg-danger-soft',
     ok: 'border-brand-green bg-success-soft',
   }[tom]
@@ -119,7 +114,7 @@ export function Barras({
           <span className="truncate" title={l}>{l}</span>
           <div className="h-3 overflow-hidden rounded bg-secondary">
             <div
-              className={cn('h-full rounded transition-[width] duration-700', cor === 'verde' ? 'bg-brand-green' : 'bg-[#2b6fc0]')}
+              className={cn('h-full rounded transition-[width] duration-700', cor === 'verde' ? 'bg-brand-green' : 'bg-brand-blue')}
               style={{ width: `${(v / max) * 100}%` }}
             />
           </div>

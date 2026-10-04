@@ -75,10 +75,6 @@
     <label>Até <input type="date" id="ate"></label>
     <label>Armazém
       <select id="armazem"><option value="">Todos</option></select></label>
-    <label>Origem dos registros
-      <select id="origem">
-        <option value="">Todas</option><option>PLATAFORMA</option><option>TESTE</option>
-      </select></label>
     <label>Agrupar boletins por
       <select id="agrupar"><option value="semana">Semana</option><option value="mes">Mês</option>
         <option value="dia">Dia</option></select></label>
@@ -189,7 +185,7 @@ function secaoResposta(h, p) {
 
 function secaoPlataforma(p, agrupar) {
   const el = $("plataforma");
-  if (!p.total.boletins) { el.innerHTML = `<h2>Sobra e falta pelo boletim ${origem("PLATAFORMA/TESTE")}</h2><div class="card vazio">Nenhum boletim no período/filtro.</div>`; return; }
+  if (!p.total.boletins) { el.innerHTML = `<h2>Sobra e falta pelo boletim ${origem("PLATAFORMA")}</h2><div class="card vazio">Nenhum boletim no período/filtro.</div>`; return; }
   const linhasArm = p.porArmazem.map((a) => `<tr><td>${a.armazem}</td><td>${pill(a.situacao)}</td><td>${nf(a.aproveitamento * 100, 0)}%</td>
     <td>${brl(a.sobraReais)}</td><td>${brl(a.faltaReais)}</td><td>${a.diasComComplemento}</td><td>${a.diasAcimaDoPiso}</td><td>${brl(a.totalAPagar)}</td></tr>`).join("");
   el.innerHTML = `<h2>Sobra e falta por armazém, em R$ ${origem(Object.keys(p.origens).join(" + "))}</h2>
@@ -299,7 +295,6 @@ function secaoOperacao(o) {
 function secaoOrigens(o, p, h) {
   $("origens").innerHTML = `<div class="card"><h3>De onde vem cada número</h3><ul class="lim">
     <li><b>HISTORICO</b>: planilha de movimentação (41.779 linhas, 2022–2026) e folha diária de chapas (fev/2025–ago/2026), do pacote da Cocapec.</li>
-    <li><b>TESTE</b>: registros gerados pela equipe para a demonstração (${nf(o.origens.TESTE || 0)} descargas${p.origens.TESTE ? ", " + p.origens.TESTE + " boletins" : ""} no filtro atual).</li>
     <li><b>PLATAFORMA</b>: registros reais feitos no uso do sistema (${nf(o.origens.PLATAFORMA || 0)} descargas${p.origens.PLATAFORMA ? ", " + p.origens.PLATAFORMA + " boletins" : ""} no filtro atual).</li>
     </ul><p class="nota">Nunca foram inventados horários, chapas ou equipamentos para o histórico: a cooperativa não os registrou. As estimativas de tempo do dossiê são parâmetros, não medições.</p></div>`;
 }
@@ -307,7 +302,7 @@ function secaoOrigens(o, p, h) {
 /* ---------- carga ---------- */
 async function carregar() {
   $("status").textContent = "carregando…";
-  const f = { de: $("de").value, ate: $("ate").value, armazemId: $("armazem").value, origem: $("origem").value };
+  const f = { de: $("de").value, ate: $("ate").value, armazemId: $("armazem").value, origem: "PLATAFORMA" };
   try {
     const [o, p, h, hi] = await Promise.all([
       api("operacao", f),
@@ -326,7 +321,7 @@ async function iniciar() {
     for (const a of arm) $("armazem").insertAdjacentHTML("beforeend", `<option value="${a.id}">${a.nome}</option>`);
   } catch (_) { /* o filtro de armazém fica só com "Todos" */ }
   $("aplicar").addEventListener("click", carregar);
-  for (const id of ["armazem", "origem", "agrupar"]) $(id).addEventListener("change", carregar);
+  for (const id of ["armazem", "agrupar"]) $(id).addEventListener("change", carregar);
   carregar();
 }
 iniciar();

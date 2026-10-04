@@ -22,16 +22,18 @@ class PainelControllerTest {
         assertEquals(400, assertThrows(ResponseStatusException.class,
             () -> controller.operacao(null, null, null, "INVENTADA")).getStatusCode().value());
         assertEquals(400, assertThrows(ResponseStatusException.class,
+            () -> controller.operacao(null, null, null, "TESTE")).getStatusCode().value());
+        assertEquals(400, assertThrows(ResponseStatusException.class,
             () -> controller.dimensionamentoPlataforma(null, null, null, null, "ano")).getStatusCode().value());
     }
 
     @Test
-    void acceptsInclusiveDateRangeAndForwardsFilter() {
+    void defaultsToRealPlatformOriginAndForwardsInclusiveDateRange() {
         LocalDate day = LocalDate.of(2026, 10, 3);
-        Map<String,Object> result = Map.of("origens", Map.of("TESTE", 1));
+        Map<String,Object> result = Map.of("origens", Map.of("PLATAFORMA", 1));
         when(plataforma.operacao(any())).thenReturn(result);
-        assertEquals(result, controller.operacao(day, day, 2, "TESTE"));
-        verify(plataforma).operacao(eq(new PainelFiltro(day, day, 2, "TESTE")));
+        assertEquals(result, controller.operacao(day, day, 2, null));
+        verify(plataforma).operacao(eq(new PainelFiltro(day, day, 2, "PLATAFORMA")));
     }
 
     @Test

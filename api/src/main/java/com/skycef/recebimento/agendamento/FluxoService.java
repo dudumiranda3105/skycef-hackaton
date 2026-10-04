@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -31,6 +33,16 @@ public class FluxoService {
         if (!Set.of("PENDENTE_COMPRAS", "AUTORIZADO").contains(AgendamentoService.status(a)))
             throw AgendamentoService.erro(HttpStatus.CONFLICT, "O agendamento não aceita a chegada do caminhão.");
         if (a.get("chegada_em") != null) throw AgendamentoService.erro(HttpStatus.CONFLICT, "A chegada deste caminhão já foi registrada.");
+        OffsetDateTime agora = AgendamentoService.agora();
+        OffsetDateTime horarioAgendado = LocalDateTime.of(AgendamentoService.data(a), AgendamentoService.horario(a)).atZone(AgendamentoService.ZONA).toOffsetDateTime();
+        if (Duration.between(horarioAgendado, agora).toMinutes() >= 30) {
+            base.transition(a, "NAO_RECEBIDO", "Agendamento perdido por atraso de 30 minutos ou mais");
+            db.update("insert into nao_recebimento(agendamento_id,fornecedor_id,data,motivo,descricao,origem,criado_em) values (?,?,?,'ATRASO_AGENDAMENTO','Chegada registrada 30 minutos ou mais após o horário agendado.','PLATAFORMA',?)",
+                    appointment, a.get("fornecedor_id"), AgendamentoService.data(a), agora);
+            Map<String, Object> resultado = base.detalhe(appointment);
+            resultado.put("agendaPerdidaPorAtraso", true);
+            return resultado;
+        }
         db.update("update agendamento set chegada_em=? where id=?", when, appointment);
         db.update("update descarga set chegada_em=? where agendamento_id=? and chegada_em is null", when, appointment);
         marco(a, "CHEGADA", "Chegada do caminhão", when, null, null);

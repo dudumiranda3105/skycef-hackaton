@@ -60,10 +60,11 @@ public class PainelController {
     }
 
     private PainelFiltro filtro(LocalDate de, LocalDate ate, Integer armazemId, String origem) {
-        if (origem != null && !origem.equals("PLATAFORMA") && !origem.equals("TESTE"))
+        String origemReal = origem == null ? "PLATAFORMA" : origem;
+        if (!origemReal.equals("PLATAFORMA"))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "REQUISICAO_INVALIDA: origem");
         if (de != null && ate != null && de.isAfter(ate))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "REQUISICAO_INVALIDA: periodo");
-        return new PainelFiltro(de, ate, armazemId, origem);
+        return new PainelFiltro(de, ate, armazemId, origemReal);
     }
 }

@@ -14,8 +14,8 @@ mostram nenhum dado sem a sessão.
 - Permissão por perfil é conferida **em cada chamada da API** (`Permissoes.java`); a interface só esconde o que o perfil não pode fazer.
 
 ## Usuários iniciais
-Na primeira subida (tabela vazia) são criados seis usuários, um por perfil: `admin`, `diretoria`, `compras`, `armazem`,
-`encarregado` e `fornecedor`. A senha vem de **`SENHA_INICIAL`** (o `docker-compose.yml` e o `.env.example` trazem um valor de
+Na primeira subida (tabela vazia) são criados usuários para os perfis: `admin`, `diretoria`, `compras`, `armazem`,
+`encarregado`, `fornecedor`, `insumo` e `porteiro`. Em banco existente, `insumo` e `porteiro` são adicionados caso ainda não existam, sem alterar outras contas. A senha vem de **`SENHA_INICIAL`** (o `docker-compose.yml` e o `.env.example` trazem um valor de
 **demonstração**). Se a variável for vazia, a API gera uma senha aleatória e a mostra **uma única vez** no log:
 
 ```bash
@@ -34,6 +34,8 @@ e redefine usuários na seção **Usuários**.
 | `ARMAZEM` | agenda, armazém, boletim, painel, D-1, perguntas, qualidade | destinos, chegada, descargas, vagas liberadas, efetivar cancelamento, não recebimentos, boletim; agenda |
 | `ENCARREGADO` | agenda e boletim | boletim do dia |
 | `FORNECEDOR` | agenda | novo agendamento, anexar a nota, reagendar, solicitar cancelamento, cadastrar fornecedor |
+| `INSUMO` | agenda e armazém | distribuir a entrega para um ou mais armazéns e consultar arquivos da NF |
+| `PORTEIRO` | agenda e armazém | registrar chegada e abrir um agendamento de chegada sem horário |
 
 Limitação conhecida: o perfil `FORNECEDOR` enxerga a agenda inteira (a capacidade é única da cooperativa e os dados de
 fornecedores aparecem nela). Separar por fornecedor exigiria vincular cada usuário a um cadastro de fornecedor.

@@ -18,10 +18,10 @@ import { useDados } from '@/lib/store'
 import type { Historico } from '@/lib/painelDados'
 
 const ARM_COR: Record<string, string> = {
-  Loja: '#0b4f9e',
-  Adubo: '#2e9b4b',
-  Insumos: '#d49a00',
-  'Pátio de Máquinas': '#2b6fc0',
+  Loja: '#005ba0',
+  Adubo: '#4cb033',
+  Insumos: '#e9a800',
+  'Pátio de Máquinas': '#0aa3b5',
 }
 
 interface CalculoOrigem {
@@ -38,7 +38,6 @@ export function Painel() {
   const [from, setFrom] = useState('2022-06')
   const [to, setTo] = useState(() => hojeISO().slice(0, 7))
   const [armFiltro, setArmFiltro] = useState<string>('Todos')
-  const [incluirTeste, setIncluirTeste] = useState(true)
   const [tab, setTab] = useState<'hist' | 'plat'>('plat')
 
   const [hist, setHist] = useState<Historico | null>(null)
@@ -58,7 +57,7 @@ export function Painel() {
     const qp = {
       ...q,
       armazemId: armFiltro === 'Todos' ? null : Number(armFiltro),
-      origem: incluirTeste ? null : 'PLATAFORMA',
+      origem: 'PLATAFORMA',
     }
 
     try {
@@ -77,7 +76,7 @@ export function Painel() {
     } finally {
       setCarregando(false)
     }
-  }, [from, to, armFiltro, incluirTeste])
+  }, [from, to, armFiltro])
 
   useEffect(() => {
     void carregar()
@@ -106,7 +105,7 @@ export function Painel() {
       valor: a.recebimentos,
       texto: `${nf0.format(a.recebimentos)} rec.`,
       sub: `${nf1.format(a.participacaoNaNecessidade * 100)}%`,
-      cor: ARM_COR[a.armazem] ?? '#0b4f9e',
+      cor: ARM_COR[a.armazem] ?? '#005ba0',
       esmaecida: armFiltro !== 'Todos' && armFiltro !== String(a.armazemId),
     }))
   }, [hist, armFiltro])
@@ -134,9 +133,7 @@ export function Painel() {
 
   const T_plat = plat?.total ?? { boletins: 0 }
   const origensPlataforma = Object.keys(plat?.origens ?? {})
-  const origensExibidas = origensPlataforma.length
-    ? origensPlataforma
-    : incluirTeste ? ['PLATAFORMA', 'TESTE'] : ['PLATAFORMA']
+  const origensExibidas = origensPlataforma.length ? origensPlataforma : ['PLATAFORMA']
   const complementoPago = Number(T_plat.sobraReais ?? 0)
   const totalPago = Number(T_plat.totalAPagar ?? 0)
   const parcelaComplemento = totalPago > 0 ? (complementoPago / totalPago) * 100 : null
@@ -185,17 +182,7 @@ export function Painel() {
             ))}
           </Select>
         </Field>
-        <div className="flex items-center gap-2 pb-2">
-          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={incluirTeste}
-              onChange={(e) => setIncluirTeste(e.target.checked)}
-              className="size-4 rounded"
-            />
-            Incluir dados de teste
-          </label>
-        </div>
+        <div className="pb-2 text-sm text-muted-foreground">Os indicadores operacionais consideram somente lançamentos reais da plataforma.</div>
       </PainelContainer>
 
       {/* Tabs */}
@@ -568,7 +555,6 @@ export function Painel() {
           <div className="flex flex-wrap items-center gap-2">
             <SecTitulo className="text-[17px]">Indicadores da plataforma</SecTitulo>
             <OrigemBadge origem="PLATAFORMA" />
-            {incluirTeste && <OrigemBadge origem="TESTE" />}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Descargas concluídas no período, agrupadas pela data de saída. Médias consideram apenas os registros que têm os marcos necessários.

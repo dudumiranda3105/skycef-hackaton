@@ -36,10 +36,10 @@ public class UsuarioSeeder implements ApplicationRunner {
         String senha = gerada ? gerarSenha() : senhaInicial;
         if (!auth.semear(senha)) return;
         if (gerada) {
-            LOG.warn("Usuarios iniciais criados (admin, diretoria, compras, armazem, encarregado, fornecedor). "
+            LOG.warn("Usuarios iniciais ou perfis faltantes criados (incluindo insumo e porteiro). "
                     + "Senha inicial gerada: {}  (troque em Alterar senha; defina SENHA_INICIAL para fixar uma)", senha);
         } else {
-            LOG.info("Usuarios iniciais criados (admin, diretoria, compras, armazem, encarregado, fornecedor) "
+            LOG.info("Usuarios iniciais ou perfis faltantes criados (incluindo insumo e porteiro) "
                     + "com a senha de SENHA_INICIAL. Troque-a em Alterar senha.");
         }
     }

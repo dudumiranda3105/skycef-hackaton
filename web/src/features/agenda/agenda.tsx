@@ -53,7 +53,7 @@ function FaixaVaga({ v, cheia, onAbrir }: { v: Vaga; cheia?: boolean; onAbrir: (
 }
 
 export function Agenda() {
-  const { pf } = useAuth()
+  const { pf, eu } = useAuth()
   const { ags, vagas, motivoDiaBloqueado, carregarDias, fornById } = useDados()
   const [semana, setSemana] = useState(semanaAtual())
   const [todas, setTodas] = useState(false)
@@ -137,7 +137,7 @@ export function Agenda() {
         sub="Todos os caminhões precisam de horário. A capacidade é única para a cooperativa inteira: ou uma carga batida sozinha, ou até dois caminhões paletizados ou big bag."
         acoes={
           <>
-            {pf('armazem') && (
+            {(pf('armazem') || eu?.papel === 'PORTEIRO') && (
               <Button variant="outline" onClick={() => setNovo({ walkin: true })}>
                 <Truck /> Chegou sem agendamento
               </Button>

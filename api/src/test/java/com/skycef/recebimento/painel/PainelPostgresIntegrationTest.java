@@ -56,15 +56,14 @@ class PainelPostgresIntegrationTest {
     @Test
     void operationalAndBulletinNumbersUsePostgresAndPreserveMoneyAsText() {
         LocalDate day = LocalDate.of(2026, 9, 14);
-        Map<String,Object> operation = controller.operacao(day, day, 1, "TESTE");
+        Map<String,Object> operation = controller.operacao(day, day, 1, null);
         Map<String,Object> loads = object(operation.get("cargasRecebidas"));
         assertEquals(1, ((Number) loads.get("total")).intValue());
         assertEquals(15.0, ((Number)object(operation.get("tempoMedioEsperaMin")).get("media")).doubleValue());
         assertEquals("180.3462", object(operation.get("custoDaOperacao")).get("totalAPagar"));
-        assertEquals(0, ((Number)object(controller.operacao(day,day,1,"PLATAFORMA")
-            .get("cargasRecebidas")).get("total")).intValue());
+        assertEquals(1, ((Number) object(operation.get("origens")).get("PLATAFORMA")).intValue());
 
-        Map<String,Object> dimension = controller.dimensionamentoPlataforma(day,day,1,"TESTE","dia");
+        Map<String,Object> dimension = controller.dimensionamentoPlataforma(day,day,1,null,"dia");
         Map<String,Object> total = object(dimension.get("total"));
         assertEquals("80.3462", total.get("sobraReais"));
         assertEquals("0.0000", total.get("faltaReais"));
@@ -96,13 +95,13 @@ class PainelPostgresIntegrationTest {
         long supplier = db.queryForObject("insert into fornecedor(codigo,razao_social) values ('IT_PAINEL','Fornecedor teste') returning id",Long.class);
         OffsetDateTime arrival = day.atTime(8,0).atZone(ZONE).toOffsetDateTime();
         long appointment = db.queryForObject("insert into agendamento(fornecedor_id,data_agendada,horario,"
-            + "acondicionamento,status,origem,chegada_em) values (?,?,?,'PALETIZADO','CONCLUIDO','TESTE',?) returning id",
+            + "acondicionamento,status,origem,chegada_em) values (?,?,?,'PALETIZADO','CONCLUIDO','PLATAFORMA',?) returning id",
             Long.class,supplier,Date.valueOf(day),java.sql.Time.valueOf("08:00:00"),arrival);
         db.update("insert into descarga(agendamento_id,armazem_id,chegada_em,entrada_em,saida_em,quantidade_chapas) "
             + "values (?,1,?,?,?,2)",appointment,arrival,arrival.plusMinutes(15),arrival.plusMinutes(60));
         long bulletin=db.queryForObject("insert into boletim(armazem_id,data,producao_total,diarias_equivalentes,"
             + "valor_por_diaria,total_a_pagar,complemento,situacao,origem) "
-            + "values (1,?,100.0000,2.0,50.0000,180.3462,80.3462,'CONSISTENTE','TESTE') returning id",
+            + "values (1,?,100.0000,2.0,50.0000,180.3462,80.3462,'CONSISTENTE','PLATAFORMA') returning id",
             Long.class,Date.valueOf(day));
         db.update("insert into chapa(matricula,nome) values ('IT_01','Teste 1'),('IT_02','Teste 2')");
         db.update("insert into boletim_equipe(boletim_id,matricula,tipo_diaria) values (?,'IT_01','COMPLETA'),(?,'IT_02','COMPLETA')",

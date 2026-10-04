@@ -32,14 +32,23 @@ public class NotaArquivoService {
     @Transactional
     public Map<String, Object> anexar(long appointment, long note, MultipartFile file) throws IOException {
         String name = safeName(file.getOriginalFilename());
-        boolean xml = name.toLowerCase().endsWith(".xml"), pdf = name.toLowerCase().endsWith(".pdf");
-        if (!xml && !pdf) throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "A nota fiscal deve ser um arquivo PDF ou XML.");
+        String lower = name.toLowerCase();
+        boolean xml = lower.endsWith(".xml"), pdf = lower.endsWith(".pdf");
+        boolean jpeg = lower.endsWith(".jpg") || lower.endsWith(".jpeg");
+        boolean png = lower.endsWith(".png"), webp = lower.endsWith(".webp");
+        if (!xml && !pdf && !jpeg && !png && !webp) throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "A nota fiscal deve ser XML, PDF, JPG, PNG ou WebP.");
         if (file.isEmpty()) throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "O arquivo da nota fiscal está vazio.");
         if (file.getSize() > LIMIT) throw AgendamentoService.erro(HttpStatus.PAYLOAD_TOO_LARGE, "A nota fiscal deve ter no máximo 10 MB.");
         byte[] content = file.getBytes();
         if (content.length > LIMIT) throw AgendamentoService.erro(HttpStatus.PAYLOAD_TOO_LARGE, "A nota fiscal deve ter no máximo 10 MB.");
         if (pdf && (content.length < 4 || content[0] != '%' || content[1] != 'P' || content[2] != 'D' || content[3] != 'F'))
             throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "O arquivo não parece ser um PDF válido.");
+        if (jpeg && (content.length < 3 || (content[0] & 0xff) != 0xff || (content[1] & 0xff) != 0xd8 || (content[2] & 0xff) != 0xff))
+            throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "O arquivo não parece ser uma foto JPEG válida.");
+        if (png && (content.length < 8 || (content[0] & 0xff) != 0x89 || content[1] != 'P' || content[2] != 'N' || content[3] != 'G'))
+            throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "O arquivo não parece ser uma foto PNG válida.");
+        if (webp && (content.length < 12 || !new String(content, 0, 4, java.nio.charset.StandardCharsets.US_ASCII).equals("RIFF") || !new String(content, 8, 4, java.nio.charset.StandardCharsets.US_ASCII).equals("WEBP")))
+            throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "O arquivo não parece ser uma foto WebP válida.");
         XmlData parsed = xml ? parseXml(content) : null;
         Map<String, Object> a = base.agendamento(appointment, true);
         if (AgendamentoService.LIBERADOS.contains(AgendamentoService.status(a)) || "CONCLUIDO".equals(AgendamentoService.status(a)))
@@ -54,7 +63,7 @@ public class NotaArquivoService {
         }
         db.update("update nota_fiscal set nf_chave=coalesce(nf_chave,?), nf_numero=coalesce(nf_numero,?), peso_total_kg=coalesce(peso_total_kg,?), arquivo_nome=?, content_type=?, tamanho_bytes=?, conteudo=? where id=?",
                 parsed == null ? null : parsed.key(), parsed == null ? null : parsed.number(), parsed == null ? null : (parsed.gross() != null ? parsed.gross() : parsed.net()),
-                name, xml ? "application/xml" : "application/pdf", content.length, content, note);
+                name, xml ? "application/xml" : pdf ? "application/pdf" : jpeg ? "image/jpeg" : png ? "image/png" : "image/webp", content.length, content, note);
         return base.detalhe(appointment);
     }
 

@@ -2,16 +2,14 @@ import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Field } from '@/components/ui/label'
-import { Input, Select } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Badge, Barras, CabecalhoPagina, Callout, Painel, SecTitulo, Tile, Tiles, Vazio,
 } from '@/components/comum'
 import { ACOND, DOW_LONGO, SLOTS, STATUS } from '@/lib/constants'
 import {
-  D1_LIM, D1_PERIODOS, NIVEL_TOM, NIVEL_TXT, calcularD1, nivelPressao, proximoDiaUtilSimples,
-  type CelulaSlot, type LinhaD1, type Nivel,
+  D1_LIM, D1_PERIODOS, NIVEL_TOM, NIVEL_TXT, calcularD1, proximoDiaUtilSimples,
+  type CelulaSlot, type LinhaD1,
 } from '@/lib/d1'
 import { addDays, dow, fmtBR, hojeISO, nf0, nf2 } from '@/lib/format'
 import { useDados } from '@/lib/store'
@@ -21,8 +19,6 @@ export function D1() {
   const { ags, armazens, boletins, fornById } = useDados()
 
   const [data, setData] = useState(() => proximoDiaUtilSimples(hojeISO()))
-  const [simArmId, setSimArmId] = useState<number>(() => armazens[0]?.id ?? 1)
-  const [simEquipe, setSimEquipe] = useState<number | null>(null)
 
   // Dialog explicativo ("Por quê?")
   const [explicar, setExplicar] = useState<{ linha: LinhaD1; h: string; cel: CelulaSlot } | null>(null)
@@ -31,21 +27,8 @@ export function D1() {
 
   // Cálculo D-1 sem simulação
   const planoBase = useMemo(
-    () => calcularD1(data, ags, armazens, boletins, fmtKg, null),
+    () => calcularD1(data, ags, armazens, boletins, fmtKg),
     [data, ags, armazens, boletins],
-  )
-
-  // Armazém e equipe atual para o simulador
-  const armIdValido = armazens.some((a) => a.id === simArmId) ? simArmId : (armazens[0]?.id ?? 1)
-  const linhaSimBase = planoBase.linhas.find((x) => x.id === armIdValido)
-  const picoSim = linhaSimBase?.pico ?? 0
-  const refSim = linhaSimBase?.ref?.n ?? null
-  const equipeAtualSim = simEquipe ?? refSim ?? Math.max(picoSim, 4)
-
-  // Cálculo com a equipe simulada para o armazém selecionado
-  const planoComSim = useMemo(
-    () => calcularD1(data, ags, armazens, boletins, fmtKg, { [armIdValido]: equipeAtualSim }),
-    [data, ags, armazens, boletins, armIdValido, equipeAtualSim],
   )
 
   const aut = planoBase.ags.filter((a) => ['AUTORIZADO', 'EM_DESCARGA', 'CONCLUIDO'].includes(a.status)).length
@@ -55,7 +38,7 @@ export function D1() {
   // Alertas
   const alertas = useMemo(() => {
     const list: { linha: LinhaD1; h: string; cel: CelulaSlot }[] = []
-    planoComSim.linhas.forEach((L) => {
+    planoBase.linhas.forEach((L) => {
       SLOTS.forEach((h) => {
         const c = L.slots[h]
         if (['ALTA', 'MODERADA'].includes(c.nivel.k)) {
@@ -64,7 +47,7 @@ export function D1() {
       })
     })
     return list.sort((a, b) => (b.cel.nivel.k === 'ALTA' ? 1 : 0) - (a.cel.nivel.k === 'ALTA' ? 1 : 0) || a.h.localeCompare(b.h))
-  }, [planoComSim])
+  }, [planoBase])
 
   // Gráficos por horário, acondicionamento e armazém
   const porHora: [string, number][] = SLOTS.map((h) => [h, planoBase.ags.filter((a) => a.horario === h).length])
@@ -81,51 +64,6 @@ export function D1() {
     while (dow(d) === 0 || dow(d) === 6) d = addDays(d, delta)
     setData(d)
   }
-
-  // Cenários do simulador
-  const cenarios = useMemo(() => {
-    if (!linhaSimBase) return []
-    const ini = Math.max(1, (refSim || Math.max(picoSim, 4)) - 2)
-    const list: number[] = []
-    for (let t = ini; t < ini + 7; t++) list.push(t)
-
-    const ordem: Record<string, number> = { ALTA: 4, MODERADA: 3, BAIXA: 2, SEM: 0, ND: 1 }
-    return list.map((t) => {
-      const sl = SLOTS.map((h) => nivelPressao(linhaSimBase.slots[h].need, t))
-      const pior = sl.slice().sort((a, b) => ordem[b.k] - ordem[a.k])[0]
-      return {
-        t,
-        pior,
-        altas: sl.filter((x) => x.k === 'ALTA').length,
-        mods: sl.filter((x) => x.k === 'MODERADA').length,
-      }
-    })
-  }, [linhaSimBase, refSim, picoSim])
-
-  const linhaSimAtual = planoComSim.linhas.find((x) => x.id === armIdValido)
-  const cenarioAtual = useMemo(() => {
-    if (!linhaSimBase) return null
-    const sl = SLOTS.map((h) => nivelPressao(linhaSimBase.slots[h].need, equipeAtualSim))
-    const ordem: Record<string, number> = { ALTA: 4, MODERADA: 3, BAIXA: 2, SEM: 0, ND: 1 }
-    const pior = sl.slice().sort((a, b) => ordem[b.k] - ordem[a.k])[0]
-    return {
-      t: equipeAtualSim,
-      pior,
-      altas: sl.filter((x) => x.k === 'ALTA').length,
-      mods: sl.filter((x) => x.k === 'MODERADA').length,
-    }
-  }, [linhaSimBase, equipeAtualSim])
-
-  const txtCenario = (pior: Nivel) =>
-    pior.k === 'SEM'
-      ? 'Sem carga prevista'
-      : pior.k === 'ALTA'
-        ? 'Pressão alta'
-        : pior.k === 'MODERADA'
-          ? 'Pressão moderada'
-          : pior.realoc
-            ? 'Capacidade potencialmente disponível para realocação'
-            : 'Cenário compatível'
 
   return (
     <div className="grid gap-6">
@@ -182,7 +120,7 @@ export function D1() {
       <Painel>
         <SecTitulo className="text-[17px]">Pressão estimada por horário e armazém</SecTitulo>
         <p className="mt-1 mb-4 text-sm text-muted-foreground">
-          Chapas simultâneas pela norma do Dossiê (abaixo de 500 kg: 0; batido acima de 500 kg: 5; paletizado ou big bag: 2 em qualquer peso), comparadas com a equipe de referência do armazém (média dos últimos boletins) ou a simulada abaixo.
+          Chapas simultâneas pela norma do Dossiê (abaixo de 500 kg: 0; batido acima de 500 kg: 5; paletizado ou big bag: 2 em qualquer peso), comparadas com a equipe de referência do armazém (média dos boletins reais registrados).
         </p>
         <p className="mb-4 text-xs text-muted-foreground">
           Cargas de máquinas e implementos também exigem operador de empilhadeira ou trator e ao menos 1 chapa. Como o agendamento ainda não identifica o tipo de item nem a disponibilidade de operador, confirme essa necessidade com o armazém; ela não é inferida neste cálculo.
@@ -200,7 +138,7 @@ export function D1() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {planoComSim.linhas.filter((L) => L.id != null || L.entregas > 0).map((L) => (
+              {planoBase.linhas.filter((L) => L.id != null || L.entregas > 0).map((L) => (
                 <TableRow key={String(L.id)}>
                   <TableCell>
                     <div className="font-bold">{L.nome}</div>
@@ -280,138 +218,6 @@ export function D1() {
         )}
       </Painel>
 
-      {/* Simulador de equipe */}
-      <Painel id="d1-sim">
-        <SecTitulo className="text-[17px]">Simulador de equipe</SecTitulo>
-        <p className="mt-1 mb-4 text-sm text-muted-foreground">
-          Altere só o cenário de equipe e veja como a pressão estimada mudaria, usando o mesmo motor do Planejamento D-1 para {fmtBR(data)}. <b>Nada é gravado</b>: não muda boletins, agendamentos nem a equipe real.
-        </p>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Armazém">
-            <Select value={armIdValido} onChange={(e) => {
-              setSimArmId(Number(e.target.value))
-              setSimEquipe(null)
-            }}>
-              {armazens.map((a) => (
-                <option key={a.id} value={a.id}>{a.nome}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Chapas disponíveis no cenário">
-            <Input
-              type="number"
-              min={1}
-              max={30}
-              value={equipeAtualSim}
-              onChange={(e) => setSimEquipe(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
-            />
-          </Field>
-          <Tile rotulo="Necessidade pico" valor={`${picoSim} chapa(s)`} />
-          <Tile rotulo="Equipe de referência" valor={refSim != null ? `${refSim} chapa(s)` : '—'} />
-        </div>
-
-        {cenarioAtual && linhaSimAtual && (
-          <div className="mt-6 rounded-xl border bg-secondary/30 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <Badge tom={NIVEL_TOM[cenarioAtual.pior.k]}>
-                  {txtCenario(cenarioAtual.pior)}
-                </Badge>
-                <h3 className="mt-1 font-display text-xl font-bold">
-                  {equipeAtualSim} chapa(s): {txtCenario(cenarioAtual.pior).toLowerCase()}
-                </h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {cenarioAtual.altas > 0 && `${cenarioAtual.altas} horário(s) com pressão alta. `}
-                  {cenarioAtual.mods > 0 && `${cenarioAtual.mods} com pressão moderada. `}
-                  {cenarioAtual.pior.realoc && (
-                    <>
-                      Neste cenário haveria <b>capacidade disponível para realocação</b> (outras atividades, como o carregamento de cooperados), sem recomendar redução permanente de equipe.
-                    </>
-                  )}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {SLOTS.map((h) => (
-                      <TableHead key={h} className="text-right">{h}</TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    {SLOTS.map((h) => {
-                      const c = linhaSimAtual.slots[h]
-                      return (
-                        <TableCell key={h} className="text-right">
-                          {c.need > 0 ? (
-                            <>
-                              <div className="font-bold num">{c.need} chapa(s)</div>
-                              <Badge tom={NIVEL_TOM[c.nivel.k]}>
-                                {c.nivel.k === 'ALTA' ? 'alta' : c.nivel.k === 'MODERADA' ? 'moderada' : 'baixa'}
-                              </Badge>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      )
-                    })}
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        )}
-
-        <div className="mt-6">
-          <SecTitulo className="text-sm">Comparar cenários de equipe</SecTitulo>
-          <div className="mt-3 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Equipe</TableHead>
-                  <TableHead>Resultado</TableHead>
-                  <TableHead className="text-right">Horários em pressão alta</TableHead>
-                  <TableHead className="text-right">Em pressão moderada</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cenarios.map((x) => {
-                  const ehAtual = x.t === equipeAtualSim
-                  return (
-                    <TableRow key={x.t} className={ehAtual ? 'bg-secondary/60 font-semibold' : ''}>
-                      <TableCell className="num">
-                        {x.t} chapa(s)
-                        {refSim != null && x.t === refSim && (
-                          <span className="ml-1 text-xs text-muted-foreground">(referência)</span>
-                        )}
-                        {ehAtual && (
-                          <span className="ml-1 text-xs text-info">(cenário atual)</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge tom={NIVEL_TOM[x.pior.k]}>{txtCenario(x.pior)}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right num">{x.altas}</TableCell>
-                      <TableCell className="text-right num">{x.mods}</TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-
-        <Callout tom="aviso" className="mt-5">
-          <b>O que o simulador não faz:</b> não grava uma nova equipe; não altera boletins ou agendamentos; não recomenda contratação ou demissão permanente; não inventa impacto financeiro quando os dados não sustentam o cálculo. Prefira dizer “capacidade disponível para realocação”, não “funcionários sobrando”.
-        </Callout>
-      </Painel>
-
       {/* Dialog Por Quê */}
       {explicar && (
         <Dialog open onOpenChange={(o) => !o && setExplicar(null)}>
@@ -446,7 +252,7 @@ export function D1() {
                 <SecTitulo className="text-sm">Como o nível foi decidido</SecTitulo>
                 <ol className="mt-2 grid gap-1.5 list-decimal pl-5">
                   <li>Chapas simultâneas pela norma do Dossiê (§7): abaixo de 500 kg, 0; batido acima de 500 kg, 5; paletizado ou big bag, 2 em qualquer peso. Neste horário: <b>{explicar.cel.need}</b>.</li>
-                  <li>Equipe considerada: {explicar.linha.tipo === 'simulada' ? `equipe simulada de ${explicar.linha.team} chapa(s)` : explicar.linha.ref ? `equipe de referência de ${explicar.linha.team} chapa(s) (média dos ${explicar.linha.ref.amostra} boletins mais recentes)` : 'sem equipe de referência para este armazém'}.</li>
+                  <li>Equipe considerada: {explicar.linha.ref ? `equipe de referência de ${explicar.linha.team} chapa(s) (média dos ${explicar.linha.ref.amostra} boletins reais mais recentes)` : 'sem equipe de referência para este armazém'}.</li>
                   {explicar.cel.nivel.r != null && (
                     <li>Razão = {explicar.cel.need} ÷ {explicar.linha.team} = <b>{nf2.format(explicar.cel.nivel.r)}</b>.</li>
                   )}

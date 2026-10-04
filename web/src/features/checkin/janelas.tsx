@@ -5,7 +5,7 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTi
 import { Field } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { AcondBadge, Callout, Erros, OrigemBadge, SecTitulo, StatusBadge } from '@/components/comum'
-import { GET, POST, dStatus, errTxt } from '@/lib/api'
+import { POST, dStatus, errTxt } from '@/lib/api'
 import { fmtBR, fmtDur, fmtHM, fmtNF, minDiff } from '@/lib/format'
 import { qrSvg } from '@/lib/qr'
 import { avisar, useAuth, useDados } from '@/lib/store'
@@ -356,78 +356,6 @@ function SenhaDialog() {
   )
 }
 
-/* ---------- Conferência do cálculo oficial contra a API ---------- */
-function VerificarDialog() {
-  const { verificar, fechar } = useJanelas()
-  const { armId } = useDados()
-  const [res, setRes] = useState<{ ok: boolean; nome: string; det: string }[] | null>(null)
-  useEffect(() => {
-    if (!verificar) {
-      setRes(null)
-      return
-    }
-    let vivo = true
-    ;(async () => {
-      const ids = ['CHAPA_08', 'CHAPA_09', 'CHAPA_15', 'CHAPA_48', 'CHAPA_37', 'CHAPA_38', 'CHAPA_41', 'CHAPA_42', 'CHAPA_43', 'CHAPA_49', 'CHAPA_30']
-      const adubo = armId('Adubo') ?? 2
-      const linhas = [{ tipoItem: 'FERTILIZANTES', descarga: 2778 }, { tipoItem: 'AGROQUIMICO', descarga: 30 }, { tipoItem: 'SERVICOS_DIVERSOS', descarga: 40 }]
-      const eq = (n: number, m: number) => ids.slice(0, n + m).map((c, i) => ({ matricula: c, tipoDiaria: i < n ? 'COMPLETA' : 'MEIA' }))
-      const casos: [string, ReturnType<typeof eq>, Record<string, string>][] = [
-        ['Exemplo oficial (Adubo, 17/11/2025, 11 completas)', eq(11, 0), { producaoTotal: '918.20', valorPorDiaria: '83.47', totalAPagar: '991.90', complemento: '73.71' }],
-        ['Variação (10 completas + 1 meia)', eq(10, 1), { producaoTotal: '918.20', valorPorDiaria: '87.45', totalAPagar: '946.82', complemento: '28.62' }],
-      ]
-      const out: { ok: boolean; nome: string; det: string }[] = []
-      try {
-        const h = await GET<{ status: string }>('/health')
-        out.push({ ok: h?.status === 'ok', nome: 'API no ar (/health)', det: JSON.stringify(h) })
-      } catch (e) {
-        out.push({ ok: false, nome: 'API no ar (/health)', det: errTxt(e) })
-      }
-      for (const [nome, equipe, esp] of casos) {
-        try {
-          const r = await POST('/api/boletins/calculo', { armazemId: adubo, data: '2025-11-17', linhas, equipe })
-          const got = r.exibicao || {}
-          const falhas = Object.entries(esp).filter(([k, v]) => got[k] !== v).map(([k, v]) => `${k}: esperado ${v}, veio ${got[k]}`)
-          out.push({ ok: !falhas.length, nome: `${nome} → R$ ${esp.producaoTotal.replace('.', ',')} · ${esp.totalAPagar.replace('.', ',')} · complemento ${esp.complemento.replace('.', ',')}`, det: falhas.join('; ') })
-        } catch (e) {
-          out.push({ ok: false, nome, det: errTxt(e) })
-        }
-      }
-      if (vivo) setRes(out)
-    })()
-    return () => {
-      vivo = false
-    }
-  }, [verificar, armId])
-  if (!verificar) return null
-  const ok = res?.filter((t) => t.ok).length ?? 0
-  return (
-    <Dialog open onOpenChange={(o) => !o && fechar('verificar')}>
-      <DialogContent wide>
-        <DialogHeader><DialogTitle>Conferência do cálculo oficial</DialogTitle></DialogHeader>
-        <DialogBody>
-          {!res ? <p className="flex items-center gap-2 text-sm"><Loader2 className="size-4 animate-spin" /> Conferindo com a API…</p> : (
-            <>
-              <Callout tom={ok === res.length ? 'ok' : 'ruim'}>
-                <b>{ok} de {res.length} conferências passaram.</b> Estes números vêm da API em tempo real: o exemplo do Dossiê (R$ 918,20 / 991,90 / 73,71) e a variação com uma meia diária (R$ 946,82 / 28,62). Nada é gravado.
-              </Callout>
-              <ul className="grid gap-2 text-sm">
-                {res.map((t) => (
-                  <li key={t.nome} className="flex gap-2.5">
-                    <span className={cn('h-fit rounded-full px-2.5 py-0.5 text-[12.5px] font-medium', t.ok ? 'bg-success-soft text-success' : 'bg-danger-soft text-destructive')}>{t.ok ? 'ok' : 'falhou'}</span>
-                    <span>{t.nome}{!t.ok && <><br /><small className="text-destructive">{t.det}</small></>}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </DialogBody>
-        <DialogFooter><Button variant="outline" onClick={() => fechar('verificar')}>Fechar</Button></DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 export function JanelasGlobais() {
   return (
     <>
@@ -435,7 +363,6 @@ export function JanelasGlobais() {
       <CheckinDialog />
       <LeitorDialog />
       <SenhaDialog />
-      <VerificarDialog />
     </>
   )
 }

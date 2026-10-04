@@ -1,6 +1,6 @@
 /* Tipos do que a API devolve (já traduzidos para o que a interface usa). */
 
-export type Papel = 'ADMIN' | 'DIRETORIA' | 'COMPRAS' | 'ARMAZEM' | 'ENCARREGADO' | 'FORNECEDOR'
+export type Papel = 'ADMIN' | 'DIRETORIA' | 'COMPRAS' | 'ARMAZEM' | 'ENCARREGADO' | 'FORNECEDOR' | 'INSUMO' | 'PORTEIRO'
 export type Acond = 'BATIDO' | 'PALETIZADO' | 'BIG_BAG'
 export type StatusAg =
   | 'PENDENTE_COMPRAS'
@@ -10,7 +10,7 @@ export type StatusAg =
   | 'CONCLUIDO'
   | 'CANCELADO'
   | 'NAO_RECEBIDO'
-export type Origem = 'HISTORICO' | 'PLATAFORMA' | 'TESTE'
+export type Origem = 'HISTORICO' | 'PLATAFORMA'
 
 export interface Eu {
   id: number

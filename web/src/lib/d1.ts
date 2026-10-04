@@ -1,4 +1,4 @@
-/* Motor do Planejamento D-1 e do Simulador de equipe (o mesmo para os dois).
+/* Motor do Planejamento D-1.
    Não há número exato de chapas: o módulo trabalha com NÍVEIS e declara as limitações. Os limiares são parâmetros
    do projeto, não regra da Cocapec. */
 import { LIBERAM_VAGA, SLOTS } from './constants'
@@ -81,7 +81,7 @@ export interface LinhaD1 {
   id: number | null
   nome: string
   team: number | null
-  tipo: 'simulada' | 'referência' | null
+  tipo: 'referência' | null
   ref: { n: number; amostra: number; desde: string } | null
   slots: Record<string, CelulaSlot>
   pico: number
@@ -98,7 +98,6 @@ export interface PlanoD1 {
 
 export function calcularD1(
   data: string, ags: Agendamento[], armazens: Armazem[], boletins: Boletim[], fmtKg: (n: number) => string,
-  equipePorArm?: Record<number, number> | null,
 ): PlanoD1 {
   const doDia = ags.filter((a) => a.data === data && !LIBERAM_VAGA.includes(a.status)).sort((a, b) => a.horario.localeCompare(b.horario))
   const contribs: Contribuicao[] = []
@@ -110,9 +109,8 @@ export function calcularD1(
   const base: { id: number | null; nome: string }[] = [...armazens.map((a) => ({ id: a.id as number | null, nome: a.nome })), { id: null, nome: 'Destino a definir' }]
   const linhas = base.map((L): LinhaD1 => {
     const ref = L.id == null ? null : equipeReferencia(boletins, L.id)
-    const over = equipePorArm && L.id != null ? equipePorArm[L.id] : undefined
-    const team = over != null ? over : ref ? ref.n : null
-    const tipo = over != null ? 'simulada' : ref ? 'referência' : null
+    const team = ref?.n ?? null
+    const tipo = ref ? 'referência' : null
     const slots: Record<string, CelulaSlot> = {}
     SLOTS.forEach((h) => {
       const itens = contribs.filter((c) => c.armId === L.id && c.h === h)

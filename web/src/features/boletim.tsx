@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Loader2, Plus, Sparkles, Trash2, X } from 'lucide-react'
+import { Check, Loader2, Plus, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input, Select } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -241,34 +241,6 @@ export function Boletim() {
     agendarCalculo(aba)
   }
 
-  // Carrega exemplo oficial do Dossiê
-  function carregarExemploOficial() {
-    const ids = ['CHAPA_08', 'CHAPA_09', 'CHAPA_15', 'CHAPA_48', 'CHAPA_37', 'CHAPA_38', 'CHAPA_41', 'CHAPA_42', 'CHAPA_43', 'CHAPA_49', 'CHAPA_30']
-    const adubo = armazens.find((a) => a.nome === 'Adubo')?.id ?? (armazens[0]?.id ?? 1)
-    setData('2025-11-17')
-    setAba(adubo)
-    const eq: MembroEquipe[] = []
-    for (const m of ids) {
-      const c = chapas.find((x) => x.matricula === m)
-      if (c) eq.push({ matricula: c.matricula, nome: c.nome, tipoDiaria: 'COMPLETA' })
-    }
-
-    setSecoes((prev) => ({
-      ...prev,
-      [adubo]: {
-        itens: {
-          FERTILIZANTES: { d: 2778, r: 0, t: 0 },
-          AGROQUIMICO: { d: 30, r: 0, t: 0 },
-          SERVICOS_DIVERSOS: { d: 40, r: 0, t: 0 },
-        },
-        equipe: eq,
-        salvo: null,
-      },
-    }))
-    setTimeout(() => void calcularArmazem(adubo), 100)
-    avisar('Exemplo oficial carregado no Adubo: R$ 918,20 de produção e 11 diárias. Troque uma diária para meia e compare.')
-  }
-
   // Salvar boletins em rascunho
   async function salvarBoletim() {
     setErroGeral(null)
@@ -365,13 +337,6 @@ export function Boletim() {
         titulo="Boletim diário dos ensacadores"
         quem="Quem usa: encarregado dos chapas e responsável pelo armazém"
         sub="Um lançamento por dia, com os 4 armazéns de uma vez: escolha o dia, preencha a produção e a equipe de cada armazém e salve tudo junto. O sistema calcula produção, piso e complemento com 4 casas decimais."
-        acoes={
-          podeLancar && (
-            <Button variant="outline" size="sm" onClick={carregarExemploOficial}>
-              <Sparkles /> Carregar exemplo oficial
-            </Button>
-          )
-        }
       />
 
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4">

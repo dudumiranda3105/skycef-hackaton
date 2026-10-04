@@ -10,7 +10,7 @@ import java.util.Set;
 public final class Permissoes {
     private static final Set<String> PAINEL = Set.of("DIRETORIA", "ARMAZEM");
     private static final Set<String> BOLETIM = Set.of("ENCARREGADO", "ARMAZEM");
-    private static final Set<String> AGENDAR = Set.of("FORNECEDOR", "ARMAZEM");
+    private static final Set<String> AGENDAR = Set.of("FORNECEDOR", "ARMAZEM", "PORTEIRO");
 
     private Permissoes() { }
 
@@ -23,11 +23,13 @@ public final class Permissoes {
         if (leitura) return true;
         if (caminho.endsWith("/validacao-compras")) return "COMPRAS".equals(papel);
         if (caminho.startsWith("/api/boletins")) return BOLETIM.contains(papel);
-        if (caminho.equals("/api/fornecedores") || caminho.equals("/api/agendamentos")
-                || caminho.matches("/api/agendamentos/\\d+/notas/\\d+/arquivo")
-                || caminho.matches("/api/agendamentos/\\d+/(reagendamento|cancelamento)")) {
-            return AGENDAR.contains(papel);
-        }
+        if (caminho.equals("/api/fornecedores")) return Set.of("FORNECEDOR", "ARMAZEM").contains(papel);
+        if (caminho.matches("/api/agendamentos/\\d+/notas/\\d+/arquivo")) return Set.of("FORNECEDOR", "ARMAZEM", "PORTEIRO").contains(papel);
+        if (caminho.matches("/api/agendamentos/\\d+/(reagendamento|cancelamento)")) return Set.of("FORNECEDOR", "ARMAZEM").contains(papel);
+        if (caminho.equals("/api/agendamentos")) return AGENDAR.contains(papel);
+        if (caminho.matches("/api/agendamentos/\\d+/destinos")) return Set.of("ARMAZEM", "INSUMO").contains(papel);
+        if (caminho.matches("/api/agendamentos/\\d+/chegada") || caminho.matches("/api/descargas/\\d+/chegada"))
+            return Set.of("ARMAZEM", "PORTEIRO").contains(papel);
         /* destinos, chegada, descargas, vagas liberadas, efetivação de cancelamento e não recebimentos */
         return "ARMAZEM".equals(papel);
     }

@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
     public static final String COOKIE = "RI_SESSAO";
     public static final int HORAS_DE_SESSAO = 12;
-    public static final Set<String> PAPEIS = Set.of("ADMIN", "DIRETORIA", "COMPRAS", "ARMAZEM", "ENCARREGADO", "FORNECEDOR");
+    public static final Set<String> PAPEIS = Set.of("ADMIN", "DIRETORIA", "COMPRAS", "ARMAZEM", "ENCARREGADO", "FORNECEDOR", "INSUMO", "PORTEIRO");
     private static final int MAX_FALHAS = 5;
     private static final long SEGUNDOS_DE_BLOQUEIO = 60;
     /** Usado para gastar o mesmo tempo quando o usuário não existe (não revela quem existe). */
@@ -233,19 +233,24 @@ public class AuthService {
     /** Cria os usuários iniciais só quando a tabela está vazia. Devolve true se criou. */
     public boolean semear(String senha) {
         Integer total = db.queryForObject("select count(*) from usuario", Integer.class);
-        if (total != null && total > 0) return false;
+        boolean criou = false;
         String[][] iniciais = {
             {"admin", "Administrador", "ADMIN"},
             {"diretoria", "Diretoria", "DIRETORIA"},
             {"compras", "Setor de Compras", "COMPRAS"},
             {"armazem", "Responsável pelo armazém", "ARMAZEM"},
             {"encarregado", "Encarregado dos chapas", "ENCARREGADO"},
-            {"fornecedor", "Fornecedor (demonstração)", "FORNECEDOR"}
+            {"fornecedor", "Fornecedor", "FORNECEDOR"},
+            {"insumo", "Setor de Insumo", "INSUMO"},
+            {"porteiro", "Portaria", "PORTEIRO"}
         };
         for (String[] u : iniciais) {
-            db.update("insert into usuario (login, nome, papel, senha_hash) values (?, ?, ?, ?)",
-                    u[0], u[1], u[2], Senhas.hash(senha));
+            if (total != null && total > 0 && !u[2].equals("INSUMO") && !u[2].equals("PORTEIRO")) continue;
+            Integer existente = db.queryForObject("select count(*) from usuario where login=?", Integer.class, u[0]);
+            if (existente != null && existente > 0) continue;
+            db.update("insert into usuario (login, nome, papel, senha_hash) values (?, ?, ?, ?)", u[0], u[1], u[2], Senhas.hash(senha));
+            criou = true;
         }
-        return true;
+        return criou;
     }
 }

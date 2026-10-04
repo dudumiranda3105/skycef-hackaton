@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react'
-import { Loader2, ScanLine, Truck } from 'lucide-react'
+import { Loader2, RefreshCw, ScanLine, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Field } from '@/components/ui/label'
 import { Input, Select } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AcondBadge, CabecalhoPagina, Erros, OrigemBadge, SecTitulo, Vazio } from '@/components/comum'
-import { ACOND, TOLERANCIA_MIN } from '@/lib/constants'
+import { ACOND, PERDA_AGENDAMENTO_MIN, TOLERANCIA_MIN } from '@/lib/constants'
 import { POST, dStatus, descAberta, errTxt, porDataHora } from '@/lib/api'
 import { addMin, fmtDM, fmtDur, fmtTS, minDiff, nowLocal, toOffset } from '@/lib/format'
 import { avisar, useDados } from '@/lib/store'
+import { useAuth } from '@/lib/store'
 import { useJanelas } from '@/lib/janelas'
 import type { Agendamento, Descarga } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -27,7 +28,7 @@ function validarTempos(ag: Agendamento, t: { chegada: string | null; entrada: st
   return e
 }
 
-function CartaoDestinos({ a }: { a: Agendamento }) {
+function CartaoDestinos({ a, podeChegada = true }: { a: Agendamento; podeChegada?: boolean }) {
   const { armazens, fornById, refresh } = useDados()
   const [sel, setSel] = useState<number[]>([])
   const [erro, setErro] = useState('')
@@ -47,9 +48,12 @@ function CartaoDestinos({ a }: { a: Agendamento }) {
   }
   async function chegou() {
     try {
-      await POST(`/api/agendamentos/${a.id}/chegada`, {})
+      const resposta = await POST<any>(`/api/agendamentos/${a.id}/chegada`, {})
       await refresh()
-      avisar('Chegada do caminhão registrada.')
+      if (resposta.agendaPerdidaPorAtraso) {
+        avisar('Agenda perdida por atraso de 30 minutos. Em Agenda, use “Chegou sem agendamento” para solicitar encaixe.', true)
+        window.location.hash = '#/agenda'
+      } else avisar('Chegada do caminhão registrada.')
     } catch (e) {
       setErro(errTxt(e))
     }
@@ -81,10 +85,38 @@ function CartaoDestinos({ a }: { a: Agendamento }) {
       <Erros>{erro}</Erros>
       <div className="flex flex-wrap gap-2">
         <Button disabled={ocupado} onClick={() => void criar()}>{ocupado && <Loader2 className="animate-spin" />}Criar descargas</Button>
-        {!a.chegadaEm && <Button variant="outline" onClick={() => void chegou()}><Truck /> Caminhão chegou agora</Button>}
+        {podeChegada && !a.chegadaEm && <Button variant="outline" onClick={() => void chegou()}><Truck /> Caminhão chegou agora</Button>}
       </div>
+      {!!a.nfs.some((n) => n.arquivo) && <div className="flex flex-wrap gap-2 text-sm">Notas anexadas: {a.nfs.filter((n) => n.arquivo).map((n) => <a key={n.id} className="text-primary underline" href={`/api/agendamentos/${a.id}/notas/${n.id}/arquivo`}>{n.arquivo}</a>)}</div>}
     </div>
   )
+}
+
+function CartaoPortaria({ a }: { a: Agendamento }) {
+  const { fornById, refresh } = useDados()
+  const [erro, setErro] = useState('')
+  const [ocupado, setOcupado] = useState(false)
+  const atraso = minDiff(a.data + 'T' + a.horario, nowLocal())
+  async function chegou() {
+    setOcupado(true)
+    try {
+      const resposta = await POST<any>(`/api/agendamentos/${a.id}/chegada`, {})
+      await refresh()
+      if (resposta.agendaPerdidaPorAtraso) {
+        avisar('Agenda perdida por atraso de 30 minutos. Em Agenda, use “Chegou sem agendamento” para solicitar encaixe.', true)
+        window.location.hash = '#/agenda'
+      }
+      else avisar('Chegada registrada pela Portaria.')
+    } catch (e) { setErro(errTxt(e)); setOcupado(false) }
+  }
+  return <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
+    <div><b>{fornById(a.fornecedorId).nome}</b><div className="text-sm text-muted-foreground">{fmtDM(a.data)} · {a.horario} · NF {nfsTxt(a)}</div>
+      {atraso > TOLERANCIA_MIN && <div className="mt-1"><Badge tom={atraso >= PERDA_AGENDAMENTO_MIN ? 'ruim' : 'aviso'}>{atraso >= PERDA_AGENDAMENTO_MIN ? `Atraso de ${atraso} min: agenda perdida ao confirmar` : `Atrasado ${atraso} min · tolerância de 15 min`}</Badge></div>}
+      {!!a.nfs.some((n) => n.arquivo) && <div className="mt-1 flex flex-wrap gap-2 text-sm">Anexos: {a.nfs.filter((n) => n.arquivo).map((n) => <a key={n.id} className="text-primary underline" href={`/api/agendamentos/${a.id}/notas/${n.id}/arquivo`}>{n.arquivo}</a>)}</div>}
+      {erro && <p className="text-sm text-destructive">{erro}</p>}
+    </div>
+    <Button disabled={ocupado} onClick={() => void chegou()}><Truck /> Registrar chegada agora</Button>
+  </div>
 }
 
 function CartaoDescarga({ ag, d }: { ag: Agendamento; d: Descarga }) {
@@ -116,7 +148,7 @@ function CartaoDescarga({ ag, d }: { ag: Agendamento; d: Descarga }) {
         <label className="text-[13.5px] font-medium" htmlFor={`d-${d.id}-${k}`}>{rot} {salvo && <span className="text-[12.5px] font-normal text-muted-foreground">registrada</span>}</label>
         <div className="flex flex-wrap gap-2">
           <Input id={`d-${d.id}-${k}`} type="datetime-local" className="min-w-0 flex-[1_1_190px]" value={t[k]} disabled={salvo} onChange={(e) => setT((x) => ({ ...x, [k]: e.target.value }))} />
-          {!salvo && <Button size="sm" variant="outline" onClick={() => setT((x) => ({ ...x, [k]: nowLocal() }))}>Agora</Button>}
+          {!salvo && <Button type="button" size="sm" variant="outline" title="Preenche o horário atual; depois clique em Salvar registro" onClick={() => { setT((x) => ({ ...x, [k]: nowLocal() })); avisar('Horário preenchido. Clique em “Salvar registro” para gravar.') }}>Agora</Button>}
         </div>
       </div>
     )
@@ -159,7 +191,7 @@ function CartaoDescarga({ ag, d }: { ag: Agendamento; d: Descarga }) {
         <div className="flex flex-wrap items-center gap-2">
           <AcondBadge acond={ag.acond} />
           <Badge tom={st === 'AGUARDANDO' ? 'neutro' : 'info'}>{{ AGUARDANDO: 'Aguardando chegada', NA_FILA: 'Na fila', EM_DESCARGA: 'Em descarga', CONCLUIDA: 'Concluída' }[st]}</Badge>
-          {atraso != null && atraso > TOLERANCIA_MIN && <Badge tom="aviso">Atrasado {atraso} min</Badge>}
+          {atraso != null && atraso > TOLERANCIA_MIN && <Badge tom={atraso >= PERDA_AGENDAMENTO_MIN ? 'ruim' : 'aviso'}>{atraso >= PERDA_AGENDAMENTO_MIN ? 'Agenda perdida' : `Atrasado ${atraso} min`}</Badge>}
           {d.chegada && d.chegada.slice(0, 10) !== ag.data && <Badge tom="aviso">Fora da data agendada</Badge>}
           <OrigemBadge origem={d.origem} />
         </div>
@@ -193,14 +225,18 @@ function CartaoDescarga({ ag, d }: { ag: Agendamento; d: Descarga }) {
 }
 
 export function Armazem() {
-  const { ags, armazens, fornById } = useDados()
+  const { ags, armazens, fornById, refresh } = useDados()
+  const { eu } = useAuth()
+  const insumo = eu?.papel === 'INSUMO'
+  const portaria = eu?.papel === 'PORTEIRO'
   const { abrirLeitor } = useJanelas()
   const [filtro, setFiltro] = useState('Todos')
   const aguard = useMemo(() => ags.filter((a) => a.status === 'AUTORIZADO' && !a.descs.length).sort(porDataHora), [ags])
+  const chegadaPendente = useMemo(() => ags.filter((a) => a.status === 'AUTORIZADO' && !a.chegadaEm).sort(porDataHora), [ags])
   const todas = useMemo(() => ags.flatMap((a) => a.descs.map((d) => ({ a, d }))), [ags])
   const doFiltro = (d: Descarga) => filtro === 'Todos' || String(d.armazemId) === filtro
   const abertas = todas.filter(({ a, d }) => descAberta(a, d) && doFiltro(d)).sort((x, y) => porDataHora(x.a, y.a))
-  const recentes = todas.filter(({ d }) => d.saida && doFiltro(d)).sort((x, y) => y.d.saida!.localeCompare(x.d.saida!)).slice(0, 8)
+  const recentes = todas.filter(({ d }) => d.saida && doFiltro(d)).sort((x, y) => y.d.saida!.localeCompare(x.d.saida!)).slice(0, 20)
   const fila = abertas.filter(({ d }) => d.chegada && !d.entrada).length
   const emDesc = abertas.filter(({ d }) => d.entrada).length
   const kpi = (r: string, v: number) => (
@@ -209,27 +245,28 @@ export function Armazem() {
   return (
     <div>
       <CabecalhoPagina
-        titulo="Recebimento no armazém" quem="Quem usa: responsável pelo armazém"
-        sub="Defina para onde cada caminhão vai e registre, em cada descarga, chegada, entrada, saída, chapas e equipamentos."
+        titulo={insumo ? 'Notas fiscais e destinos' : portaria ? 'Portaria' : 'Recebimento no armazém'} quem={insumo ? 'Quem usa: setor de Insumo' : portaria ? 'Quem usa: porteiro' : 'Quem usa: responsável pelo armazém'}
+        sub={insumo ? 'Confira as notas fiscais anexadas e distribua cada entrega para os armazéns responsáveis.' : portaria ? 'Registre a chegada do caminhão aprovado por Compras. O recebimento só segue após o setor de Insumo definir o destino.' : 'Defina para onde cada caminhão vai e registre, em cada descarga, chegada, entrada, saída, chapas e equipamentos.'}
         acoes={
           <>
-            <Button variant="accent" onClick={abrirLeitor}><ScanLine /> Check-in por QR</Button>
-            <Select className="w-auto" value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Filtrar por armazém">
+            {!insumo && <Button variant="accent" onClick={abrirLeitor}><ScanLine /> Check-in por QR</Button>}
+            {!insumo && <Select className="w-auto" value={filtro} onChange={(e) => setFiltro(e.target.value)} aria-label="Filtrar por armazém">
               <option value="Todos">Todos os armazéns</option>
               {armazens.map((a) => <option key={a.id} value={String(a.id)}>{a.nome}</option>)}
-            </Select>
+            </Select>}
           </>
         }
       />
-      <div className="mb-[22px] grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3.5">
+      {!insumo && !portaria && <div className="mb-[22px] grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3.5">
         {kpi('Aguardando destino', aguard.length)}{kpi('Na fila', fila)}{kpi('Em descarga', emDesc)}{kpi('Concluídas (recentes)', recentes.length)}
-      </div>
-      <h2 className="mb-2.5 text-[21px]">Definir destinos</h2>
-      {aguard.length ? <div className="grid gap-3.5">{aguard.map((a) => <CartaoDestinos key={a.id} a={a} />)}</div> : <Vazio>Nenhuma entrega autorizada aguardando destino.</Vazio>}
-      <h2 className="mt-6 mb-2.5 text-[21px]">Descargas em andamento ou previstas</h2>
+      </div>}
+      {!portaria && <><h2 className="mb-2.5 text-[21px]">{insumo ? 'Entregas para distribuir' : 'Definir destinos'}</h2>
+      {aguard.length ? <div className="grid gap-3.5">{aguard.map((a) => <CartaoDestinos key={a.id} a={a} podeChegada={!insumo} />)}</div> : <Vazio>Nenhuma entrega autorizada aguardando destino.</Vazio>}</>}
+      {portaria && <><h2 className="mb-2.5 text-[21px]">Chegadas aguardando registro</h2>{chegadaPendente.length ? <div className="grid gap-3">{chegadaPendente.map((a) => <CartaoPortaria key={a.id} a={a} />)}</div> : <Vazio>Nenhum caminhão autorizado aguardando chegada.</Vazio>}</>}
+      {!insumo && !portaria && <><h2 className="mt-6 mb-2.5 text-[21px]">Descargas em andamento ou previstas</h2>
       {abertas.length ? <div className="grid gap-3.5">{abertas.map(({ a, d }) => <CartaoDescarga key={d.id} ag={a} d={d} />)}</div> : <Vazio>Sem descargas abertas neste filtro.</Vazio>}
       <section className="mt-6">
-        <h2 className="mb-2.5 text-[21px]">Concluídas recentemente</h2>
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2"><h2 className="text-[21px]">Concluídas recentemente</h2><Button size="sm" variant="outline" onClick={() => void refresh()}><RefreshCw /> Atualizar lista</Button></div>
         {recentes.length ? (
           <div className="rounded-2xl border bg-card px-2 py-1">
             <Table>
@@ -248,6 +285,7 @@ export function Armazem() {
           </div>
         ) : <Vazio>Ainda sem descargas concluídas.</Vazio>}
       </section>
+      </>}
     </div>
   )
 }

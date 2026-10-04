@@ -12,7 +12,7 @@ import { fmtTS, loc } from '@/lib/format'
 import { avisar, useAuth } from '@/lib/store'
 import type { Papel, Usuario } from '@/lib/types'
 
-const PAPEIS: Papel[] = ['ADMIN', 'DIRETORIA', 'COMPRAS', 'ARMAZEM', 'ENCARREGADO', 'FORNECEDOR']
+const PAPEIS: Papel[] = ['ADMIN', 'DIRETORIA', 'COMPRAS', 'ARMAZEM', 'ENCARREGADO', 'FORNECEDOR', 'INSUMO', 'PORTEIRO']
 
 export function Usuarios() {
   const { eu } = useAuth()

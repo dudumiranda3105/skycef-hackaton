@@ -6,9 +6,9 @@ export const DOW_LONGO = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'S
 export const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 
 export const ACOND: Record<Acond, { nome: string; chapas: number; desc: string; cor: string }> = {
-  BATIDO: { nome: 'Batido', chapas: 5, desc: 'Ocupa o horário inteiro', cor: '#d49a00' },
-  PALETIZADO: { nome: 'Paletizado', chapas: 2, desc: 'Até 2 caminhões por horário', cor: '#2b6fc0' },
-  BIG_BAG: { nome: 'Big bag', chapas: 2, desc: 'Até 2 caminhões por horário', cor: '#2e9b4b' },
+  BATIDO: { nome: 'Batido', chapas: 5, desc: 'Ocupa o horário inteiro', cor: '#e9a800' },
+  PALETIZADO: { nome: 'Paletizado', chapas: 2, desc: 'Até 2 caminhões por horário', cor: '#005ba0' },
+  BIG_BAG: { nome: 'Big bag', chapas: 2, desc: 'Até 2 caminhões por horário', cor: '#4cb033' },
 }
 
 export const MOTIVOS_NR: Record<string, string> = {
@@ -16,6 +16,7 @@ export const MOTIVOS_NR: Record<string, string> = {
   SEM_AGENDAMENTO_SEM_VAGA: 'Chegou sem agendamento e sem vaga',
   CASO_FORTUITO: 'Caso fortuito',
   OUTRO: 'Outro',
+  ATRASO_AGENDAMENTO: 'Perda da agenda por atraso de 30 minutos ou mais',
 }
 
 export const STATUS: Record<StatusAg, string> = {
@@ -41,7 +42,8 @@ export const STATUS_TOM: Record<StatusAg, Tom> = {
 
 /** Estes status liberam a vaga do horário (mesma regra da API). */
 export const LIBERAM_VAGA: StatusAg[] = ['CANCELADO', 'NAO_AUTORIZADO', 'NAO_RECEBIDO']
-export const TOLERANCIA_MIN = 15 // DQ-015: a Cocapec não definiu; só sinaliza "atrasado"
+export const TOLERANCIA_MIN = 15
+export const PERDA_AGENDAMENTO_MIN = 30
 export const MAX_UNITIZADOS = 2
 export const MAX_CHAPAS_BOLETIM = 20
 export const PISO_PADRAO = '90.1731'
@@ -59,6 +61,8 @@ export const PAPEL_ROTULO: Record<Papel, string> = {
   ARMAZEM: 'Responsável pelo armazém',
   ENCARREGADO: 'Encarregado dos chapas',
   FORNECEDOR: 'Fornecedor',
+  INSUMO: 'Setor de Insumo',
+  PORTEIRO: 'Porteiro',
 }
 
 export type Secao =
@@ -72,12 +76,14 @@ export const PAPEL_SECOES: Record<Papel, Secao[]> = {
   ARMAZEM: ['agenda', 'armazem', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade'],
   ENCARREGADO: ['agenda', 'boletim'],
   FORNECEDOR: ['agenda'],
+  INSUMO: ['agenda', 'armazem'],
+  PORTEIRO: ['agenda', 'armazem'],
 }
 
 /** Grupos de gravação (mesma divisão de Permissoes.java). */
 export type Grupo = 'agendar' | 'armazem' | 'compras' | 'boletim'
 export const GRUPOS: Record<Grupo, Papel[]> = {
-  agendar: ['ADMIN', 'FORNECEDOR', 'ARMAZEM'],
+  agendar: ['ADMIN', 'FORNECEDOR', 'ARMAZEM', 'PORTEIRO'],
   armazem: ['ADMIN', 'ARMAZEM'],
   compras: ['ADMIN', 'COMPRAS'],
   boletim: ['ADMIN', 'ENCARREGADO', 'ARMAZEM'],

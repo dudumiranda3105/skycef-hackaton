@@ -95,7 +95,7 @@ export function Qualidade() {
     return monthsBetween(primeiro, ultimo).filter((m) => !meses.includes(m))
   }, [meses, primeiro, ultimo])
 
-  const sobre = useMemo(
+  const sobre: [string, string, string, string, string][] = useMemo(
     () => [
       ['Cargas recebidas por dia', 'recebimentos-destino únicos ÷ dias úteis com folha', 'Histórico Cocapec', hist?.meses ? `${nf0.format(hist.meses.reduce((s, x) => s + x.diasUteis, 0))} dias úteis em ${meses.length} mês(es)` : '—', 'Um recebimento não é um caminhão; unidade documental.'],
       ['Sobra ou falta (histórico)', 'chapas presentes − esforço do mês ÷ equilíbrio do histórico', 'Histórico Cocapec', `${nf0.format(hist?.equilibrio?.diasUteisAnalisados ?? 0)} dias úteis analisados`, 'Relativo ao próprio histórico; ordem de grandeza, não economia comprovada.'],
@@ -180,7 +180,7 @@ export function Qualidade() {
 
         <Painel>
           <SecTitulo className="text-[17px]">Nova plataforma</SecTitulo>
-          <p className="mt-1 mb-4 text-sm text-muted-foreground">Registros do uso real e de demonstração, contados agora.</p>
+          <p className="mt-1 mb-4 text-sm text-muted-foreground">Registros reais da plataforma, contados agora.</p>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>

@@ -1,58 +1,149 @@
 # Skycef — Recebimento Inteligente (Cocapec)
 
-Projeto do X Hackathon Uni-FACEF 2026. Implementa agendamento e recebimento (Tarefa 1), boletim diário dos chapas (Tarefa 2) e painel gerencial (Tarefa 3).
+Sistema de gestão de recebimento para a **Cocapec** (Franca/SP), desenvolvido para o **X Hackathon Uni-FACEF 2026**.
 
-## Tecnologia
+Organiza o recebimento de mercadorias nos 4 armazéns da cooperativa — agenda caminhões, controla descargas, calcula o boletim diário dos ensacadores e responde à pergunta: *"A quantidade de chapas está sobrando ou faltando? Qual o impacto em R$?"*
 
-- Backend: **Java 21 + Spring Boot 3.5**, Spring JDBC, Flyway e PostgreSQL.
-- Frontend: **React 19 + TypeScript + Vite + Tailwind CSS v4 + Motion + Three.js** em `web/`. É compilado via Docker multi-stage build e servido pelo Spring Boot em `/ui/`. O desenvolvimento integrado (`npm run dev`) usa a API real.
-- Dados: migrations PostgreSQL em `api/migrations/V*.sql`; carga opcional do histórico com Apache POI.
+## Equipe
 
-## Executar
-
-Com Docker: `docker compose up --build` inicia PostgreSQL e API. As migrations são aplicadas automaticamente. Acesse:
-
-| Módulo | URL |
+| Membro | GitHub |
 |---|---|
-| **Interface completa** (agenda, Compras, armazém, boletim do dia, painel, D-1, Pergunte aos dados e Qualidade dos dados; ver [diferenciais](docs/DIFERENCIAIS.md)) | http://localhost:8000/ui/ |
-| Agendamentos (interface simples) | http://localhost:8000/app/ |
-| Boletim (interface simples) | http://localhost:8000/app/boletim.html |
-| Painel (página única) | http://localhost:8000/painel |
-| Swagger | http://localhost:8000/docs |
-| Saúde | http://localhost:8000/health |
+| Eduardo de Miranda | [dudumiranda3105](https://github.com/dudumiranda3105) |
+| Eduarda Roberta Borges da Silva | [Eduarda Roberta Borges](https://github.com/EduardaRoberta) |
+| Rebeca Lucio Souza Chagas | [rebecaSLChagas](https://github.com/rebecaSLChagas) |
+| Glauber | [GlauberCAP](https://github.com/GlauberCAP) |
 
-**Login.** A plataforma exige entrar. Na primeira subida são criados os usuários `admin`, `diretoria`, `compras`, `armazem`, `encarregado`, `fornecedor`, `insumo` e `porteiro`, todos com a senha de `SENHA_INICIAL` (no `docker-compose.yml` e no `.env.example` há um valor de **demonstração**: troque em *Alterar senha*, ou defina `SENHA_INICIAL` antes da primeira subida; vazia, a API gera uma e mostra no log). Em banco já existente, os perfis Insumo e Porteiro são adicionados sem alterar as demais contas. Perfis, permissões e endpoints em [docs/API-LOGIN.md](docs/API-LOGIN.md).
+## Tecnologias
 
-Sem Docker, inicie um PostgreSQL e configure `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD` (exemplo em `.env.example`). Depois:
+| Camada | Tecnologia |
+|---|---|
+| **Backend** | Java 21 + Spring Boot 3.5 + Spring JDBC |
+| **Banco** | PostgreSQL 16 (Flyway migrations) |
+| **Frontend** | React 19 + TypeScript 7 + Vite 6.2 |
+| **Estilização** | Tailwind CSS v4 + shadcn/ui |
+| **Componentes** | Lucide (ícones), Motion (animações) |
+| **Importação ETL** | Apache POI (Excel/XML) |
+| **Diferencial** | Anthropic API (Pergunte aos Dados) |
+
+## Estrutura do projeto
+
+```
+skycef-hackaton/
+├── api/                     # Backend Java + Spring Boot
+│   ├── src/
+│   │   ├── main/java/.../   # Controllers, Services, Models
+│   │   ├── main/resources/  # Config, migrations, static files
+│   │   └── test/            # Testes unitários e integração
+│   ├── migrations/          # Flyway SQL (V1 a V16)
+│   └── Dockerfile           # Build multi-stage
+├── web/                     # Frontend React
+│   ├── src/                 # TSX components + features
+│   │   ├── components/      # UI reutilizável (shell, charts, shadcn/ui)
+│   │   ├── features/        # Telas (agenda, portaria, painel, boletim…)
+│   │   └── lib/             # Utilitários (API, auth, format, store)
+│   ├── dev-mock/            # Mock da API para desenvolvimento standalone
+│   └── vite.config.ts
+├── docs/                    # Documentação do hackathon
+│   ├── relatorio-gerencial.md
+│   ├── API-TAREFA*.md       # Contratos da API
+│   ├── caso-de-uso.md + .svg
+│   ├── bpmn.md + .svg
+│   ├── der.md + .svg
+│   └── DIFERENCIAIS.md
+├── data/                    # Dados originais da Cocapec (.gitignore)
+└── docker-compose.yml       # PostgreSQL + API
+```
+
+## Executar com Docker (recomendado)
+
+```bash
+docker compose up --build
+```
+
+Acesse `http://localhost:8000/ui/`. As migrations são aplicadas automaticamente.
+
+## Portaria e Insumos
+
+Na Portaria, o QR localiza a entrega e o porteiro confere caminhão, destinatário e notas. Depois de registrar a chegada e anexar os documentos, **Enviar documentos para Insumos** coloca a entrega na fila do setor. Insumos valida e escolhe os destinos ou registra a recusa. A decisão retorna à Portaria, com consulta automática a cada 15 segundos.
+
+Veja [o fluxo e os endpoints](docs/FLUXO-PORTARIA-INSUMOS.md).
+
+## Executar sem Docker
+
+1. Inicie um PostgreSQL e configure as variáveis (exemplo em `.env.example`)
+2. Compile o frontend:
 
 ```bash
 cd web
 npm ci
 npm run build
-cd ../api
+```
+
+3. Execute o backend:
+
+```bash
+cd api
 mvn clean test
 mvn spring-boot:run
 ```
 
-O Flyway usa as mesmas migrations do backend anterior. Em banco já criado por ele, a aplicação lê `schema_migrations`, registra a versão existente no Flyway e aplica somente as versões seguintes. Faça backup do banco antes da primeira troca de runtime.
+## Desenvolvimento do frontend com API real
 
-## Importar histórico oficial
-
-Os arquivos originais da Cocapec **não entram no Git**. O importador lê o ZIP local, remove linhas exatamente duplicadas da movimentação e registra a origem `HISTORICO`:
+Em um terminal, suba PostgreSQL e API com `docker compose up -d --build`. Em outro:
 
 ```bash
-cd api
-java -jar target/recebimento-1.0.0.jar --dados=C:/caminho/DADOS_HACKATHON_2026.zip
+cd web
+npm ci
+npm run dev
 ```
 
-Depois do resumo da carga, encerre o processo se estiver usando essa execução só para importar. O comando substitui as tabelas históricas em uma transação; não altera agendamentos ou boletins da plataforma. A aplicação não inclui carga de dados operacionais de demonstração: agendamentos, boletins e recebimentos são lançados por usuários ou importados de fontes oficiais.
+Acesse `http://localhost:5173/ui/`. O frontend usa a API local e o banco PostgreSQL do Compose.
 
-## Testes
+## Usuários iniciais
 
-`mvn clean test` executa os testes Java. Testes de integração com PostgreSQL usam `TEST_DB_URL` e um schema temporário. A interface frontend em `web/` pode ser verificada com `npm run typecheck` e compilada com `npm run build`.
+Todos com a senha definida em `SENHA_INICIAL` (padrão demo: `cocapec2026`):
 
-O histórico não registra horários de descarga nem chapas por recebimento. O painel separa dados `HISTORICO` e `PLATAFORMA`; a estimativa histórica de sobra/falta é uma faixa de sensibilidade, detalhada no [relatório gerencial](docs/relatorio-gerencial.md).
+| Usuário | Perfil | Acesso |
+|---|---|---|
+| `admin` | Administrador | Tudo |
+| `diretoria` | Diretoria | Painel, boletins, indicadores |
+| `compras` | Compras | Validar agendamentos |
+| `armazem` | Resp. armazém | Recebimento, descargas |
+| `encarregado` | Encarregado | Boletim diário |
+| `fornecedor` | Fornecedor | Agendar entregas |
+| `insumo` | Setor de Insumo | Acompanhar recebimento |
+| `porteiro` | Portaria | Check-in, registrar chegada |
+
+## Funcionalidades
+
+| Tarefa | O que faz |
+|---|---|
+| **T1 — Agendamento/Recebimento** | Fornecedor agenda, Compras valida, Armazém define destinos, Porteiro registra chegada |
+| **T2 — Boletim Diário** | Cálculo de produção, piso (R$ 90,1731) e complemento dos ensacadores |
+| **T3 — Painel Gerencial** | Sobra/falta de chapas em R$, indicadores operacionais, séries históricas |
+| **D-1 (Planejamento)** | Simulador de equipe com matriz de pressão |
+| **Pergunte aos Dados** | Consulta em linguagem natural via Anthropic |
+| **QR Code** | Check-in por QR ou código de barras na portaria |
+| **OCR de NF-e** | Leitura de XML e PDF DANFE |
 
 ## Documentação
 
-Consulte o [índice da documentação](docs/README.md) para encontrar os guias de uso, contratos da API, regras de negócio, análise gerencial e artefatos do hackathon.
+Consulte o [índice da documentação](docs/README.md) para guias de uso, contratos da API e artefatos do hackathon.
+
+## Importar dados históricos
+
+Com Docker e PostgreSQL ativos, para carregar a pasta extraída no Windows:
+
+```powershell
+docker compose run --rm -v "C:/Users/Duda/Downloads/DADOS_HACKATHON_2026:/tmp/dados:ro" --entrypoint java api -jar /app/app.jar --spring.main.web-application-type=none --dados=/tmp/dados
+```
+
+O diretório é montado somente para leitura. A carga substitui os históricos importados pela fonte oficial; não cria agendamentos nem altera os registros lançados pela plataforma. Para arquivos históricos, o sistema preserva o XML original, DANFEs e digitalização manual. O registro manual está digitalizado, sem transcrição automática. A planilha de boletim contém um único lançamento preenchido em 17/11/2025; não são inventados boletins para os outros armazéns ou datas.
+
+Também é possível apontar o executável para o ZIP original ou para qualquer pasta extraída compatível:
+
+```bash
+java -jar target/recebimento-1.0.0.jar --dados=C:/caminho/DADOS_HACKATHON_2026.zip
+```
+
+Os dados da Cocapec não entram no Git (veja `.gitignore`).

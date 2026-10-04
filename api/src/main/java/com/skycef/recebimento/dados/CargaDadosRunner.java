@@ -24,6 +24,16 @@ public class CargaDadosRunner implements ApplicationRunner {
         }
         if (caminho == null) return;
         CargaDadosService.Resumo resumo = service.carregar(Path.of(caminho));
+        System.out.println("fornecedores_importados: " + resumo.fornecedoresImportados());
+        System.out.println("produtos_importados: " + resumo.produtosImportados());
+        System.out.println("estoques_importados: " + resumo.estoquesImportados());
+        System.out.println("notas_fiscais_importadas: " + resumo.notasFiscaisImportadas());
+        System.out.println("itens_fiscais_importados: " + resumo.itensFiscaisImportados());
+        System.out.println("danfes_importados: " + resumo.danfesImportados());
+        System.out.println("danfes_sem_xml: " + resumo.danfesSemXml());
+        System.out.println("xml_sem_danfe: " + resumo.xmlSemDanfe());
+        System.out.println("registros_manuais_arquivados: " + resumo.registrosManuaisArquivados());
+        System.out.println("equipamentos_catalogados: " + resumo.equipamentosCatalogados());
         System.out.println("linhas_lidas: " + resumo.linhasLidas());
         System.out.println("duplicadas_descartadas: " + resumo.duplicadasDescartadas());
         System.out.println("parciais_agrupados: " + resumo.parciaisAgrupados());

@@ -13,7 +13,7 @@ pelo servidor: qualquer campo extra no corpo é recusado com 400.
 GET  /api/boletim/tipos-item   ─► monta as linhas do formulário (14 tipos + preço; o operador escolhe o tipo)
 GET  /api/chapas               ─► monta o seletor da equipe (por matrícula)
 POST /api/boletins/calculo     ─► prévia: produção, piso e complemento, sem gravar
-POST /api/boletins             ─► grava (409 se já existe boletim do armazém naquele dia)
+POST /api/boletins/dia         ─► grava os quatro armazéns atomicamente; ou grava todos, ou nenhum
 GET  /api/boletins[?...]       ─► consulta (alimenta o painel da Tarefa 3)
 GET  /api/boletins/{id}
 ```
@@ -41,11 +41,11 @@ da folha). A meia diária (R$ 45,0786) é só referência: o cálculo usa 0,5 ×
 | `GET /api/boletim/tipos-item` | os 14 tipos e o preço unitário vigente |
 | `GET /api/chapas` | cadastro de chapas (`matricula`, `nome`) |
 | `POST /api/boletins/calculo` | prévia (200); mesmas validações do lançamento, **menos** a de boletim duplicado |
-| `POST /api/boletins` | lança o boletim (201) |
+| `POST /api/boletins/dia` | lança um fechamento (201) com exatamente quatro armazéns e uma única data; duplicidade retorna 409 |
 | `GET /api/boletins?armazemId=&de=&ate=` | boletins, mais recentes primeiro; filtros opcionais; `de` e `ate` inclusivos |
 | `GET /api/boletins/{id}` | detalhe (404 se não existe) |
 
-### Corpo de `POST /api/boletins` e `/api/boletins/calculo`
+### Corpo de `POST /api/boletins/calculo`
 
 ```json
 {
@@ -62,6 +62,27 @@ da folha). A meia diária (R$ 45,0786) é só referência: o cálculo usa 0,5 ×
   ]
 }
 ```
+
+### Corpo de `POST /api/boletins/dia`
+
+`boletins` deve conter uma entrada para cada armazém cadastrado (IDs 1 a 4), todos com a mesma data. Uma aba sem
+produção/equipe é enviada com `linhas: []` e `equipe: []`: ela fica registrada como produção zero e situação inconsistente,
+sem inventar pessoas ou volumes. O fechamento inteiro é transacional; erro ou conflito em qualquer armazém não deixa
+parte do dia gravada.
+
+```json
+{
+  "boletins": [
+    { "armazemId": 1, "data": "2026-10-02", "linhas": [], "equipe": [] },
+    { "armazemId": 2, "data": "2026-10-02", "linhas": [], "equipe": [] },
+    { "armazemId": 3, "data": "2026-10-02", "linhas": [], "equipe": [] },
+    { "armazemId": 4, "data": "2026-10-02", "linhas": [], "equipe": [] }
+  ]
+}
+```
+
+O endpoint unitário de gravação não existe; o banco continua armazenando uma linha por armazém/data para consultas e
+relatórios.
 
 - `descarga`, `remocao` e `transferencia`: inteiros ≥ 0 (omitidos valem 0). Linha totalmente zerada não é gravada.
 - `tipoDiaria` é **obrigatório**: `COMPLETA` ou `MEIA`.

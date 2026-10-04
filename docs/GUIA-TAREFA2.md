@@ -27,7 +27,7 @@ A tela é `/app/boletim.html`. O contrato completo está em [`API-TAREFA2.md`](A
 |---|---|
 | `GET /api/boletim/tipos-item` | os 14 tipos e preços (para montar o formulário; o sistema não infere o tipo) |
 | `GET /api/chapas` | cadastro para o seletor por matrícula |
-| `POST /api/boletins` | lança o boletim: `armazemId, data, linhas[{tipoItem, descarga, remocao, transferencia}], equipe[{matricula, tipoDiaria}]` |
+| `POST /api/boletins/dia` | fecha os 4 armazéns na mesma data em uma transação; abas vazias são produção zero explícita |
 | `GET /api/boletins?armazemId=&de=&ate=` · `GET /api/boletins/{id}` | consulta (alimenta o painel) |
 | `POST /api/boletins/calculo` | prévia do cálculo antes de gravar (sem gravar) |
 

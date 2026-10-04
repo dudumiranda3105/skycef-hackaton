@@ -51,6 +51,9 @@ public class NotaArquivoService {
             throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "O arquivo não parece ser uma foto WebP válida.");
         XmlData parsed = xml ? parseXml(content) : null;
         Map<String, Object> a = base.agendamento(appointment, true);
+        Map<String, Object> portaria = base.one("select situacao from portaria_recebimento where agendamento_id=?", appointment);
+        if (portaria != null && !"AGUARDANDO_DOCUMENTOS".equals(portaria.get("situacao")))
+            throw AgendamentoService.erro(HttpStatus.CONFLICT, "Os documentos enviados ao setor de Insumos não podem mais ser substituídos.");
         if (AgendamentoService.LIBERADOS.contains(AgendamentoService.status(a)) || "CONCLUIDO".equals(AgendamentoService.status(a)))
             throw AgendamentoService.erro(HttpStatus.CONFLICT, "Este agendamento não aceita novos arquivos.");
         Map<String, Object> n = base.one("select * from nota_fiscal where id=? and agendamento_id=?", note, appointment);

@@ -252,16 +252,10 @@ export function Boletim() {
 
     setSalvando(true)
     try {
-      // Valida todos antes
-      for (const a of alvos) {
-        await POST('/api/boletins/calculo', payloadSec(a.id))
-      }
-      // Grava um a um
-      for (const a of alvos) {
-        await POST('/api/boletins', payloadSec(a.id))
-      }
+      // Um único pedido transacional fecha as quatro unidades ou não grava nenhuma.
+      await POST('/api/boletins/dia', { boletins: armazens.map((a) => payloadSec(a.id)) })
       await refresh()
-      avisar(`${alvos.length} boletim(ns) do dia gravado(s) com sucesso.`)
+      avisar('Boletim do dia dos quatro armazéns gravado com sucesso.')
     } catch (e) {
       setErroGeral(errTxt(e))
     } finally {
@@ -672,6 +666,9 @@ export function Boletim() {
 
             {podeLancar && (
               <div className="mt-4 grid gap-2">
+                <p className="text-xs text-muted-foreground">
+                  O fechamento é dos quatro armazéns. Abas sem produção ou equipe serão registradas como zero.
+                </p>
                 <Button
                   onClick={salvarBoletim}
                   disabled={salvando || nRasc === 0}
@@ -682,7 +679,7 @@ export function Boletim() {
                   ) : (
                     <Check />
                   )}
-                  Salvar boletim do dia {nRasc > 0 ? `(${nRasc} armazéns)` : ''}
+                  Salvar boletim dos 4 armazéns {nRasc > 0 ? `(${nRasc} com dados)` : ''}
                 </Button>
                 <Erros>{erroGeral}</Erros>
               </div>

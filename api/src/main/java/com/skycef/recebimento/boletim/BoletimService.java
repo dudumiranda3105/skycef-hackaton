@@ -46,10 +46,34 @@ public class BoletimService {
 
     public Map<String, Object> calcular(Entrada entrada) { return apurar(entrada).saida(); }
 
+    /** Fecha o boletim diário dos quatro armazéns numa única transação. */
     @Transactional
-    public Map<String, Object> lancar(Entrada entrada) {
-        Apuracao apuracao = apurar(entrada);
-        if (existe(entrada.armazemId(), entrada.data())) throw new Erro(409, "Já existe um boletim deste armazém nesta data.");
+    public List<Map<String, Object>> lancarDia(List<Entrada> entradas) {
+        if (entradas == null || entradas.size() != 4) throw new Erro(422, "Informe o boletim dos quatro armazéns.");
+        if (entradas.getFirst() == null || entradas.getFirst().data() == null) throw new Erro(400, "Informe a data do boletim.");
+        LocalDate data = entradas.getFirst().data();
+        Set<Integer> ids = new HashSet<>();
+        List<Apuracao> apuracoes = new ArrayList<>();
+        for (Entrada entrada : entradas) {
+            if (entrada == null || !data.equals(entrada.data()) || !ids.add(entrada.armazemId()))
+                throw new Erro(422, "O boletim deve conter uma única data e cada armazém uma vez.");
+            apuracoes.add(apurar(entrada, true));
+            if (existe(entrada.armazemId(), data)) throw new Erro(409, "Já existe um boletim para o armazém " + entrada.armazemId() + " nesta data.");
+        }
+        Integer quantidadeArmazens = jdbc.queryForObject("select count(*) from armazem", Integer.class);
+        Set<Integer> oficiais = new HashSet<>(jdbc.query("select id from armazem", (rs, row) -> rs.getInt(1)));
+        if (quantidadeArmazens == null || quantidadeArmazens != 4 || !ids.equals(oficiais))
+            throw new Erro(422, "O fechamento diário precisa incluir exatamente os quatro armazéns cadastrados.");
+        List<Map<String, Object>> salvos = new ArrayList<>();
+        try {
+            for (int i = 0; i < entradas.size(); i++) salvos.add(gravar(entradas.get(i), apuracoes.get(i)));
+        } catch (DuplicateKeyException ex) {
+            throw new Erro(409, "O boletim diário já foi fechado por outro usuário.");
+        }
+        return salvos;
+    }
+
+    private Map<String, Object> gravar(Entrada entrada, Apuracao apuracao) {
         BoletimCalculator.Resultado r = apuracao.resultado;
         Long id;
         try {
@@ -132,7 +156,11 @@ public class BoletimService {
         return count != null && count > 0;
     }
 
-    private Apuracao apurar(Entrada entrada) {
+    private Apuracao apurar(Entrada entrada) { return apurar(entrada, false); }
+
+    private Apuracao apurar(Entrada entrada, boolean permitirSemAtividade) {
+        if (entrada == null || entrada.data() == null || entrada.linhas() == null || entrada.equipe() == null)
+            throw new Erro(400, "Informe data, linhas e equipe do boletim.");
         if (entrada.data().isAfter(LocalDate.now())) throw new Erro(422, "A data não pode estar no futuro.");
         if (jdbc.queryForObject("select count(*) from armazem where id = ?", Integer.class, entrada.armazemId()) == 0)
             throw new Erro(422, "Armazém inválido.");
@@ -156,7 +184,7 @@ public class BoletimService {
             }
         }
         if (entrada.equipe().size() > 20) throw new Erro(422, "Um boletim aceita no máximo 20 chapas.");
-        if (linhas.isEmpty() && entrada.equipe().isEmpty()) throw new Erro(422, "Informe a produção do dia e/ou a equipe.");
+        if (!permitirSemAtividade && linhas.isEmpty() && entrada.equipe().isEmpty()) throw new Erro(422, "Informe a produção do dia e/ou a equipe.");
         Set<String> matriculas = new HashSet<>();
         List<Map<String, Object>> equipe = new ArrayList<>();
         int completas = 0;

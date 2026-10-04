@@ -86,10 +86,24 @@ export interface Agendamento {
   origem: string
   criadoEm: string
   chegadaEm: string | null
+  placaVeiculo?: string | null
+  portariaObrigatoria?: boolean
+  portaria?: RecebimentoPortaria | null
   nfs: Nota[]
   compras: { pedido: string | null; decisao: string; obs: string | null } | null
   canc: { motivo: string; situacao: string } | null
   descs: Descarga[]
+}
+
+export interface RecebimentoPortaria {
+  situacao: 'AGUARDANDO_DOCUMENTOS' | 'PENDENTE_INSUMOS' | 'DIRECIONADO' | 'RECUSADO'
+  placa: string
+  conferidoEm: string
+  enviadoEm: string | null
+  decididoEm: string | null
+  observacao: string | null
+  conferidoPorNome?: string | null
+  decididoPorNome?: string | null
 }
 
 export interface Vaga {

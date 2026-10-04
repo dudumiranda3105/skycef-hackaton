@@ -1,17 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CalendarPlus, Copy, Loader2, QrCode as QrIcon, ScanLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { AcondBadge, Callout, Erros, OrigemBadge, SecTitulo, StatusBadge } from '@/components/comum'
-import { POST, dStatus, errTxt } from '@/lib/api'
+import { GET, POST, dStatus, errTxt, mapAg } from '@/lib/api'
 import { fmtBR, fmtDur, fmtHM, fmtNF, minDiff } from '@/lib/format'
 import { qrSvg } from '@/lib/qr'
 import { avisar, useAuth, useDados } from '@/lib/store'
 import { useJanelas } from '@/lib/janelas'
-import { codigoAg, baixarIcs, idDoCodigo, linkCheckin } from './util'
+import { codigoAg, baixarIcs, linkCheckin } from './util'
 import { cn } from '@/lib/utils'
+import { LeitorQr } from './leitor-qr'
+import { ConferenciaPortaria } from './conferencia-portaria'
+import type { Agendamento } from '@/lib/types'
 
 /* ---------- QR Code da entrega (e confirmação do agendamento) ---------- */
 function QrDialog() {
@@ -48,6 +51,7 @@ function QrDialog() {
               <div className="grid gap-0.5 text-[13.5px] text-muted-foreground">
                 <span>Fornecedor <b className="text-foreground">{f.nome}</b></span>
                 <span>Entrega <b className="num text-foreground">{fmtBR(a.data)} · {a.horario}</b></span>
+                {a.placaVeiculo && <span>Placa prevista <b className="num text-foreground">{a.placaVeiculo}</b></span>}
                 <span>Notas <b className="text-foreground">{a.nfs.map((n) => (n.numero ? fmtNF(n.numero) : 'sem número')).join(', ')}</b></span>
                 <span className="mt-1"><AcondBadge acond={a.acond} /></span>
               </div>
@@ -74,7 +78,9 @@ function QrDialog() {
 /* ---------- Check-in: o QR localiza a entrega; as regras continuam as da API ---------- */
 function CheckinDialog() {
   const { checkin, fechar, abrirQr } = useJanelas()
-  const { agById, fornById, equip, refresh } = useDados()
+  const { agById, fornById, equip, armNome, refresh } = useDados()
+  const { eu, pf } = useAuth()
+  const [direto, setDireto] = useState<Agendamento | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [ocupado, setOcupado] = useState(false)
   const [chapas, setChapas] = useState<Record<number, string>>({})
@@ -83,19 +89,32 @@ function CheckinDialog() {
 
   useEffect(() => {
     if (checkin == null) return
+    let ativo = true
     setCarregando(true)
-    refresh().finally(() => setCarregando(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkin])
+    setDireto(null)
+    void GET(`/api/agendamentos/${checkin}`).then((r) => { if (ativo) setDireto(mapAg(r, armNome)) }).catch((e) => { if (ativo) setErros({ 0: errTxt(e) }) }).finally(() => { if (ativo) setCarregando(false) })
+    return () => { ativo = false }
+  }, [checkin, armNome])
+
+  useEffect(() => {
+    if (checkin == null || direto?.portaria?.situacao !== 'PENDENTE_INSUMOS') return
+    let ativo = true
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      void GET(`/api/agendamentos/${checkin}`).then((r) => { if (ativo) setDireto(mapAg(r, armNome)) }).catch((e) => { if (ativo) setErros({ 0: errTxt(e) }) })
+    }, 15000)
+    return () => { ativo = false; window.clearInterval(timer) }
+  }, [checkin, direto?.portaria?.situacao, armNome])
 
   if (checkin == null) return null
-  const a = agById(checkin)
+  const a = direto?.id === checkin ? direto : agById(checkin)
   const fecha = () => fechar('checkin')
 
   async function passo(descId: number | null, rota: string, corpo: unknown, msg: string) {
     setOcupado(true)
     try {
-      await POST(rota, corpo)
+      const resposta = await POST(rota, corpo)
+      setDireto(mapAg(resposta, armNome))
       await refresh()
       avisar(msg)
     } catch (e) {
@@ -141,7 +160,8 @@ function CheckinDialog() {
           </div>
           <div className="flex flex-wrap gap-2"><StatusBadge status={a.status} /><AcondBadge acond={a.acond} /><OrigemBadge origem={a.origem} /></div>
           {aviso && <Callout tom={a.status === 'PENDENTE_COMPRAS' ? 'aviso' : a.status === 'CONCLUIDO' ? 'ok' : 'ruim'}>{aviso}</Callout>}
-          {!fim && !a.descs.length && (
+          {['ADMIN', 'PORTEIRO'].includes(eu?.papel || '') && <ConferenciaPortaria key={a.id} a={a} onAtualizado={setDireto} />}
+          {!fim && !a.descs.length && pf('armazem') && !a.portaria && !a.portariaObrigatoria && (
             <>
               {a.status === 'AUTORIZADO' && <Callout>Entrega autorizada. O armazém ainda não definiu o destino: a chegada já pode ser registrada.</Callout>}
               {!a.chegadaEm && (
@@ -179,13 +199,13 @@ function CheckinDialog() {
                     {d.chapas != null && <span className="rounded-full bg-secondary px-2.5 py-0.5">{d.chapas} chapas</span>}
                   </div>
                 )}
-                {!fim && !d.chegada && (
+                {!fim && !d.chegada && pf('armazem') && (
                   <div><Button disabled={ocupado} onClick={() => void passo(d.id, `/api/descargas/${d.id}/chegada`, {}, 'Chegada registrada.')}>Registrar chegada</Button></div>
                 )}
-                {!fim && d.chegada && !d.entrada && (
+                {!fim && d.chegada && !d.entrada && pf('armazem') && (
                   <div><Button disabled={ocupado || !['AUTORIZADO', 'EM_DESCARGA'].includes(a.status)} onClick={() => void passo(d.id, `/api/descargas/${d.id}/entrada`, {}, 'Descarga iniciada.')}>Iniciar descarga</Button></div>
                 )}
-                {!fim && d.entrada && !d.saida && (
+                {!fim && d.entrada && !d.saida && pf('armazem') && (
                   <div className="grid gap-3">
                     <Field label="Chapas nesta descarga" className="max-w-[260px]">
                       <Input type="number" min={0} max={100} step={1} value={chapas[d.id] ?? ''} onChange={(e) => setChapas((x) => ({ ...x, [d.id]: e.target.value }))} />
@@ -238,84 +258,20 @@ function CheckinDialog() {
 /* ---------- Leitor: código digitado, link colado ou câmera ---------- */
 function LeitorDialog() {
   const { leitor, fechar, abrirCheckin } = useJanelas()
-  const [cod, setCod] = useState('')
-  const [msg, setMsg] = useState('')
-  const [camera, setCamera] = useState(false)
-  const video = useRef<HTMLVideoElement>(null)
-  const fluxo = useRef<MediaStream | null>(null)
-  const temCamera = typeof (window as any).BarcodeDetector !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
-
-  const parar = () => {
-    fluxo.current?.getTracks().forEach((t) => t.stop())
-    fluxo.current = null
-    setCamera(false)
-  }
-  useEffect(() => () => parar(), [])
-  useEffect(() => {
-    if (!leitor) parar()
-  }, [leitor])
-
   if (!leitor) return null
-  const ir = (id: number) => {
-    parar()
-    abrirCheckin(id)
-  }
-  async function ligar() {
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      fluxo.current = s
-      setCamera(true)
-      await new Promise((r) => setTimeout(r, 50))
-      const v = video.current!
-      v.srcObject = s
-      await v.play()
-      const det = new (window as any).BarcodeDetector({ formats: ['qr_code'] })
-      const laco = async () => {
-        if (!fluxo.current) return
-        try {
-          const r = await det.detect(v)
-          if (r.length) {
-            const id = idDoCodigo(r[0].rawValue)
-            if (id) return ir(id)
-          }
-        } catch {
-          /* tenta no próximo quadro */
-        }
-        setTimeout(laco, 350)
-      }
-      void laco()
-    } catch (e) {
-      parar()
-      setMsg(`Não foi possível usar a câmera (${errTxt(e)}). Digite o código da entrega.`)
-    }
-  }
-  function localizar() {
-    const id = idDoCodigo(cod)
-    if (!id) return setMsg('Informe o código no formato AG-0012 ou cole o link do QR.')
-    ir(id)
-  }
   return (
     <Dialog open onOpenChange={(o) => !o && fechar('leitor')}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Check-in por QR Code</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Conferir entrega por QR Code</DialogTitle></DialogHeader>
         <DialogBody>
-          <p className="text-sm text-muted-foreground">Aponte a câmera do celular para o QR da entrega (ele abre direto o check-in) ou digite o código impresso abaixo do QR.</p>
-          <Field label="Código da entrega ou link do QR">
-            <Input value={cod} autoFocus placeholder="Ex.: AG-0012" onChange={(e) => setCod(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && localizar()} />
-          </Field>
-          {temCamera && !camera && <div><Button variant="outline" onClick={() => void ligar()}><ScanLine /> Ler com a câmera deste computador</Button></div>}
-          {camera && <video ref={video} playsInline muted className="w-full max-w-[420px] rounded-xl" />}
-          <Erros>{msg}</Erros>
+          <p className="text-sm text-muted-foreground">Leia o QR para consultar o agendamento. A Portaria confere o caminhão e envia as notas ao setor de Insumos.</p>
+          <LeitorQr onLocalizar={abrirCheckin} />
         </DialogBody>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => fechar('leitor')}>Fechar</Button>
-          <Button onClick={localizar}>Localizar entrega</Button>
-        </DialogFooter>
+        <DialogFooter><Button variant="outline" onClick={() => fechar('leitor')}>Fechar</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
-
 /* ---------- Trocar a própria senha ---------- */
 function SenhaDialog() {
   const { senha, fechar } = useJanelas()

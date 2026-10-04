@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CalendarClock, CheckCheck, FileText, Loader2, QrCode, ScanLine, Truck, XCircle } from 'lucide-react'
+import { CalendarClock, CheckCheck, FileText, Loader2, QrCode, ScanLine, Ship, Truck, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -14,6 +14,7 @@ import { useJanelas } from '@/lib/janelas'
 import type { Evento, StatusAg } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { codigoAg } from '@/features/checkin/util'
+import { TimelineDialog } from '@/features/timeline'
 
 const ATIVOS: StatusAg[] = ['PENDENTE_COMPRAS', 'AUTORIZADO']
 
@@ -25,6 +26,7 @@ export function DetalheAgendamento({
   const { abrirQr, abrirCheckin } = useJanelas()
   const [eventos, setEventos] = useState<Evento[]>([])
   const [sub, setSub] = useState<'reag' | 'canc' | 'nr' | null>(null)
+  const [showTL, setShowTL] = useState(false)
   const [ocupado, setOcupado] = useState(false)
   const a = id != null ? agById(id) : undefined
 
@@ -123,7 +125,7 @@ export function DetalheAgendamento({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Destinos ainda não definidos pelo armazém.</p>
+                <p className="text-sm text-muted-foreground">{a.portariaObrigatoria || a.portaria ? 'Aguardando conferência da Portaria e aprovação do destino por Insumos.' : 'Destinos ainda não definidos.'}</p>
               )}
             </div>
             {(reag.length > 0 || a.canc || nrs.length > 0) && (
@@ -158,7 +160,7 @@ export function DetalheAgendamento({
           </SheetBody>
           <SheetFooter>
             {ativo && pf('agendar') && <Button variant="outline" onClick={() => setSub('reag')}><CalendarClock /> Reagendar</Button>}
-            {ativo && pf('armazem') && !a.chegadaEm && !a.descs.length && (
+            {ativo && pf('armazem') && !a.chegadaEm && !a.descs.length && !a.portariaObrigatoria && !a.portaria && (
               <Button variant="outline" disabled={ocupado} onClick={() => void acao(() => POST(`/api/agendamentos/${a.id}/chegada`, {}), 'Chegada do caminhão registrada.')}>
                 <Truck /> Registrar chegada do caminhão
               </Button>
@@ -172,6 +174,7 @@ export function DetalheAgendamento({
             {!terminal && <Button variant="outline" onClick={() => abrirQr(a.id)}><QrCode /> QR Code e calendário</Button>}
             {!terminal && pf('armazem') && <Button variant="outline" onClick={() => { onFechar(); abrirCheckin(a.id) }}><ScanLine /> Check-in</Button>}
             {ativo && pf('armazem') && <Button variant="outline" onClick={() => setSub('nr')}>Registrar não recebimento</Button>}
+            <Button variant="ghost" onClick={() => setShowTL(true)}><Ship className="size-3.5" /> Ver timeline</Button>
             {vaga && pf('armazem') && <Button variant="accent" onClick={() => onDecidirVaga(vaga.id)}>Decidir quem ocupa a vaga</Button>}
             {!ativo && !a.canc && !terminal && <span className="text-sm text-muted-foreground">Sem ações disponíveis nesta situação.</span>}
           </SheetFooter>
@@ -180,6 +183,7 @@ export function DetalheAgendamento({
       {sub === 'reag' && <Reagendar id={a.id} onFechar={() => setSub(null)} />}
       {sub === 'canc' && <SolicitarCancelamento id={a.id} onFechar={() => setSub(null)} />}
       {sub === 'nr' && <NaoRecebimento id={a.id} onFechar={() => setSub(null)} />}
+      {showTL && <TimelineDialog ag={a} onFechar={() => setShowTL(false)} />}
     </>
   )
 }

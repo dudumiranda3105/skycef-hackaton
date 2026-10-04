@@ -10,8 +10,8 @@ import { useDados } from '@/lib/store'
 import type { Historico } from '@/lib/painelDados'
 
 export const INCONSISTENCIAS_HIST: [string, string, string][] = [
-  ['Linhas 100% duplicadas na movimentação', '540', 'Descartadas (41.779 → 41.239 linhas)'],
-  ['Uma linha por item, não por caminhão', '41.239 linhas → 18.821 recebimentos', 'A carga é o recebimento (data, nº, armazém); contar linhas inflaria a demanda'],
+  ['Duplicatas completas e recebimentos parciais', '540 + 433 linhas', '540 duplicatas completas descartadas; 433 linhas parciais agrupadas (41.779 → 40.806 registros)'],
+  ['Linhas de itens e recebimentos distintos', '40.806 linhas → 18.397 recebimentos', 'A carga mede recebimentos distintos por data e número; contar linhas de itens inflaria a demanda'],
   ['Recebimentos por dia × caminhões informados', 'mediana de 15 por dia, contra 5 a 6 no Dossiê', 'Recebimento usado só como índice relativo de demanda; a confirmar com a Cocapec'],
   ['Recebimentos em sábados', '21 linhas em 5 dias', 'Preservados e contados; a análise de equipe usa só segunda a sexta'],
   ['Data de recebimento anterior à data do documento', '308', 'Preservadas e contadas (provável lançamento retroativo)'],
@@ -147,7 +147,7 @@ export function Qualidade() {
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Linhas válidas após limpeza</TableCell>
-                <TableCell className="text-right num">41.239 · {pct(41239, 41779)}</TableCell>
+                <TableCell className="text-right num">40.806 · {pct(40806, 41779)}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Folha com saldo calculado</TableCell>

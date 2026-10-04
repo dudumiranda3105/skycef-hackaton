@@ -46,10 +46,13 @@ class LoginUnitTest {
         assertFalse(Permissoes.permite("FORNECEDOR", "POST", "/api/agendamentos/5/destinos"));
         // armazém recebe; encarregado fecha o boletim e só isso
         assertTrue(Permissoes.permite("ARMAZEM", "POST", "/api/descargas/3/saida"));
-        assertTrue(Permissoes.permite("ENCARREGADO", "POST", "/api/boletins"));
+        assertFalse(Permissoes.permite("ENCARREGADO", "POST", "/api/boletins"));
+        assertTrue(Permissoes.permite("ENCARREGADO", "POST", "/api/boletins/dia"));
         assertTrue(Permissoes.permite("ENCARREGADO", "POST", "/api/boletins/calculo"));
         assertFalse(Permissoes.permite("ENCARREGADO", "POST", "/api/descargas/3/saida"));
+        assertFalse(Permissoes.permite("ENCARREGADO", "GET", "/api/equipamentos"));
         assertFalse(Permissoes.permite("COMPRAS", "POST", "/api/boletins"));
+        assertFalse(Permissoes.permite("COMPRAS", "POST", "/api/boletins/dia"));
         // painel: direção e armazém; usuários: só administrador
         assertTrue(Permissoes.permite("DIRETORIA", "GET", "/api/painel/operacao"));
         assertFalse(Permissoes.permite("FORNECEDOR", "GET", "/api/painel/operacao"));
@@ -58,6 +61,19 @@ class LoginUnitTest {
         assertTrue(Permissoes.permite("ADMIN", "GET", "/api/usuarios"));
         // qualquer perfil lê a agenda e cuida da própria conta
         assertTrue(Permissoes.permite("DIRETORIA", "GET", "/api/agendamentos"));
+        assertFalse(Permissoes.permite("FORNECEDOR", "GET", "/api/historico/notas-fiscais"));
+        assertFalse(Permissoes.permite("PORTEIRO", "GET", "/api/painel/operacao"));
+        assertTrue(Permissoes.permite("PORTEIRO", "POST", "/api/nao-recebimentos"));
+        assertTrue(Permissoes.permite("PORTEIRO", "POST", "/api/fornecedores"));
+        assertTrue(Permissoes.permite("PORTEIRO", "POST", "/api/agendamentos/5/portaria/conferencia"));
+        assertTrue(Permissoes.permite("PORTEIRO", "POST", "/api/agendamentos/5/portaria/enviar"));
+        assertFalse(Permissoes.permite("PORTEIRO", "POST", "/api/agendamentos/5/destinos"));
+        assertFalse(Permissoes.permite("PORTEIRO", "POST", "/api/insumos/recebimentos/5/decisao"));
+        assertTrue(Permissoes.permite("INSUMO", "GET", "/api/insumos/recebimentos"));
+        assertTrue(Permissoes.permite("INSUMO", "POST", "/api/insumos/recebimentos/5/decisao"));
+        assertTrue(Permissoes.permite("INSUMO", "GET", "/api/agendamentos/5/notas/9/arquivo"));
+        assertFalse(Permissoes.permite("INSUMO", "POST", "/api/agendamentos/5/notas/9/arquivo"));
+        assertFalse(Permissoes.permite("FORNECEDOR", "GET", "/api/rota-sem-regra"));
         assertTrue(Permissoes.permite("FORNECEDOR", "POST", "/api/auth/senha"));
     }
 }

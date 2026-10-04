@@ -8,8 +8,16 @@ export const linkCheckin = (id: number) => `${location.origin}/ui/#/checkin/${id
 /** Aceita "AG-0012", "12" ou o link inteiro do QR. */
 export function idDoCodigo(txt: string): number | null {
   const t = String(txt || '').trim()
-  const m = t.match(/checkin\/(\d+)/i) || t.match(/AG[-\s]?0*(\d+)/i) || t.match(/^0*(\d+)$/)
-  return m ? Number(m[1]) : null
+  let m = t.match(/^(?:AG[-\s]?)?0*(\d+)$/i)
+  if (!m) {
+    try {
+      const url = new URL(t)
+      if (url.origin !== location.origin || url.pathname.replace(/\/$/, '') !== '/ui') return null
+      m = url.hash.match(/^#\/checkin\/(\d+)$/)
+    } catch { return null }
+  }
+  const id = m ? Number(m[1]) : 0
+  return Number.isSafeInteger(id) && id > 0 ? id : null
 }
 
 /** Evento de calendário (.ics, RFC 5545). O calendário é só conveniência: o sistema da Cocapec é a fonte oficial. */

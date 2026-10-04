@@ -14,7 +14,8 @@ import { useAuth, useDados } from '@/lib/store'
 import { useRota } from '@/lib/rota'
 import { respostaDirecao, useHistoricoCompleto } from '@/lib/painelDados'
 import { INCONSISTENCIAS_HIST } from '@/features/qualidade'
-import type { StatusAg } from '@/lib/types'
+import { MapaPressao } from '@/components/mapa-pressao'
+import type { Agendamento, StatusAg } from '@/lib/types'
 
 /** Uma célula da faixa de indicadores: rótulo, número, contexto e (quando há série real) um minigráfico. */
 function Metrica({
@@ -28,7 +29,7 @@ function Metrica({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: i * 0.035, ease: [0.22, 1, 0.36, 1] }}
-      className="group relative grid cursor-pointer content-start gap-1 bg-card p-5 text-left shadow-[0_0_0_0.5px_var(--border)] transition-colors hover:bg-secondary/50"
+      className="group relative grid cursor-pointer content-start gap-1 bg-card p-4 text-left sm:p-5 shadow-[0_0_0_0.5px_var(--border)] transition-colors hover:bg-secondary/50"
     >
       <span className="flex items-center justify-between gap-2 text-[13px] font-medium text-muted-foreground">
         <span className="flex items-center gap-2">
@@ -53,6 +54,14 @@ const COR_STATUS: Record<StatusAg, string> = {
   NAO_AUTORIZADO: 'var(--destructive)',
   NAO_RECEBIDO: '#e5788f',
   CANCELADO: 'var(--muted-foreground)',
+}
+
+/** Caminhões autorizados para hoje: quantos ainda não chegaram e quantos já estão no pátio ou descarregando. */
+function portariaHoje(ags: Agendamento[]) {
+  const hoje = hojeISO()
+  const doDia = ags.filter((a) => a.data === hoje && (a.status === 'AUTORIZADO' || a.status === 'EM_DESCARGA'))
+  const chegaram = doDia.filter((a) => a.chegadaEm).length
+  return { portHoje: doDia.length, portAguardando: doDia.length - chegaram, portChegaram: chegaram }
 }
 
 function saudacao() {
@@ -98,6 +107,7 @@ export function Home() {
       fila: abertas.filter((d) => d.chegada && !d.entrada).length,
       emDesc: abertas.filter((d) => d.entrada).length,
       d1: ags.filter((a) => a.data === d1 && !LIBERAM_VAGA.includes(a.status)).length,
+      ...portariaHoje(ags),
     }
   }, [ags])
 
@@ -170,6 +180,9 @@ export function Home() {
     } as Record<string, string>)[eu?.papel ?? ''] ?? 'Use o menu ao lado para abrir uma seção.'
 
   const metricas = [
+    pode('portaria') && (
+      <Metrica key="portaria" i={0} secao="portaria" cor="var(--brand-blue)" grande={nf0.format(num.portHoje)} sub={`autorizados hoje · ${num.portAguardando} aguardando chegada · ${num.portChegaram} no pátio`} origem={origPlat} />
+    ),
     pode('agenda') && (
       <Metrica key="agenda" i={0} secao="agenda" cor="var(--brand-blue)" grande={nf0.format(num.semana)} sub={`entregas na semana · ${num.pend} aguardando Compras`} origem={origPlat} />
     ),
@@ -187,7 +200,7 @@ export function Home() {
         cor="var(--brand-green-deep)"
         serie={serieBoletim}
         grande={ult ? brl4(ult.total || ult.producao) : '—'}
-        sub={ult ? `último: ${ult.armazem}, ${fmtDM(ult.data)} · ${nf0.format(bols.length)} boletins` : 'nenhum boletim salvo'}
+        sub={ult ? `último: ${ult.armazem}, ${fmtDM(ult.data)} · ${nf0.format(bols.length)} ${bols.length === 1 ? 'boletim' : 'boletins'}` : 'nenhum boletim salvo'}
         origem={ult ? ult.origem : origPlat}
       />
     ),
@@ -202,6 +215,12 @@ export function Home() {
     ),
     pode('qualidade') && (
       <Metrica key="qualidade" i={7} secao="qualidade" cor="var(--brand-blue)" grande={nf0.format(INCONSISTENCIAS_HIST.length)} sub="tratamentos documentados nos dados" origem="HISTORICO" />
+    ),
+    pode('insumo') && (
+      <Metrica key="insumo" i={9} secao="insumo" cor="var(--brand-green-deep)" grande={nf0.format(ags.filter((a) => a.portaria?.situacao === 'PENDENTE_INSUMOS').length)} sub="recebimentos aguardando validação · consulte a fila e o estoque" origem="PLATAFORMA" />
+    ),
+    pode('fiscal') && (
+      <Metrica key="fiscal" i={10} secao="fiscal" cor="var(--brand-blue)" grande="XML e DANFE" sub="notas fiscais históricas para consulta" origem="HISTORICO" />
     ),
     pode('usuarios') && (
       <Metrica key="usuarios" i={8} secao="usuarios" cor="var(--brand-blue)" grande="Acesso" sub="quem pode entrar e com qual perfil" origem="PLATAFORMA" />
@@ -240,7 +259,7 @@ export function Home() {
               {boletinsPlataforma.length ? (
                 <>
                   <span className="num text-[clamp(28px,3vw,36px)] leading-none font-bold text-success">{brl0(complementoPlataforma)}</span>
-                  <span className="num mt-1 text-[12.5px] text-muted-foreground">{nf0.format(boletinsPlataforma.length)} boletins consistentes registrados na plataforma</span>
+                  <span className="num mt-1 text-[12.5px] text-muted-foreground">{nf0.format(boletinsPlataforma.length)} {boletinsPlataforma.length === 1 ? 'boletim consistente registrado' : 'boletins consistentes registrados'} na plataforma</span>
                 </>
               ) : (
                 <span className="text-[15px] font-semibold">Nenhum boletim da plataforma registrado</span>
@@ -261,9 +280,11 @@ export function Home() {
         </section>
       )}
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] overflow-hidden rounded-xl border bg-card shadow-card">
+      <div className="grid grid-cols-2 overflow-hidden rounded-xl border bg-card shadow-card sm:grid-cols-[repeat(auto-fill,minmax(230px,1fr))]">
         {metricas}
       </div>
+
+      {pode('d1') && <MapaPressao />}
 
       {pode('agenda') && (
         <>

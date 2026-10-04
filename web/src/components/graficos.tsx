@@ -15,7 +15,7 @@ export function GraficoArea({
   if (pontos.length < 2) return null
   const W = 640
   const H = 220
-  const pad = { t: 16, r: 12, b: 28, l: 28 }
+  const pad = { t: 16, r: 26, b: 28, l: 28 }
   const max = Math.max(1, ...pontos.map((p) => p.valor))
   const topo = Math.ceil(max / 4) * 4 || 4
   const x = (i: number) => pad.l + (i / (pontos.length - 1)) * (W - pad.l - pad.r)

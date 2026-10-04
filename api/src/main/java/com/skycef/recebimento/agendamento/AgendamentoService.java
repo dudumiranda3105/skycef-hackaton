@@ -78,7 +78,7 @@ public class AgendamentoService {
 
     public record NotaIn(String nfChave, String nfNumero, BigDecimal pesoTotalKg) {}
     public record AgendarIn(Long fornecedorId, LocalDate data, LocalTime horario, String acondicionamento,
-                            List<NotaIn> notas, Boolean agendadoNaHora) {}
+                            List<NotaIn> notas, Boolean agendadoNaHora, String placaVeiculo) {}
     public record ComprasIn(String decisao, String pedidoReferencia, String observacao) {}
     public record DestinosIn(List<Long> armazemIds, String observacao) {}
     public record MarcoIn(OffsetDateTime ocorridoEm) {}
@@ -223,6 +223,15 @@ public class AgendamentoService {
         out.put("origem", a.get("origem"));
         out.put("criadoEm", a.get("criado_em"));
         out.put("chegadaEm", a.get("chegada_em"));
+        out.put("placaVeiculo", a.get("placa_veiculo"));
+        out.put("portariaObrigatoria", a.get("exige_conferencia_portaria"));
+        out.put("portaria", one("""
+                select p.situacao, p.placa, p.conferido_em as "conferidoEm", p.enviado_em as "enviadoEm",
+                       p.decidido_em as "decididoEm", p.observacao,
+                       c.nome as "conferidoPorNome", d.nome as "decididoPorNome"
+                from portaria_recebimento p join usuario c on c.id=p.conferido_por_usuario_id
+                left join usuario d on d.id=p.decidido_por_usuario_id where p.agendamento_id=?
+                """, appointment));
         out.put("notas", many("select id, nf_numero as \"nfNumero\", nf_chave as \"nfChave\", peso_total_kg as \"pesoTotalKg\", arquivo_nome as \"arquivoNome\", ativa from nota_fiscal where agendamento_id=? order by id", appointment));
         out.put("validacaoCompras", one("select decisao, pedido_referencia as \"pedidoReferencia\", observacao, decidido_em as \"decididoEm\" from validacao_compras where agendamento_id=?", appointment));
         List<Map<String, Object>> downloads = many("select id, armazem_id as \"armazemId\", chegada_em as \"chegadaEm\", entrada_em as \"entradaEm\", saida_em as \"saidaEm\", quantidade_chapas as \"quantidadeChapas\" from descarga where agendamento_id=? order by armazem_id", appointment);
@@ -236,12 +245,22 @@ public class AgendamentoService {
     }
 
     public List<Map<String, Object>> listar(LocalDate day, String state) {
+        return listar(day, state, null);
+    }
+
+    public List<Map<String, Object>> listar(LocalDate day, String state, Long solicitanteUsuarioId) {
         StringBuilder sql = new StringBuilder("select id from agendamento where 1=1");
         List<Object> args = new ArrayList<>();
         if (day != null) { sql.append(" and data_agendada=?"); args.add(day); }
         if (state != null) { sql.append(" and status=?"); args.add(state); }
+        if (solicitanteUsuarioId != null) { sql.append(" and solicitado_por_usuario_id=?"); args.add(solicitanteUsuarioId); }
         sql.append(" order by data_agendada,horario,id");
         return many(sql.toString(), args.toArray()).stream().map(r -> detalhe(id(r))).toList();
+    }
+
+    public void exigirDono(long appointment, Long usuarioId) {
+        if (usuarioId == null || one("select id from agendamento where id=? and solicitado_por_usuario_id=?", appointment, usuarioId) == null)
+            throw erro(HttpStatus.NOT_FOUND, "Agendamento não encontrado.");
     }
 
     public Map<String, Object> agenda(LocalDate day) {
@@ -258,7 +277,10 @@ public class AgendamentoService {
     }
 
     @Transactional
-    public Map<String, Object> agendar(AgendarIn input) {
+    public Map<String, Object> agendar(AgendarIn input) { return agendar(input, null); }
+
+    @Transactional
+    public Map<String, Object> agendar(AgendarIn input, Long solicitanteUsuarioId) {
         if (input == null || input.fornecedorId() == null || input.notas() == null || input.notas().isEmpty() || input.notas().size() > 20)
             throw erro(HttpStatus.BAD_REQUEST, "Informe fornecedor e de 1 a 20 notas fiscais.");
         if (input.acondicionamento() == null || !Set.of("BATIDO", "PALETIZADO", "BIG_BAG").contains(input.acondicionamento()))
@@ -277,12 +299,13 @@ public class AgendamentoService {
                 throw erro(HttpStatus.UNPROCESSABLE_ENTITY, "O peso da carga não pode ser negativo.");
         }
         lockSlot(input.data(), input.horario());
+        String placa = PortariaService.placa(input.placaVeiculo(), false);
         List<String> occupants = ocupantes(input.data(), input.horario(), null, null);
         if (!cabe(occupants, input.acondicionamento())) throw erro(HttpStatus.CONFLICT, motivoSemVaga(occupants, input.acondicionamento()));
         long appointment;
         try {
-            appointment = insert("insert into agendamento(fornecedor_id,data_agendada,horario,acondicionamento,status,agendado_na_hora,limite_ignorado,origem,criado_em) values (?,?,?,?,? ,?,?,?,?)",
-                    input.fornecedorId(), input.data(), input.horario(), input.acondicionamento(), "PENDENTE_COMPRAS", Boolean.TRUE.equals(input.agendadoNaHora()), false, "PLATAFORMA", agora());
+            appointment = insert("insert into agendamento(fornecedor_id,data_agendada,horario,acondicionamento,status,agendado_na_hora,limite_ignorado,origem,criado_em,solicitado_por_usuario_id,placa_veiculo,exige_conferencia_portaria) values (?,?,?,?,? ,?,?,?,?,?,?,true)",
+                    input.fornecedorId(), input.data(), input.horario(), input.acondicionamento(), "PENDENTE_COMPRAS", Boolean.TRUE.equals(input.agendadoNaHora()), false, "PLATAFORMA", agora(), solicitanteUsuarioId, placa);
             for (NotaIn n : input.notas()) insert("insert into nota_fiscal(agendamento_id,nf_chave,nf_numero,peso_total_kg,ativa,criado_em) values (?,?,?,?,true,?)",
                     appointment, n.nfChave(), n.nfNumero(), n.pesoTotalKg(), agora());
         } catch (DataIntegrityViolationException e) { throw erro(HttpStatus.CONFLICT, "Uma das notas fiscais já está agendada."); }
@@ -311,6 +334,10 @@ public class AgendamentoService {
         Set<Long> ids = new LinkedHashSet<>(in.armazemIds());
         Map<String, Object> a = agendamento(appointment, true);
         if (!"AUTORIZADO".equals(status(a))) throw erro(HttpStatus.CONFLICT, "Compras precisa autorizar o agendamento antes de definir os destinos.");
+        Map<String, Object> portaria = one("select situacao from portaria_recebimento where agendamento_id=?", appointment);
+        if ((Boolean.TRUE.equals(a.get("exige_conferencia_portaria")) && portaria == null)
+                || (portaria != null && !"DIRECIONADO".equals(portaria.get("situacao"))))
+            throw erro(HttpStatus.CONFLICT, "Insumos precisa validar a conferência da portaria antes de definir os destinos.");
         if (one("select id from descarga where agendamento_id=?", appointment) != null) throw erro(HttpStatus.CONFLICT, "Os armazéns de destino já foram definidos para este agendamento.");
         for (Long warehouse : ids) {
             if (one("select id from armazem where id=?", warehouse) == null) throw erro(HttpStatus.NOT_FOUND, "Armazém não encontrado: " + warehouse);

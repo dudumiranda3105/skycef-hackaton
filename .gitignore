@@ -6,6 +6,8 @@ data/*
 *.csv
 DADOS_HACKATHON_2026*
 DADOS_HACKATHON_2026.zip
+# Arquivos copiados do pacote (spec, mapa SAP, formulário, LEIA-ME): também são dados originais
+docs/fontes-oficiais/
 
 *.db
 api/target/

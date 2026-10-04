@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.LocalDate;
 import java.time.Duration;
@@ -13,7 +14,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,10 +35,8 @@ public class FluxoService {
         if (a.get("chegada_em") != null) throw AgendamentoService.erro(HttpStatus.CONFLICT, "A chegada deste caminhão já foi registrada.");
         OffsetDateTime agora = AgendamentoService.agora();
         OffsetDateTime horarioAgendado = LocalDateTime.of(AgendamentoService.data(a), AgendamentoService.horario(a)).atZone(AgendamentoService.ZONA).toOffsetDateTime();
-        if (Duration.between(horarioAgendado, agora).toMinutes() >= 30) {
-            base.transition(a, "NAO_RECEBIDO", "Agendamento perdido por atraso de 30 minutos ou mais");
-            db.update("insert into nao_recebimento(agendamento_id,fornecedor_id,data,motivo,descricao,origem,criado_em) values (?,?,?,'ATRASO_AGENDAMENTO','Chegada registrada 30 minutos ou mais após o horário agendado.','PLATAFORMA',?)",
-                    appointment, a.get("fornecedor_id"), AgendamentoService.data(a), agora);
+        if (Duration.between(horarioAgendado, when).toMinutes() >= 30) {
+            perderPorAtraso(a, agora, "Chegada registrada 30 minutos ou mais após o horário agendado.");
             Map<String, Object> resultado = base.detalhe(appointment);
             resultado.put("agendaPerdidaPorAtraso", true);
             return resultado;
@@ -56,7 +54,9 @@ public class FluxoService {
         Map<String, Object> a = base.agendamento(((Number) d.get("agendamento_id")).longValue(), true);
         exigirAutorizado(a);
         if (d.get("entrada_em") != null) throw AgendamentoService.erro(HttpStatus.CONFLICT, "Esta descarga já começou; a chegada não pode mais ser alterada.");
-        db.update("update descarga set chegada_em=? where id=?", when, discharge);
+        if (a.get("chegada_em") != null) throw AgendamentoService.erro(HttpStatus.CONFLICT, "A chegada deste caminhão já foi registrada.");
+        db.update("update agendamento set chegada_em=? where id=?", when, AgendamentoService.id(a));
+        db.update("update descarga set chegada_em=? where agendamento_id=? and chegada_em is null", when, AgendamentoService.id(a));
         marco(a, "CHEGADA", "Chegada registrada para a descarga", when, d, null);
         return base.detalhe(AgendamentoService.id(a));
     }
@@ -67,6 +67,10 @@ public class FluxoService {
         Map<String, Object> d = base.descarga(discharge);
         Map<String, Object> a = base.agendamento(((Number) d.get("agendamento_id")).longValue(), true);
         exigirAutorizado(a);
+        Map<String, Object> portaria = base.one("select situacao from portaria_recebimento where agendamento_id=?", AgendamentoService.id(a));
+        if ((Boolean.TRUE.equals(a.get("exige_conferencia_portaria")) && portaria == null)
+                || (portaria != null && !"DIRECIONADO".equals(portaria.get("situacao"))))
+            throw AgendamentoService.erro(HttpStatus.CONFLICT, "Aguarde a validação e o direcionamento do setor de Insumos.");
         if (d.get("entrada_em") != null) throw AgendamentoService.erro(HttpStatus.CONFLICT, "A entrada desta descarga já foi registrada.");
         if (d.get("chegada_em") == null) throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "Registre a chegada do caminhão antes da entrada.");
         if (when.toInstant().isBefore(((OffsetDateTime) d.get("chegada_em")).toInstant()))
@@ -89,10 +93,21 @@ public class FluxoService {
         if (d.get("saida_em") != null) throw AgendamentoService.erro(HttpStatus.CONFLICT, "A saída desta descarga já foi registrada.");
         if (when.toInstant().isBefore(((OffsetDateTime) d.get("entrada_em")).toInstant()))
             throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "A saída não pode ser anterior à entrada.");
-        Set<Long> equipment = new LinkedHashSet<>(in.equipamentoIds() == null ? List.of() : in.equipamentoIds());
+        Set<Long> equipment = new java.util.TreeSet<>(in.equipamentoIds() == null ? List.of() : in.equipamentoIds());
         if (equipment.size() > 30) throw AgendamentoService.erro(HttpStatus.BAD_REQUEST, "Até 30 equipamentos por descarga.");
         for (Long equipmentId : equipment) {
-            if (base.one("select id from equipamento where id=?", equipmentId) == null) throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "Equipamento inválido: " + equipmentId + ".");
+            Map<String, Object> item = base.one("select id, armazem_id, tipo, observacao from equipamento where id=?", equipmentId);
+            if (item == null) throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "Equipamento inválido: " + equipmentId + ".");
+            int warehouse = ((Number) d.get("armazem_id")).intValue();
+            int equipmentWarehouse = ((Number) item.get("armazem_id")).intValue();
+            String observacao = item.get("observacao") == null ? "" : item.get("observacao").toString().toLowerCase();
+            boolean transitavel = observacao.contains("transit") || observacao.contains("pode ir a outros armazéns");
+            boolean compartilhavelAdubo = warehouse == 1 && equipmentWarehouse == 2
+                    && observacao.contains("auxiliar o insumos");
+            if (equipmentWarehouse != warehouse && !transitavel && !compartilhavelAdubo)
+                throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "Equipamento " + equipmentId + " não está alocado a este armazém.");
+            Integer used = jdbcUsed(equipmentId, (OffsetDateTime) d.get("entrada_em"), when);
+            if (used >= 1) throw AgendamentoService.erro(HttpStatus.CONFLICT, "O equipamento " + equipmentId + " já foi usado em outra descarga que se sobrepõe a este horário.");
         }
         db.update("update descarga set saida_em=?, quantidade_chapas=? where id=?", when, in.quantidadeChapas(), discharge);
         for (Long equipmentId : equipment) db.update("insert into descarga_equipamento(descarga_id,equipamento_id) values (?,?)", discharge, equipmentId);
@@ -105,6 +120,40 @@ public class FluxoService {
     private void exigirAutorizado(Map<String, Object> a) {
         if (!Set.of("AUTORIZADO", "EM_DESCARGA").contains(AgendamentoService.status(a)))
             throw AgendamentoService.erro(HttpStatus.CONFLICT, "Compras precisa autorizar o agendamento antes de iniciar a descarga.");
+    }
+
+    /** Fecha automaticamente compromissos sem chegada quando a tolerância de 30 minutos termina. */
+    @Scheduled(fixedDelayString = "${app.agenda.verificacao-atrasos-ms:30000}")
+    @Transactional
+    public void encerrarAgendamentosAtrasados() {
+        OffsetDateTime agora = AgendamentoService.agora();
+        List<Long> candidatos = db.query("select id from agendamento where status in ('PENDENTE_COMPRAS','AUTORIZADO') and chegada_em is null and data_agendada<=? order by data_agendada,horario,id",
+                (rs, row) -> rs.getLong(1), agora.toLocalDate());
+        for (Long id : candidatos) {
+            Map<String, Object> a = base.agendamento(id, true);
+            if (!Set.of("PENDENTE_COMPRAS", "AUTORIZADO").contains(AgendamentoService.status(a)) || a.get("chegada_em") != null) continue;
+            OffsetDateTime limite = LocalDateTime.of(AgendamentoService.data(a), AgendamentoService.horario(a))
+                    .atZone(AgendamentoService.ZONA).toOffsetDateTime().plusMinutes(30);
+            if (!limite.isAfter(agora)) perderPorAtraso(a, agora, "Agendamento encerrado automaticamente após 30 minutos sem chegada registrada.");
+        }
+    }
+
+    private void perderPorAtraso(Map<String, Object> a, OffsetDateTime agora, String descricao) {
+        base.transition(a, "NAO_RECEBIDO", "Agendamento perdido por atraso de 30 minutos ou mais");
+        db.update("insert into nao_recebimento(agendamento_id,fornecedor_id,data,motivo,descricao,origem,criado_em) values (?,?,?,'ATRASO_AGENDAMENTO',?,'PLATAFORMA',?)",
+                AgendamentoService.id(a), a.get("fornecedor_id"), AgendamentoService.data(a), descricao, agora);
+    }
+
+    private int jdbcUsed(long equipmentId, OffsetDateTime starts, OffsetDateTime ends) {
+        // Serializa saídas simultâneas do mesmo equipamento e confere sobreposição real de marcos.
+        db.queryForObject("select id from equipamento where id=? for update", Long.class, equipmentId);
+        Integer used = db.queryForObject("""
+                select count(*)::integer from descarga_equipamento de
+                join descarga d on d.id=de.descarga_id
+                where de.equipamento_id=? and d.entrada_em <= ?
+                  and coalesce(d.saida_em, 'infinity'::timestamptz) >= ?
+                """, Integer.class, equipmentId, ends, starts);
+        return used == null ? 0 : used;
     }
 
     private void marco(Map<String, Object> a, String kind, String text, OffsetDateTime when, Map<String, Object> d, Map<String, Object> extra) {
@@ -123,6 +172,7 @@ public class FluxoService {
         Map<String, Object> a = base.agendamento(appointment, false);
         lockSlots(a, in.data(), in.horario());
         a = lockedSameSlot(appointment, a);
+        exigirSemConferenciaPortaria(appointment);
         if (!Set.of("PENDENTE_COMPRAS", "AUTORIZADO").contains(AgendamentoService.status(a))) throw AgendamentoService.erro(HttpStatus.CONFLICT, "Só é possível reagendar antes da descarga.");
         LocalDate oldDay = AgendamentoService.data(a); LocalTime oldTime = AgendamentoService.horario(a);
         if (oldDay.equals(in.data()) && oldTime.equals(in.horario())) throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "Escolha uma data ou um horário diferente do atual.");
@@ -150,6 +200,7 @@ public class FluxoService {
         String reason = AgendamentoService.texto(in == null ? null : in.motivo(), 300);
         if (reason == null) throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "Informe o motivo do cancelamento.");
         Map<String, Object> a = base.agendamento(appointment, true);
+        exigirSemConferenciaPortaria(appointment);
         if (!Set.of("PENDENTE_COMPRAS", "AUTORIZADO").contains(AgendamentoService.status(a))) throw AgendamentoService.erro(HttpStatus.CONFLICT, "O agendamento não pode mais ser cancelado.");
         if (base.one("select agendamento_id from cancelamento where agendamento_id=?", appointment) != null) throw AgendamentoService.erro(HttpStatus.CONFLICT, "Já existe uma solicitação de cancelamento para este agendamento.");
         db.update("insert into cancelamento(agendamento_id,motivo,situacao,solicitado_em) values (?,?,'SOLICITADO',?)", appointment, reason, AgendamentoService.agora());
@@ -162,6 +213,7 @@ public class FluxoService {
         Map<String, Object> a = base.agendamento(appointment, false);
         lockSlots(a, null, null);
         a = lockedSameSlot(appointment, a);
+        exigirSemConferenciaPortaria(appointment);
         Map<String, Object> cancel = base.one("select * from cancelamento where agendamento_id=?", appointment);
         if (cancel == null) throw AgendamentoService.erro(HttpStatus.UNPROCESSABLE_ENTITY, "Não há solicitação de cancelamento para efetivar.");
         if ("EFETIVADO".equals(cancel.get("situacao"))) throw AgendamentoService.erro(HttpStatus.CONFLICT, "Este cancelamento já foi efetivado.");
@@ -170,6 +222,11 @@ public class FluxoService {
         long vacancy = base.insert("insert into vaga_liberada(data_vaga,horario,acondicionamento,origem_agendamento_id,status,criado_em) values (?,?,?,?,'ABERTA',?)", AgendamentoService.data(a), AgendamentoService.horario(a), a.get("acondicionamento"), appointment, AgendamentoService.agora());
         base.event(appointment, "CANCELADO", "CANCELADO", "VAGA", "Vaga liberada; o armazém decide quem a ocupa", Map.of("vagaId", vacancy));
         return base.detalhe(appointment);
+    }
+
+    private void exigirSemConferenciaPortaria(long appointment) {
+        if (base.one("select agendamento_id from portaria_recebimento where agendamento_id=?", appointment) != null)
+            throw AgendamentoService.erro(HttpStatus.CONFLICT, "O caminhão já foi conferido na portaria. O setor de Insumos deve decidir o recebimento.");
     }
 
     public List<Map<String, Object>> vagas(String situation) {

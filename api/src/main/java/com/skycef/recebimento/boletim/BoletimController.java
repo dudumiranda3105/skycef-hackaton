@@ -38,9 +38,14 @@ public class BoletimController {
     @PostMapping("/boletins/calculo")
     public Map<String, Object> calcular(@RequestBody JsonNode body) { return service.calcular(entrada(body)); }
 
-    @PostMapping("/boletins")
-    public ResponseEntity<Map<String, Object>> lancar(@RequestBody JsonNode body) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.lancar(entrada(body)));
+    @PostMapping("/boletins/dia")
+    public ResponseEntity<List<Map<String, Object>>> lancarDia(@RequestBody JsonNode body) {
+        campos(body, Set.of("boletins"));
+        JsonNode itens = lista(body, "boletins");
+        if (itens.size() != 4) throw invalida("Envie os boletins dos quatro armazéns no mesmo fechamento.");
+        List<BoletimService.Entrada> entradas = new ArrayList<>();
+        for (JsonNode item : itens) entradas.add(entrada(item));
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.lancarDia(entradas));
     }
 
     @GetMapping("/boletins")

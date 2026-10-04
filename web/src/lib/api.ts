@@ -80,6 +80,14 @@ export function mapAg(a: any, armNome: (id: number) => string): Agendamento {
     origem: a.origem,
     criadoEm: a.criadoEm,
     chegadaEm: loc(a.chegadaEm),
+    placaVeiculo: a.placaVeiculo ?? null,
+    portariaObrigatoria: !!a.portariaObrigatoria,
+    portaria: a.portaria ? {
+      ...a.portaria,
+      conferidoEm: loc(a.portaria.conferidoEm),
+      enviadoEm: loc(a.portaria.enviadoEm),
+      decididoEm: loc(a.portaria.decididoEm),
+    } : null,
     nfs: (a.notas || []).map((n: any) => ({
       id: n.id,
       numero: n.nfNumero || '',

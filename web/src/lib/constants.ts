@@ -66,18 +66,18 @@ export const PAPEL_ROTULO: Record<Papel, string> = {
 }
 
 export type Secao =
-  | 'agenda' | 'compras' | 'armazem' | 'boletim' | 'painel' | 'd1' | 'perguntar' | 'qualidade' | 'usuarios'
+  | 'agenda' | 'portaria' | 'compras' | 'armazem' | 'insumo' | 'fiscal' | 'boletim' | 'painel' | 'd1' | 'perguntar' | 'qualidade' | 'usuarios'
 
 /** Seções que cada perfil enxerga (espelha o que a API deixa cada um chamar). */
 export const PAPEL_SECOES: Record<Papel, Secao[]> = {
-  ADMIN: ['agenda', 'compras', 'armazem', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade', 'usuarios'],
+  ADMIN: ['agenda', 'portaria', 'compras', 'armazem', 'insumo', 'fiscal', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade', 'usuarios'],
   DIRETORIA: ['agenda', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade'],
-  COMPRAS: ['agenda', 'compras'],
-  ARMAZEM: ['agenda', 'armazem', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade'],
+  COMPRAS: ['agenda', 'compras', 'fiscal'],
+  ARMAZEM: ['agenda', 'armazem', 'fiscal', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade'],
   ENCARREGADO: ['agenda', 'boletim'],
   FORNECEDOR: ['agenda'],
-  INSUMO: ['agenda', 'armazem'],
-  PORTEIRO: ['agenda', 'armazem'],
+  INSUMO: ['agenda', 'armazem', 'insumo', 'fiscal'],
+  PORTEIRO: ['portaria', 'agenda'],
 }
 
 /** Grupos de gravação (mesma divisão de Permissoes.java). */
@@ -91,8 +91,11 @@ export const GRUPOS: Record<Grupo, Papel[]> = {
 
 export const SECAO_ROTULO: Record<Secao, string> = {
   agenda: 'Agenda',
+  portaria: 'Portaria',
   compras: 'Compras',
   armazem: 'Armazém',
+  insumo: 'Insumos · validar recebimentos',
+  fiscal: 'Notas fiscais históricas',
   boletim: 'Boletim diário',
   painel: 'Painel gerencial',
   d1: 'Planejamento D-1',

@@ -168,6 +168,11 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+  /* Grid sem colunas explícitas: a trilha única não pode crescer além do contêiner (tabelas e linhas largas
+     empurravam a página para os lados no celular). Qualquer grid-cols-* continua valendo, pois está acima desta camada. */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @layer utilities {

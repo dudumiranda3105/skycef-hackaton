@@ -8,6 +8,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
+import java.util.List;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -97,11 +98,24 @@ class BoletimPostgresIntegrationTest {
         assertValores(previa.getBody());
         assertEquals("90.1731", previa.getBody().get("piso"));
 
-        ResponseEntity<Map> criado = http.postForEntity("/api/boletins", request, Map.class);
+        String fechamento = """
+                {"boletins":[%s,
+                  {"armazemId":1,"data":"2025-11-17","linhas":[],"equipe":[]},
+                  {"armazemId":3,"data":"2025-11-17","linhas":[],"equipe":[]},
+                  {"armazemId":4,"data":"2025-11-17","linhas":[],"equipe":[]}
+                ]}
+                """.formatted(body.strip());
+        ResponseEntity<List> criado = http.postForEntity("/api/boletins/dia", new HttpEntity<>(fechamento, headers), List.class);
         assertEquals(HttpStatus.CREATED, criado.getStatusCode());
-        assertValores(criado.getBody());
-        assertEquals("PLATAFORMA", criado.getBody().get("origem"));
-        Number id = (Number) criado.getBody().get("id");
+        assertEquals(4, criado.getBody().size());
+        Map<String, Object> boletimAdubo = null;
+        for (Object item : criado.getBody()) {
+            Map<String, Object> boletim = (Map<String, Object>) item;
+            if (((Number) boletim.get("armazemId")).intValue() == 2) boletimAdubo = boletim;
+        }
+        assertValores(boletimAdubo);
+        assertEquals("PLATAFORMA", boletimAdubo.get("origem"));
+        Number id = (Number) boletimAdubo.get("id");
         assertNotNull(id);
 
         ResponseEntity<Map> consultado = http.getForEntity("/api/boletins/" + id.longValue(), Map.class);
@@ -110,9 +124,42 @@ class BoletimPostgresIntegrationTest {
         var linhas = (java.util.List<Map<String, Object>>) consultado.getBody().get("linhas");
         assertEquals("0.3224", linhas.getFirst().get("precoUnitario"));
 
-        ResponseEntity<Map> duplicado = http.postForEntity("/api/boletins", request, Map.class);
+        ResponseEntity<Map> duplicado = http.postForEntity("/api/boletins/dia", new HttpEntity<>(fechamento, headers), Map.class);
         assertEquals(HttpStatus.CONFLICT, duplicado.getStatusCode());
         assertEquals("CONFLITO", duplicado.getBody().get("codigo"));
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, http.postForEntity("/api/boletins", request, Map.class).getStatusCode(),
+                "A API não pode mais gravar apenas um armazém de um dia.");
+    }
+
+    @Test
+    void fechamentoDoDiaGravaOsQuatroArmazensAtomicamente() {
+        String valido = """
+                {"boletins":[
+                  {"armazemId":1,"data":"2025-11-18","linhas":[],"equipe":[]},
+                  {"armazemId":2,"data":"2025-11-18","linhas":[],"equipe":[]},
+                  {"armazemId":3,"data":"2025-11-18","linhas":[],"equipe":[]},
+                  {"armazemId":4,"data":"2025-11-18","linhas":[],"equipe":[]}
+                ]}
+                """;
+        HttpHeaders headers = new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<List> gravado = http.postForEntity("/api/boletins/dia", new HttpEntity<>(valido, headers), List.class);
+        assertEquals(HttpStatus.CREATED, gravado.getStatusCode());
+        assertEquals(4, gravado.getBody().size());
+        ResponseEntity<List> consulta = http.getForEntity("/api/boletins?de=2025-11-18&ate=2025-11-18", List.class);
+        assertEquals(4, consulta.getBody().size());
+
+        String invalido = """
+                {"boletins":[
+                  {"armazemId":1,"data":"2025-11-19","linhas":[],"equipe":[]},
+                  {"armazemId":2,"data":"2025-11-19","linhas":[],"equipe":[]},
+                  {"armazemId":3,"data":"2025-11-19","linhas":[],"equipe":[]},
+                  {"armazemId":99,"data":"2025-11-19","linhas":[],"equipe":[]}
+                ]}
+                """;
+        ResponseEntity<Map> rejeitado = http.postForEntity("/api/boletins/dia", new HttpEntity<>(invalido, headers), Map.class);
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, rejeitado.getStatusCode());
+        ResponseEntity<List> nenhum = http.getForEntity("/api/boletins?de=2025-11-19&ate=2025-11-19", List.class);
+        assertEquals(0, nenhum.getBody().size(), "Uma falha de validação não pode deixar três armazéns gravados.");
     }
 
     private static void assertValores(Map<String, Object> body) {

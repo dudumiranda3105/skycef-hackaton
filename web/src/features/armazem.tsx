@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Field } from '@/components/ui/label'
 import { Input, Select } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { AcondBadge, CabecalhoPagina, Erros, OrigemBadge, SecTitulo, Vazio } from '@/components/comum'
+import { AcondBadge, CabecalhoPagina, Callout, Erros, OrigemBadge, SecTitulo, Vazio } from '@/components/comum'
 import { ACOND, PERDA_AGENDAMENTO_MIN, TOLERANCIA_MIN } from '@/lib/constants'
 import { POST, dStatus, descAberta, errTxt, porDataHora } from '@/lib/api'
 import { addMin, fmtDM, fmtDur, fmtTS, minDiff, nowLocal, toOffset } from '@/lib/format'
@@ -231,7 +231,7 @@ export function Armazem() {
   const portaria = eu?.papel === 'PORTEIRO'
   const { abrirLeitor } = useJanelas()
   const [filtro, setFiltro] = useState('Todos')
-  const aguard = useMemo(() => ags.filter((a) => a.status === 'AUTORIZADO' && !a.descs.length).sort(porDataHora), [ags])
+  const aguard = useMemo(() => ags.filter((a) => a.status === 'AUTORIZADO' && !a.descs.length && !a.portaria && !a.portariaObrigatoria).sort(porDataHora), [ags])
   const chegadaPendente = useMemo(() => ags.filter((a) => a.status === 'AUTORIZADO' && !a.chegadaEm).sort(porDataHora), [ags])
   const todas = useMemo(() => ags.flatMap((a) => a.descs.map((d) => ({ a, d }))), [ags])
   const doFiltro = (d: Descarga) => filtro === 'Todos' || String(d.armazemId) === filtro
@@ -246,7 +246,7 @@ export function Armazem() {
     <div>
       <CabecalhoPagina
         titulo={insumo ? 'Notas fiscais e destinos' : portaria ? 'Portaria' : 'Recebimento no armazém'} quem={insumo ? 'Quem usa: setor de Insumo' : portaria ? 'Quem usa: porteiro' : 'Quem usa: responsável pelo armazém'}
-        sub={insumo ? 'Confira as notas fiscais anexadas e distribua cada entrega para os armazéns responsáveis.' : portaria ? 'Registre a chegada do caminhão aprovado por Compras. O recebimento só segue após o setor de Insumo definir o destino.' : 'Defina para onde cada caminhão vai e registre, em cada descarga, chegada, entrada, saída, chapas e equipamentos.'}
+        sub={insumo ? 'Consulte os destinos e acesse a fila de Insumos para validar os recebimentos encaminhados pela Portaria.' : portaria ? 'Confira o caminhão na Portaria e aguarde Insumos aprovar o destino.' : 'Receba os caminhões direcionados por Insumos e registre início, fim, chapas e equipamentos de cada descarga.'}
         acoes={
           <>
             {!insumo && <Button variant="accent" onClick={abrirLeitor}><ScanLine /> Check-in por QR</Button>}
@@ -260,8 +260,10 @@ export function Armazem() {
       {!insumo && !portaria && <div className="mb-[22px] grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3.5">
         {kpi('Aguardando destino', aguard.length)}{kpi('Na fila', fila)}{kpi('Em descarga', emDesc)}{kpi('Concluídas (recentes)', recentes.length)}
       </div>}
-      {!portaria && <><h2 className="mb-2.5 text-[21px]">{insumo ? 'Entregas para distribuir' : 'Definir destinos'}</h2>
-      {aguard.length ? <div className="grid gap-3.5">{aguard.map((a) => <CartaoDestinos key={a.id} a={a} podeChegada={!insumo} />)}</div> : <Vazio>Nenhuma entrega autorizada aguardando destino.</Vazio>}</>}
+      {insumo && <Callout className="mb-4">Os recebimentos conferidos na Portaria são validados na fila de Insumos. <Button variant="outline" size="sm" className="ml-2" onClick={() => { window.location.hash = '#/insumo' }}>Abrir fila de Insumos</Button></Callout>}
+      {!insumo && ags.some((a) => a.status === 'AUTORIZADO' && !a.descs.length && (a.portariaObrigatoria || a.portaria)) && <Callout className="mb-4">Há caminhões aguardando conferência da Portaria ou decisão de Insumos. As descargas aparecem aqui depois da aprovação do destino.</Callout>}
+      {!portaria && aguard.length > 0 && <><h2 className="mb-2.5 text-[21px]">Definir destinos pendentes</h2>
+      <div className="grid gap-3.5">{aguard.map((a) => <CartaoDestinos key={a.id} a={a} podeChegada={!insumo} />)}</div></>}
       {portaria && <><h2 className="mb-2.5 text-[21px]">Chegadas aguardando registro</h2>{chegadaPendente.length ? <div className="grid gap-3">{chegadaPendente.map((a) => <CartaoPortaria key={a.id} a={a} />)}</div> : <Vazio>Nenhum caminhão autorizado aguardando chegada.</Vazio>}</>}
       {!insumo && !portaria && <><h2 className="mt-6 mb-2.5 text-[21px]">Descargas em andamento ou previstas</h2>
       {abertas.length ? <div className="grid gap-3.5">{abertas.map(({ a, d }) => <CartaoDescarga key={d.id} ag={a} d={d} />)}</div> : <Vazio>Sem descargas abertas neste filtro.</Vazio>}

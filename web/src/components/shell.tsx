@@ -1,8 +1,14 @@
+/*
+ * Layout principal do sistema.
+ * Sidebar à esquerda (navegação, perfil do usuário, ações) e
+ * conteúdo principal à direita com transição de tela suave.
+ * Responsivo: em telas pequenas a sidebar vira barra horizontal.
+ */
 import { useMemo, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   BarChart3, CalendarClock, ClipboardList, FileCheck2, KeyRound, LogOut, MessageCircleQuestionMark, Moon, RefreshCw,
-  ShieldCheck, Sun, Users, Warehouse, BookOpen, CalendarDays,
+  ShieldCheck, ShieldQuestionMark, Sun, Truck, Users, Warehouse, BookOpen, CalendarDays, PackageSearch, Files,
 } from 'lucide-react'
 import { Toaster } from '@/components/ui/sonner'
 import { LogoCocapec, iniciais } from '@/components/marca'
@@ -17,8 +23,11 @@ import { errTxt } from '@/lib/api'
 
 export const ICONES: Record<Secao, typeof BarChart3> = {
   agenda: CalendarDays,
+  portaria: Truck,
   compras: FileCheck2,
   armazem: Warehouse,
+  insumo: PackageSearch,
+  fiscal: Files,
   boletim: ClipboardList,
   painel: BarChart3,
   d1: CalendarClock,
@@ -28,7 +37,8 @@ export const ICONES: Record<Secao, typeof BarChart3> = {
 }
 
 const GRUPOS_NAV: [string, Secao[]][] = [
-  ['Recebimento', ['agenda', 'compras', 'armazem']],
+  ['Portaria', ['portaria']],
+  ['Recebimento', ['agenda', 'compras', 'armazem', 'insumo', 'fiscal']],
   ['Equipe', ['boletim']],
   ['Gestão', ['painel', 'd1', 'perguntar', 'qualidade']],
   ['Administração', ['usuarios']],
@@ -62,10 +72,10 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div className="grid h-dvh grid-cols-[244px_minmax(0,1fr)] overflow-hidden max-lg:grid-cols-1 max-lg:grid-rows-[auto_minmax(0,1fr)]">
-      <aside className="scroll-thin relative z-30 flex flex-col overflow-auto border-r border-sidebar-border bg-sidebar px-3.5 pt-5 pb-4 text-sidebar-foreground max-lg:flex-row max-lg:items-center max-lg:gap-2 max-lg:overflow-x-auto max-lg:overflow-y-hidden max-lg:border-r-0 max-lg:border-b max-lg:p-2">
+      <aside className="scroll-thin relative z-30 flex flex-col overflow-auto border-r border-sidebar-border bg-sidebar px-3.5 pt-5 pb-4 text-sidebar-foreground max-lg:flex-row max-lg:flex-wrap max-lg:items-center max-lg:gap-x-2 max-lg:gap-y-1 max-lg:overflow-visible max-lg:border-r-0 max-lg:border-b max-lg:p-2">
         <button
           onClick={() => ir(null)}
-          className="block cursor-pointer border-b border-sidebar-border px-1.5 pb-4 text-left max-lg:border-0 max-lg:p-0 max-lg:pr-2"
+          className="block shrink-0 cursor-pointer border-b border-sidebar-border px-1.5 pb-4 text-left max-lg:order-1 max-lg:border-0 max-lg:p-0 max-lg:pr-2"
           aria-label="Voltar ao início"
         >
           <LogoCocapec className="w-[148px] max-lg:w-[96px]" />
@@ -74,7 +84,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </span>
         </button>
 
-        <nav className="mt-2 flex flex-col gap-0.5 max-lg:mt-0 max-lg:flex-row" aria-label="Seções">
+        <nav className="scroll-thin mt-2 flex flex-col gap-0.5 max-lg:order-3 max-lg:mt-0 max-lg:w-full max-lg:flex-row max-lg:overflow-x-auto max-lg:pb-1" aria-label="Seções">
           {grupos.map(([g, itens]) => (
             <div key={g} className="contents">
               <div className="mx-2 mt-4 mb-1 text-[10.5px] font-bold tracking-[0.12em] text-muted-foreground uppercase max-lg:hidden">{g}</div>
@@ -111,7 +121,7 @@ export function Shell({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        <div className="mt-auto grid gap-1 border-t border-sidebar-border pt-3 max-lg:mt-0 max-lg:ml-auto max-lg:flex max-lg:gap-1.5 max-lg:border-0 max-lg:p-0">
+        <div className="mt-auto grid gap-1 border-t border-sidebar-border pt-3 max-lg:order-2 max-lg:mt-0 max-lg:ml-auto max-lg:flex max-lg:gap-1 max-lg:border-0 max-lg:p-0">
           {eu && (
             <div className="mb-2 flex items-center gap-2.5 rounded-xl bg-secondary/70 px-2.5 py-2 max-lg:hidden">
               <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-[13px] font-bold text-primary-foreground">
@@ -175,12 +185,12 @@ function BotaoLateral({
     <button
       onClick={onClick}
       className={cn(
-        'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground max-lg:whitespace-nowrap',
+        'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground max-lg:size-9 max-lg:justify-center max-lg:p-0 max-lg:[&_svg]:size-4',
         className,
       )}
     >
       {icone}
-      {children}
+      <span className="max-lg:sr-only">{children}</span>
     </button>
   )
 }

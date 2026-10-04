@@ -2,6 +2,9 @@ package com.skycef.recebimento.cadastros;
 
 import java.util.List;
 import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest;
+import com.skycef.recebimento.auth.AuthInterceptor;
+import com.skycef.recebimento.auth.AuthService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -28,6 +31,9 @@ public class CadastrosController {
     public record FornecedorOut(long id, String razaoSocial, String cnpj) { }
     public record ArmazemOut(int id, String codigo, String nome) { }
     public record EquipamentoOut(int id, int armazemId, String identificacao, String tipo, String observacao) { }
+    public record EquipamentoCatalogoOut(String tipo, String utilizacao, String arquivoOrigem) { }
+    public record EstoqueOut(int armazemId, String armazem, String codigo, String descricao,
+                             java.math.BigDecimal quantidade, String arquivoOrigem, int linhaOrigem) { }
 
     private final JdbcTemplate db;
 
@@ -36,9 +42,11 @@ public class CadastrosController {
     }
 
     @GetMapping("/fornecedores")
-    public List<FornecedorOut> fornecedores() {
+    public List<FornecedorOut> fornecedores(HttpServletRequest request) {
+        Object autenticado = request.getAttribute(AuthInterceptor.ATRIBUTO);
+        boolean fornecedor = autenticado instanceof AuthService.Usuario u && "FORNECEDOR".equals(u.papel());
         return db.query("select id, razao_social, cnpj from fornecedor order by razao_social",
-                (rs, row) -> new FornecedorOut(rs.getLong(1), rs.getString(2), rs.getString(3)));
+                (rs, row) -> new FornecedorOut(rs.getLong(1), rs.getString(2), fornecedor ? null : rs.getString(3)));
     }
 
     @PostMapping("/fornecedores")
@@ -81,6 +89,20 @@ public class CadastrosController {
                 (rs, row) -> new ArmazemOut(rs.getInt(1), rs.getString(2), rs.getString(3)));
     }
 
+    @GetMapping("/estoques")
+    public List<EstoqueOut> estoques(@RequestParam(required = false) Integer armazemId) {
+        String sql = "select h.armazem_id, a.nome, h.produto_codigo, h.descricao, h.quantidade, "
+                + "h.arquivo_origem, h.linha_origem from hist_estoque_item h "
+                + "join armazem a on a.id = h.armazem_id";
+        if (armazemId != null) sql += " where h.armazem_id = ?";
+        sql += " order by a.id, h.descricao, h.produto_codigo";
+        return armazemId == null
+                ? db.query(sql, (rs, row) -> new EstoqueOut(rs.getInt(1), rs.getString(2), rs.getString(3),
+                        rs.getString(4), rs.getBigDecimal(5), rs.getString(6), rs.getInt(7)))
+                : db.query(sql, (rs, row) -> new EstoqueOut(rs.getInt(1), rs.getString(2), rs.getString(3),
+                        rs.getString(4), rs.getBigDecimal(5), rs.getString(6), rs.getInt(7)), armazemId);
+    }
+
     @GetMapping("/equipamentos")
     public List<EquipamentoOut> equipamentos(@RequestParam(required = false) Integer armazemId) {
         String sql = "select id, armazem_id, identificacao, tipo, observacao from equipamento";
@@ -93,6 +115,12 @@ public class CadastrosController {
                         rs.getString(4), rs.getString(5)))
                 : db.query(sql, (rs, row) -> equipamento(rs.getInt(1), rs.getInt(2), rs.getString(3),
                         rs.getString(4), rs.getString(5)), armazemId);
+    }
+
+    @GetMapping("/equipamentos/catalogo-oficial")
+    public List<EquipamentoCatalogoOut> catalogoEquipamentosOficial() {
+        return db.query("select tipo, utilizacao, arquivo_origem from equipamento_catalogo_oficial order by tipo",
+                (rs, row) -> new EquipamentoCatalogoOut(rs.getString(1), rs.getString(2), rs.getString(3)));
     }
 
     private EquipamentoOut equipamento(int id, int armazemId, String identificacao, String tipo,

@@ -42,6 +42,7 @@ export function NovoAgendamento({
   const [fornTxt, setFornTxt] = useState('')
   const [razao, setRazao] = useState('')
   const [cnpjNovo, setCnpjNovo] = useState('')
+  const [placa, setPlaca] = useState('')
   const [linhas, setLinhas] = useState<LinhaNf[]>([novaLinha(1)])
   const uid = useRef(2)
   const [acond, setAcond] = useState<Acond | ''>('')
@@ -180,6 +181,7 @@ export function NovoAgendamento({
     const f = resolver(fornTxt)
     const e: string[] = []
     if (!f) e.push('Selecione o fornecedor da lista (ou cadastre um novo).')
+    if (placa && !/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(placa)) e.push('Informe uma placa válida (ABC1234 ou ABC1D23).')
     if (!efetivas.length) e.push('Informe ao menos uma nota fiscal (número ou arquivo).')
     const nums = efetivas.map((n) => n.numero).filter(Boolean)
     if (nums.some((n) => !nfValida(n))) e.push('O número da nota fiscal precisa ter de 1 a 9 dígitos e não pode ser só zeros (ex.: 0524).')
@@ -199,6 +201,7 @@ export function NovoAgendamento({
     try {
       criado = await POST('/api/agendamentos', {
         fornecedorId: f.id, data, horario: hora, acondicionamento: acond, agendadoNaHora: walkin,
+        placaVeiculo: placa || null,
         notas: efetivas.map((n) => {
           const o: Record<string, unknown> = {}
           if (n.numero) o.nfNumero = n.numero
@@ -271,6 +274,9 @@ export function NovoAgendamento({
                 <option key={f.id} value={opcaoForn(f)} />
               ))}
             </datalist>
+          </Field>
+          <Field label="Placa prevista do caminhão" hint="Se já definida, será comparada com a placa conferida na Portaria.">
+            <Input value={placa} maxLength={8} placeholder="ABC1D23" onChange={(e) => setPlaca(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7))} />
           </Field>
           <details className="text-sm">
             <summary className="cursor-pointer text-[13.5px] text-muted-foreground">Fornecedor não está na lista? Cadastrar</summary>

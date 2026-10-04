@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 
 const Tabs = TabsPrimitive.Root
 function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.List>) {
-  return <TabsPrimitive.List className={cn('inline-flex flex-wrap overflow-hidden rounded-xl border bg-card', className)} {...props} />
+  return <TabsPrimitive.List className={cn('inline-flex max-w-full flex-wrap overflow-hidden rounded-xl border bg-card', className)} {...props} />
 }
 function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
   return (

@@ -71,7 +71,7 @@ O calendário é só conveniência: mudar o compromisso no celular não muda o a
   registros e limitação.
 
 ## Boletim do dia com os 4 armazéns
-O boletim passou a ser lançado **por dia, com os 4 armazéns de uma vez** (abas por armazém, um fechamento do dia e um
-botão "Salvar boletim do dia"). A persistência não mudou: a API grava um boletim por armazém e por dia
-(`UNIQUE(armazem_id, data)`), o que mantém o painel por armazém. A tela valida todos antes de gravar e, se algum falhar,
-informa quais foram gravados e não repete os já gravados.
+O boletim é lançado **por dia, com os 4 armazéns de uma vez** (abas por armazém, um fechamento do dia e um
+botão "Salvar boletim dos 4 armazéns"). A API valida todos e grava em uma única transação via `POST /api/boletins/dia`;
+se alguma unidade falhar, nenhuma fica salva pela metade. A persistência mantém uma linha por armazém e por dia
+(`UNIQUE(armazem_id, data)`), o que mantém o painel por armazém. Abas sem produção/equipe são zeros explícitos.

@@ -129,6 +129,7 @@ export const useDados = () => {
 }
 
 export function DadosProvider({ children }: { children: ReactNode }) {
+  const { estado: estadoSessao, eu } = useAuth()
   const [carregado, setCarregado] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [forn, setForn] = useState<Fornecedor[]>([])
@@ -149,12 +150,17 @@ export function DadosProvider({ children }: { children: ReactNode }) {
   const armNome = useCallback((id: number) => armRef.current.find((a) => a.id === id)?.nome ?? '—', [])
 
   const carregarCadastros = useCallback(async () => {
+    if (!eu) return
+    const papel = eu.papel
     const [f, a, e, t, c] = await Promise.all([
-      GET<any[]>('/api/fornecedores'),
+      ['ADMIN', 'DIRETORIA', 'COMPRAS', 'ARMAZEM', 'FORNECEDOR', 'INSUMO', 'PORTEIRO'].includes(papel)
+        ? GET<any[]>('/api/fornecedores') : Promise.resolve([]),
       GET<Armazem[]>('/api/armazens'),
-      GET<Equipamento[]>('/api/equipamentos'),
-      GET<TipoItem[]>('/api/boletim/tipos-item'),
-      GET<Chapa[]>('/api/chapas'),
+      ['ADMIN', 'ARMAZEM', 'INSUMO'].includes(papel) ? GET<Equipamento[]>('/api/equipamentos') : Promise.resolve([]),
+      ['ADMIN', 'DIRETORIA', 'ARMAZEM', 'ENCARREGADO'].includes(papel)
+        ? GET<TipoItem[]>('/api/boletim/tipos-item') : Promise.resolve([]),
+      ['ADMIN', 'DIRETORIA', 'ARMAZEM', 'ENCARREGADO'].includes(papel)
+        ? GET<Chapa[]>('/api/chapas') : Promise.resolve([]),
     ])
     armRef.current = a
     setArmazens(a)
@@ -166,20 +172,25 @@ export function DadosProvider({ children }: { children: ReactNode }) {
       return i < 0 ? 99 : i
     }
     setTipos(t.slice().sort((x, y) => ord(x.codigo) - ord(y.codigo) || x.codigo.localeCompare(y.codigo)))
-  }, [])
+  }, [eu])
 
   const carregarMovimento = useCallback(async () => {
+    if (!eu) return
+    const papel = eu.papel
+    const agenda = ['ADMIN', 'DIRETORIA', 'COMPRAS', 'ARMAZEM', 'FORNECEDOR', 'INSUMO', 'PORTEIRO'].includes(papel)
+    const acessoNr = ['ADMIN', 'DIRETORIA', 'COMPRAS', 'ARMAZEM', 'INSUMO', 'PORTEIRO'].includes(papel)
+    const boletim = ['ADMIN', 'DIRETORIA', 'ARMAZEM', 'ENCARREGADO'].includes(papel)
     const [a, v, n, b] = await Promise.all([
-      GET<any[]>('/api/agendamentos'),
-      GET<Vaga[]>('/api/vagas-liberadas'),
-      GET<NaoRecebimento[]>('/api/nao-recebimentos'),
-      GET<any[]>('/api/boletins'),
+      agenda ? GET<any[]>('/api/agendamentos') : Promise.resolve([]),
+      agenda ? GET<Vaga[]>('/api/vagas-liberadas') : Promise.resolve([]),
+      acessoNr ? GET<NaoRecebimento[]>('/api/nao-recebimentos') : Promise.resolve([]),
+      boletim ? GET<any[]>('/api/boletins') : Promise.resolve([]),
     ])
     setAgs(a.map((x) => mapAg(x, armNome)))
     setVagas(v)
     setNr(n)
     setBoletins(b.map(mapBoletim))
-  }, [armNome])
+  }, [eu, armNome])
 
   const carregarDias = useCallback(async (lista: string[]) => {
     const falta = lista.filter((d) => !diasRef.current[d])
@@ -199,6 +210,7 @@ export function DadosProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const carregarTudo = useCallback(async () => {
+    if (!eu) return
     setErro(null)
     try {
       await carregarCadastros()
@@ -209,11 +221,19 @@ export function DadosProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       if (!(e instanceof ApiError && e.status === 401)) setErro(errTxt(e))
     }
-  }, [carregarCadastros, carregarMovimento, carregarDias])
+  }, [eu, carregarCadastros, carregarMovimento, carregarDias])
 
   useEffect(() => {
-    void carregarTudo()
-  }, [carregarTudo])
+    if (estadoSessao === 'ok' && eu) {
+      void carregarTudo()
+    } else if (estadoSessao === 'login') {
+      setCarregado(false)
+      setErro(null)
+      setForn([]); setArmazens([]); setEquip([]); setTipos([]); setChapas([])
+      setAgs([]); setVagas([]); setNr([]); setBoletins([])
+      diasRef.current = {}; setDias({})
+    }
+  }, [estadoSessao, eu, carregarTudo])
 
   const motivoDiaBloqueado = useCallback(
     (iso: string) => {

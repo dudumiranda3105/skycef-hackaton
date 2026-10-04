@@ -6,6 +6,8 @@ instantes em ISO 8601 **com fuso** (`2026-10-05T13:30:00-03:00`). Sem `ocorridoE
 
 ## O fluxo
 
+As novas entregas seguem a [conferência da Portaria e decisão de Insumos](FLUXO-PORTARIA-INSUMOS.md): chegada conferida → documentos enviados → destinos aprovados por Insumos → descarga. As rotas de destino do fluxo abaixo permanecem para agendas anteriores à migração. Uma agenda nova não pode receber destinos diretamente antes da decisão de Insumos.
+
 ```
 Fornecedor                Compras                    Armazém                     Portaria/Armazém
 ──────────                ───────                    ───────                     ────────────────
@@ -48,7 +50,7 @@ descargas quando os destinos são definidos, e o tempo de espera é `entrada −
 - **Vagas** (cooperativa inteira, por data+horário): carga `BATIDO` reserva o horário só para ela; sem batido,
   até 2 `PALETIZADO`/`BIG_BAG`. Reserva sob trava, então dois fornecedores simultâneos não estouram o limite.
 - **Nota fiscal:** a mesma NF-e (chave de 44 dígitos) não pode estar ativa em dois agendamentos.
-  Anexo: `.pdf` ou `.xml`, até 10 MB. No XML, a chave informada é conferida e chave/número/peso faltantes são preenchidos.
+  Anexo: `.pdf`, `.xml`, `.jpg`, `.jpeg`, `.png` ou `.webp`, até 10 MB. No XML, a chave informada é conferida e chave/número/peso faltantes são preenchidos. Depois de enviar a Insumos, os anexos ficam bloqueados.
 - **Entrada** exige agendamento autorizado por Compras e chegada registrada. **Saída** exige `quantidadeChapas`
   (por descarga; **nunca somar ao longo do dia**) e aceita `equipamentoIds`.
 - **Cancelamento:** duas etapas (solicitar → efetivar). A vaga fica `ABERTA` e continua ocupada até o responsável do

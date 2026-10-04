@@ -3,7 +3,7 @@
 Base: `http://localhost:8000` · **Página do painel em `/painel`** (HTML único, sem CDN: funciona offline) · Swagger em
 `/docs` · JSON em camelCase · **dinheiro como string decimal** (`"58369.5338"`, nunca float) · datas `AAAA-MM-DD`.
 
-Cada resposta declara a **origem** do dado (`PLATAFORMA`, `TESTE` ou `HISTORICO`).
+Cada resposta declara a **origem** do dado (`PLATAFORMA` ou `HISTORICO`).
 
 ## Rotas
 
@@ -21,7 +21,7 @@ Cada resposta declara a **origem** do dado (`PLATAFORMA`, `TESTE` ou `HISTORICO`
 |---|---|---|
 | `de`, `ate` | todas | Inclusivos. No histórico recortam por **mês** e **não** mudam o ponto de equilíbrio |
 | `armazemId` | `operacao`, `dimensionamento/plataforma` | 1 Insumos · 2 Adubo · 3 Pátio de Máquinas · 4 Loja |
-| `origem` | `operacao`, `dimensionamento/plataforma` | `PLATAFORMA` ou `TESTE`; omitido = todas |
+| `origem` | `operacao`, `dimensionamento/plataforma` | só `PLATAFORMA` (qualquer outro valor devolve 400); omitido = `PLATAFORMA` |
 | `agrupar` | `dimensionamento/plataforma` | `dia`, `semana` ou `mes` (padrão) |
 
 Parâmetro inválido devolve 400 `REQUISICAO_INVALIDA`.
@@ -57,12 +57,13 @@ Método e premissas em [`relatorio-gerencial.md`](relatorio-gerencial.md), seç�
 (safra × entressafra), `totais`, `armazens[]` (saldo repartido pela necessidade), `cenarios[]` (sensibilidade),
 `robustez` (correlações), `demandaPorMesEArmazem[]` e **`limitacoes[]`**, que acompanham sempre o resultado.
 
-## Dados de demonstração
+## Dados do painel
 
 ```bash
 cd api
 java -jar target/recebimento-1.0.0.jar --dados=<DADOS_HACKATHON_2026.zip>  # histórico real (HISTORICO)
-java -jar target/recebimento-1.0.0.jar --demo-seed                         # 3 semanas de teste (TESTE)
 ```
 
-O seed é explícito, idempotente e preserva registros existentes. Ele marca os registros criados como `TESTE`; o painel filtra por origem.
+Não há gerador de dados fictícios. O histórico vem da carga acima, e os indicadores operacionais vêm dos lançamentos
+feitos na própria plataforma (agendamentos, descargas, não recebimentos e boletins), sempre com origem `PLATAFORMA`.
+O banco ainda aceita `TESTE` na coluna `origem`, mas nenhuma rotina atual grava esse valor e o filtro do painel o recusa.

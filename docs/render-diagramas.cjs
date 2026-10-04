@@ -54,49 +54,99 @@ const svg = (w,h,body) => `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="htt
   fs.writeFileSync(path.join(out,'bpmn.svg'),svg(1520,1080,b));
 }
 
-// DER: cartões com PK/FK e arestas rotuladas. Histórico isolado porque não possui FKs operacionais.
+// DER (migrações V1–V16): cartões com PK/FK e arestas ortogonais que correm pelos corredores
+// entre os cartões, sem passar por baixo deles. A seta sai da tabela referenciada (lado 1)
+// e chega à tabela que guarda a FK (lado N); "0..1" marca FK opcional (coluna aceita nulo).
 {
-  let b=text(1040,40,'DER — esquema PostgreSQL após V7',26,700,'middle');
+  const W=290, X=[70,440,810,1180,1550], C=X.map(x=>x+W/2);
+  const R={1:120,2:310,3:590,4:810,5:1010,6:1245,7:1440};
+  let b=text(945,42,'DER — esquema PostgreSQL após V16',26,700,'middle');
+  [[80,870,'T1 · agendamento, portaria, acesso, descarga e cadastros'],[965,225,'T2 · boletim, produção e equipe'],[1205,370,'T3 · base histórica e arquivos oficiais (carga ETL)']]
+    .forEach(([y,h,label])=>b+=`<rect x="50" y="${y}" width="1810" height="${h}" rx="12" fill="#f7fafd" stroke="#d3dfea"/>`+text(70,y+22,label,14,700,'start','#4a6684'));
   const cards=[
-    ['fornecedor',40,95,['id PK','codigo · cnpj']],['agendamento',335,95,['id PK · fornecedor_id FK','data_agendada · horario','status · origem · chegada_em']],['nota_fiscal',680,95,['id PK · agendamento_id FK','nf_chave · ativa · conteudo']],['validacao_compras',1035,95,['agendamento_id PK/FK','decisao · pedido_referencia']],['evento_agendamento',1390,95,['id PK · agendamento_id FK','tipo · detalhe']],
-    ['reagendamento',40,340,['id PK · agendamento_id FK','data/horario anterior e novo']],['cancelamento',335,340,['agendamento_id PK/FK','situacao · motivo']],['vaga_liberada',680,340,['id PK · origem_agendamento_id FK','atribuida_a_agendamento_id FK']],['nao_recebimento',1035,340,['id PK · agendamento_id FK?','fornecedor_id FK? · motivo']],['data_nao_operacional',1390,340,['data PK · descricao']],
-    ['armazem',40,600,['id PK · codigo UK','nome']],['descarga',335,600,['id PK · agendamento_id FK','armazem_id FK · chegada_em','entrada_em · saida_em','quantidade_chapas']],['descarga_equipamento',680,600,['descarga_id PK/FK','equipamento_id PK/FK']],['equipamento',1035,600,['id PK · armazem_id FK','identificacao UK · tipo']],['grupo_produto',1390,600,['codigo PK · armazem_id FK']],
-    ['boletim',40,900,['id PK · armazem_id FK','data UK com armazem','producao_total · total_a_pagar','complemento · situacao']],['boletim_producao',335,900,['boletim_id PK/FK','tipo_item PK/FK','quantidades · preco_unitario']],['tipo_item',680,900,['codigo PK · descricao','preco_unitario']],['boletim_equipe',1035,900,['boletim_id PK/FK','matricula PK/FK','tipo_diaria']],['chapa',1390,900,['matricula PK · nome']],
-    ['produto',40,1200,['id PK · codigo','grupo · deposito · peso']],['parametro',335,1200,['chave PK · valor']],['deposito_armazem',680,1200,['deposito PK','armazem_id FK?']],['hist_recebimento_item',1035,1200,['id PK · nr_recebimento','data_recebimento · deposito']],['hist_chapa_dia',1390,1200,['data PK · qtd_presentes','qtd_cafe · valor_pago']],['hist_chapa_presenca',1390,1430,['data + matricula PK']]
+    ['nota_fiscal',X[0],R[1],['id PK · agendamento_id FK','nf_numero · nf_chave · ativa','peso_total_kg · conteudo']],
+    ['validacao_compras',X[1],R[1],['agendamento_id PK/FK','decisao · pedido_referencia']],
+    ['evento_agendamento',X[2],R[1],['id PK · agendamento_id FK','tipo · de/para_status · detalhe']],
+    ['reagendamento',X[3],R[1],['id PK · agendamento_id FK','data/horario anterior e novo','motivo · limite_excedido']],
+    ['cancelamento',X[4],R[1],['agendamento_id PK/FK','situacao · motivo']],
+    ['nao_recebimento',X[0],R[2],['id PK · agendamento_id FK?','fornecedor_id FK? · data','motivo · fornecedor_nome']],
+    ['fornecedor',X[1],R[2],['id PK · codigo · cnpj','razao_social']],
+    ['agendamento',X[2],R[2],['id PK · fornecedor_id FK','solicitado_por_usuario_id FK?','data_agendada · horario · status','acondicionamento · origem','placa_veiculo · chegada_em','exige_conferencia_portaria']],
+    ['usuario',X[3],R[2],['id PK · login UK · papel','nome · ativo · senha_hash','ultimo_acesso_em']],
+    ['portaria_recebimento',X[4],R[2],['agendamento_id PK/FK','conferido_por_usuario_id FK','decidido_por_usuario_id FK?','situacao · placa','conferido_em · enviado_em','decidido_em · observacao']],
+    ['vaga_liberada',X[0],R[3],['id PK · status','origem_agendamento_id FK UK','atribuida_a_agendamento_id FK?','data_vaga · horario']],
+    ['descarga_equipamento',X[1],R[3],['descarga_id PK/FK','equipamento_id PK/FK']],
+    ['descarga',X[2],R[3],['id PK · agendamento_id FK','armazem_id FK','UK (agendamento_id, armazem_id)','chegada_em · entrada_em · saida_em','quantidade_chapas']],
+    ['sessao',X[3],R[3],['token_hash PK (SHA-256)','usuario_id FK · expira_em']],
+    ['data_nao_operacional',X[4],R[3],['data PK · descricao']],
+    ['parametro',X[4],R[3]+96,['chave PK · valor']],
+    ['produto',X[0],R[4],['id PK · codigo · grupo','deposito · peso_unitario']],
+    ['equipamento',X[1],R[4],['id PK · armazem_id FK','identificacao UK · tipo']],
+    ['armazem',X[2],R[4],['id PK · codigo UK','nome']],
+    ['grupo_produto',X[3],R[4],['codigo PK · armazem_id FK','descricao']],
+    ['deposito_armazem',X[4],R[4],['deposito PK · observacao','armazem_id FK?']],
+    ['chapa',X[0],R[5],['matricula PK','nome']],
+    ['boletim_equipe',X[1],R[5],['boletim_id PK/FK','matricula PK/FK','tipo_diaria']],
+    ['boletim',X[2],R[5],['id PK · armazem_id FK','UK (armazem_id, data)','producao_total · total_a_pagar','complemento · situacao','arquivo_origem']],
+    ['boletim_producao',X[3],R[5],['boletim_id PK/FK','tipo_item PK/FK','quantidades · preco_unitario']],
+    ['tipo_item',X[4],R[5],['codigo PK · descricao','preco_unitario']],
+    ['hist_estoque_item',X[0],R[6],['arquivo_origem + linha_origem PK','armazem_id FK · produto_codigo','descricao · quantidade','importado_em']],
+    ['hist_documento_anexo',X[1],R[6],['id PK · arquivo_origem UK','nota_fiscal_id FK?','tipo · sha256 · conteudo']],
+    ['hist_nota_fiscal',X[2],R[6],['id PK · arquivo_origem UK','chave_acesso · numero · data_emissao','emitente_* · destinatario_*','valor_total · pesos · sha256','conteudo_xml']],
+    ['hist_nota_fiscal_item',X[3],R[6],['nota_fiscal_id PK/FK','numero_item PK','ncm · quantidade · valores']],
+    ['hist_recebimento_item',X[4],R[6],['id PK · linha_origem UK parcial','nr_recebimento · data_recebimento','pedido_compra · item_codigo','nf_chave · deposito · peso_kg']],
+    ['hist_chapa_dia',X[0],R[7],['data PK · dia_semana','qtd_presentes · qtd_cafe','valor_pago']],
+    ['hist_chapa_presenca',X[1],R[7],['data + matricula PK']],
+    ['equipamento_catalogo_oficial',X[2],R[7],['tipo PK · utilizacao','arquivo_origem']]
   ];
-  const W=270;
-  let edges='';
-  const positions=Object.fromEntries(cards.map(([n,x,y,fields])=>[n,{x,y,h:54+fields.length*22}]));
-  function edge(a,z,label){
-    const s=positions[a],t=positions[z];
-    if(s.y===t.y){
-      const right=s.x<t.x, x1=right?s.x+W:s.x, x2=right?t.x+W*0:t.x+W;
-      const y=s.y+48;
-      edges+=`<path d="M${x1} ${y} H${x2}" fill="none" stroke="#a4b6c8" stroke-width="2" marker-end="url(#arrow)"/>`;
-      edges+=text((x1+x2)/2,y-8,label,11,600,'middle','#50677f');
-      return;
-    }
-    const x1=s.x+W/2,y1=s.y+s.h,x2=t.x+W/2,y2=t.y;
-    const mid=(y1+y2)/2;
-    edges+=`<path d="M${x1} ${y1} V${mid} H${x2} V${y2}" fill="none" stroke="#a4b6c8" stroke-width="2" marker-end="url(#arrow)"/>`;
-    edges+=text(x2+6,y2-9,label,11,600,'start','#50677f');
-  }
-  [
-    ['fornecedor','agendamento','1:N'],['agendamento','nota_fiscal','1:N'],
-    ['agendamento','validacao_compras','1:0..1'],['agendamento','evento_agendamento','1:N'],
-    ['agendamento','reagendamento','1:N'],['agendamento','cancelamento','1:0..1'],
-    ['agendamento','vaga_liberada','1:0..1'],['agendamento','nao_recebimento','1:N'],
-    ['agendamento','descarga','1:N'],['armazem','descarga','1:N'],
-    ['armazem','equipamento','1:N'],['descarga','descarga_equipamento','1:N'],
-    ['equipamento','descarga_equipamento','1:N'],['armazem','grupo_produto','1:N'],
-    ['armazem','boletim','1:N'],['boletim','boletim_producao','1:N'],
-    ['tipo_item','boletim_producao','1:N'],['boletim','boletim_equipe','1:N'],
-    ['chapa','boletim_equipe','1:N'],['armazem','deposito_armazem','1:N?']
-  ].forEach(e=>edge(...e));
+  const pos=Object.fromEntries(cards.map(([n,x,y,f])=>[n,{x,y,fim:y+54+f.length*22}]));
+  const fy=(n,i)=>pos[n].y+58+i*22; // altura da i-ésima linha de campos do cartão
+  let edges='', labels='';
+  const seta=(pts,arrow=true)=>edges+=`<path d="M${pts.map(p=>p.join(' ')).join(' L')}" fill="none" stroke="#a4b6c8" stroke-width="2"${arrow?' marker-end="url(#arrow)"':''}/>`;
+  const rotulo=(x,y,s,anchor='start')=>labels+=text(x,y,s,11,600,anchor,'#50677f');
+  // Cartões vizinhos na mesma linha: a seta chega à linha de texto que contém a FK.
+  function lado(a,z,y,card){const s=pos[a],t=pos[z],dir=s.x<t.x,x1=dir?s.x+W:s.x,x2=dir?t.x:t.x+W;seta([[x1,y],[x2,y]]);rotulo((x1+x2)/2,y-6,card,'middle');}
+  // Cartões na mesma coluna: liga base e topo.
+  function coluna(a,z,x,card){const s=pos[a],t=pos[z],desce=s.y<t.y,y1=desce?s.fim:s.y,y2=desce?t.y:t.fim;seta([[x,y1],[x,y2]]);rotulo(x+6,desce?y2-8:y2+16,card);}
+  // Barramento das FKs agendamento_id: sobe do agendamento e distribui para as tabelas dependentes.
+  const yA=R[2]-35;
+  seta([[C[2],R[2]],[C[2],yA]],false); seta([[C[0],yA],[C[4],yA]],false);
+  [['nota_fiscal','1:N'],['validacao_compras','1:0..1'],['evento_agendamento','1:N'],['reagendamento','1:N'],['cancelamento','1:0..1']]
+    .forEach(([n,card],i)=>{seta([[C[i],yA],[C[i],pos[n].fim]]);rotulo(C[i]+6,pos[n].fim+16,card);});
+  seta([[X[0]+215,yA],[X[0]+215,R[2]]]); rotulo(X[0]+221,R[2]-8,'0..1:N');
+  seta([[X[4]+75,yA],[X[4]+75,R[2]]]); rotulo(X[4]+81,R[2]-8,'1:0..1');
+  edges+=`<circle cx="${C[2]}" cy="${yA}" r="5" fill="#7f97b0"/>`;
+  labels+=text(C[2]+12,yA-7,'agendamento_id',11,400,'start','#7a8ea3');
+  lado('fornecedor','agendamento',fy('agendamento',0),'1:N');
+  lado('fornecedor','nao_recebimento',fy('nao_recebimento',1),'0..1:N');
+  lado('usuario','agendamento',fy('agendamento',1),'0..1:N');
+  lado('usuario','portaria_recebimento',fy('portaria_recebimento',1),'1:N');
+  lado('usuario','portaria_recebimento',fy('portaria_recebimento',2),'0..1:N');
+  coluna('agendamento','descarga',C[2],'1:N');
+  const yB=pos.agendamento.fim;
+  seta([[X[2]+50,yB],[X[2]+50,yB+26],[X[0]+90,yB+26],[X[0]+90,R[3]]]); rotulo(X[0]+96,R[3]-8,'origem 1:0..1');
+  seta([[X[2]+80,yB],[X[2]+80,yB+52],[X[0]+220,yB+52],[X[0]+220,R[3]]]); rotulo(X[0]+226,R[3]-8,'atribuída 0..1:N');
+  coluna('usuario','sessao',C[3],'1:N');
+  lado('descarga','descarga_equipamento',fy('descarga_equipamento',0),'1:N');
+  coluna('equipamento','descarga_equipamento',C[1],'1:N');
+  coluna('armazem','descarga',C[2],'1:N');
+  lado('armazem','equipamento',fy('equipamento',0),'1:N');
+  lado('armazem','grupo_produto',fy('grupo_produto',0),'1:N');
+  const yL=pos.armazem.fim+32, yE=fy('hist_estoque_item',1);
+  seta([[X[2]+235,pos.armazem.fim],[X[2]+235,yL],[C[4],yL],[C[4],pos.deposito_armazem.fim]]); rotulo(C[4]+6,yL-10,'0..1:N');
+  seta([[X[2]+55,pos.armazem.fim],[X[2]+55,yL],[35,yL],[35,yE],[X[0],yE]]); rotulo(40,yE-7,'1:N');
+  coluna('armazem','boletim',C[2],'1:N');
+  lado('boletim','boletim_equipe',fy('boletim_equipe',0),'1:N');
+  lado('chapa','boletim_equipe',fy('boletim_equipe',1),'1:N');
+  lado('boletim','boletim_producao',fy('boletim_producao',0),'1:N');
+  lado('tipo_item','boletim_producao',fy('boletim_producao',1),'1:N');
+  lado('hist_nota_fiscal','hist_nota_fiscal_item',fy('hist_nota_fiscal_item',0),'1:N');
+  lado('hist_nota_fiscal','hist_documento_anexo',fy('hist_documento_anexo',1),'0..1:N');
   b+=edges;
   function card(n,x,y,fields){const h=54+fields.length*22; b+=`<rect x="${x}" y="${y}" width="${W}" height="${h}" rx="8" fill="#fff" stroke="#4f6e8c" stroke-width="2"/><path d="M${x+1} ${y+34}H${x+W-1}" stroke="#9bb2ca"/>`+`<path d="M${x+8} ${y+7}H${x+W-8}V${y+31}H${x+8}z" fill="#dceaf5"/>`+text(x+14,y+25,n,16,700);fields.forEach((f,i)=>b+=text(x+13,y+62+i*22,f,13));}
   cards.forEach(c=>card(...c));
-  b+=text(40,1555,'T1: agendamento, NF, validação, descarga, equipamentos e desvios · T2: boletim, produção e equipe · T3: dados históricos separados',15,600);
-  b+=text(40,1585,'Linhas e rótulos mostram relações principais; a lista completa de FKs e cardinalidades está em der.md.',13);
-  fs.writeFileSync(path.join(out,'der.svg'),svg(1700,1620,b));
+  b+=labels;
+  b+=text(70,1612,'Seta: da tabela referenciada (lado 1) para a tabela que guarda a FK (lado N) · 0..1 = FK opcional (coluna aceita nulo) · ponto: barramento das FKs agendamento_id',14,600);
+  b+=text(70,1638,'Tabelas sem seta não têm FK. A lista completa de FKs, cardinalidades e restrições está em der.md; flyway_schema_history (controle das migrações) fica fora do diagrama.',13);
+  fs.writeFileSync(path.join(out,'der.svg'),svg(1890,1665,b));
 }

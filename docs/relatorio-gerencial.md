@@ -2,9 +2,10 @@
 
 **Cliente:** COCAPEC · **Evento:** X Hackathon Uni-FACEF (3 e 4 de outubro de 2026) · **Equipe:** Skycef
 
-Todos os números deste relatório saem do painel (`/painel` e `/api/painel/*`) e podem ser reproduzidos com os
-comandos da seção 8. Cada número declara a origem do dado (seção 6). Onde a base não permite afirmar algo, o
-relatório diz isso em vez de preencher a lacuna.
+Os números deste relatório saem do painel gerencial (tela **Painel gerencial** em `/ui/#/painel` e rotas
+`/api/painel/*`) e, na seção 7, dos contadores da carga de dados; todos podem ser reproduzidos com os comandos da
+seção 8. Cada número declara a origem do dado (seção 6). Onde a base não permite afirmar algo, o relatório diz isso
+em vez de preencher a lacuna.
 
 ---
 
@@ -17,9 +18,9 @@ relatório diz isso em vez de preencher a lacuna.
 
 | O que medimos (histórico real, fev/2025 a ago/2026) | Resultado |
 |---|---|
-| Correlação diária entre chapas presentes e recebimentos | **0,08** (≈ zero: a equipe não segue a carga) |
+| Correlação diária entre chapas líquidos (presentes − café) e esforço de recebimento ponderado pela norma | **0,08** (0,03 contando só recebimentos; ≈ zero: a equipe não segue a carga) |
 | Safra (out a mar): chapas por dia × recebimentos por dia | **9,3** chapas para 19,4 recebimentos |
-| Entressafra (abr a set): chapas por dia × recebimentos por dia | **7,8** chapas para 22,5 recebimentos |
+| Entressafra (abr a set): chapas por dia × recebimentos por dia | **7,8** chapas para 22,4 recebimentos |
 | Folga em meses de baixa demanda (valorada ao piso do boletim) | **R$ 58.370** (647 diárias, em 11 meses) |
 | Pressão em meses de pico (mesma valoração) | **R$ 58.370** (647 diárias, em 4 meses, + 2 equilibrados) |
 | Equivalente anual da folga (R$ 58.370 em 17 meses) | cerca de **R$ 41 mil por ano** |
@@ -45,7 +46,7 @@ examinar a demanda e as condições operacionais do período.
 
 ### 2.1 A demanda sobe em julho, não em outubro
 
-Recebimentos por mês (um recebimento = nº do recebimento na data; ver seção 7), histórico completo:
+Recebimentos por mês (um recebimento = nº do recebimento na data e armazém físico, como na seção 5; ver seção 7), histórico completo:
 
 | Mês | 2022 | 2023 | 2024 | 2025 | 2026 |
 |---|---:|---:|---:|---:|---:|
@@ -69,9 +70,9 @@ Chapas líquidas por dia (presentes − operação de café) e recebimentos por 
 | abr/25 | 16,6 | 7,2 | 4,5 | +51 | R$ 4.566 | Sobra |
 | mai/25 | 18,4 | 7,4 | 3,3 | +82 | R$ 7.385 | Sobra |
 | jun/25 | 19,6 | 6,5 | 4,3 | +44 | R$ 3.952 | Sobra |
-| **jul/25** | **28,6** | **6,6** | 13,7 | **−156** | **−R$ 14.051** | **Falta** |
+| **jul/25** | **28,5** | **6,6** | 13,7 | **−156** | **−R$ 14.051** | **Falta** |
 | **set/25** | **28,7** | **8,5** | 18,1 | **−213** | **−R$ 19.167** | **Falta** |
-| **out/25** | **30,0** | **9,4** | 17,6 | **−190** | **−R$ 17.163** | **Falta** |
+| **out/25** | **30,0** | **9,3** | 17,6 | **−190** | **−R$ 17.163** | **Falta** |
 | nov/25 | 22,6 | 10,8 | 11,0 | −3 | −R$ 295 | Equilibrado |
 | jan/26 | 17,4 | 8,6 | 6,6 | +43 | R$ 3.912 | Sobra |
 | fev/26 | 19,5 | 10,4 | 6,6 | +71 | R$ 6.432 | Sobra |
@@ -94,7 +95,7 @@ Não há folha de agosto e dezembro de 2025, nem de janeiro/2025 completo: esses
 - **A equipe não segue a carga:** a correlação diária é 0,08 com o esforço ponderado pela norma e 0,03 contando só
   recebimentos. O resultado não depende da ponderação.
 - **O reforço está atrasado:** chapas por dia sobem de 6,6 (jul/25) para 10,8 (nov/25), enquanto os recebimentos por dia
-  já estavam em 28,6 em julho e caem para 16 a 19 de janeiro a março, quando a equipe ainda é de 8,6 a 10,4.
+  já estavam em 28,5 em julho e caem para 16 a 19 de janeiro a março, quando a equipe ainda é de 8,6 a 10,4.
 - **O ritmo por chapa varia 2,5×:** de 1,7 recebimento por chapa-dia (mar/26) a 4,3 (jul/25), contando só recebimentos.
 
 ---
@@ -105,7 +106,7 @@ O histórico não separa os chapas por armazém (a folha lista as pessoas, não 
 pela participação de cada armazém na necessidade** (esforço da norma do dossiê, seção 5). Isto é uma convenção
 declarada; o número exato por armazém vem do boletim (seção 4).
 
-| Armazém | Recebimentos (fev/25–ago/26) | Participação na necessidade | Parcela da folga | Parcela da pressão |
+| Armazém | Recebimentos nos 350 dias úteis com folha (fev/25–ago/26, sem ago/25 e dez/25) | Participação na necessidade | Parcela da folga | Parcela da pressão |
 |---|---:|---:|---:|---:|
 | Adubo | 1.721 | **67,7%** | R$ 39.524 | R$ 39.524 |
 | Insumos | 1.719 | 30,1% | R$ 17.546 | R$ 17.546 |
@@ -113,16 +114,17 @@ declarada; o número exato por armazém vem do boletim (seção 4).
 | Loja | 3.254 | 0% (premissa: carga leve, abaixo de 500 kg não usa chapa) | – | – |
 
 **Leitura:** o Adubo concentra dois terços da necessidade de chapas (carga batida, 5 chapas por descarga, e o pico de
-julho a outubro é o do adubo: 650 recebimentos em 2023 e 1.454 em 2025). A Loja tem 44% dos recebimentos e quase nenhum
-esforço de chapa. Cada recomendação de reforço deve olhar o **Adubo e o Insumos**.
+julho a outubro é o do adubo: no ano, o Adubo passou de 650 recebimentos em 2023 para 1.454 em 2025; só de julho a
+outubro, de 443 para 1.034). A Loja tem 44% dos recebimentos e quase nenhum esforço de chapa. Cada recomendação de
+reforço deve olhar o **Adubo e o Insumos**.
 
 **Por período:**
 
 | Período | Situação | Direção da recomendação |
 |---|---|---|
 | Jan a jun | Folga recorrente: de 1 a 5 chapas por dia acima do necessário (ao ritmo histórico) | Não repor nem reforçar; em fev/mar o reforço da safra ainda está contratado |
-| **Jul a out** | **Pressão**: de 3 a 10 chapas por dia abaixo do necessário (ao ritmo histórico) | **Antecipar o reforço de outubro para junho/julho** |
-| Nov a mar | Equilibrado em nov; folga a partir de janeiro | Encerrar o reforço mais cedo; se a folga é realocada a outros setores, o painel mede quanto |
+| **Jul a out** | **Pressão**: de 3 a 10 chapas por dia abaixo do necessário (ao ritmo histórico); ago/26 ficou equilibrado (0,8 abaixo) e não há folha de ago/25 | **Antecipar o reforço de outubro para junho/julho** |
+| Nov a mar | Equilibrado em nov; folga a partir de janeiro | Encerrar o reforço mais cedo; quanto da folga é realocado a outros setores precisa ser informado pela Cocapec (o painel não registra realocação; mede o complemento pago por armazém e período) |
 
 ---
 
@@ -134,7 +136,8 @@ O boletim registra a produção e a equipe de cada dia. Dele saem a sobra e a fa
 diárias que a produção paga = produção ÷ piso (R$ 90,1731)
 SOBRA (R$)  = complemento pago          = piso × (diárias da equipe − diárias que a produção paga)
 FALTA (R$)  = produção acima do piso    = produção − piso × diárias da equipe   (equipe curta para o dia)
-aproveitamento = produção ÷ (piso × diárias):  abaixo de 90% = complemento · acima de 110% = produção acima do piso
+aproveitamento = produção ÷ (piso × diárias):  abaixo de 100% há complemento · acima de 100% há produção acima do piso
+situação no painel: SOBRA abaixo de 90% · EQUILIBRADO de 90% a 110% · FALTA acima de 110%
 ```
 
 **Leitura para gestão.** No áudio transcrito pela equipe, Dani descreve o complemento como custo a acompanhar: quando há
@@ -144,8 +147,9 @@ realizado. O valor, isoladamente, não prova ociosidade nem quantas pessoas pode
 variação de demanda, composição das cargas, restrições operacionais ou trabalho não registrado no boletim. Essa fala é
 contexto qualitativo de negócio, não uma medição adicionada ao histórico.
 
-**Exemplo oficial (Adubo, 17/11/2025):** produção R$ 918,1952 e 11 chapas. A produção equivale a 10,18 pisos diários;
-como o boletim garante 11, o complemento é **R$ 73,71**. Aproveitamento de 92,6%: faixa "equilibrado" nos limiares
+**Exemplo oficial (Adubo, 17/11/2025; origem `HISTORICO`, único lançamento preenchido na planilha de boletim da
+Cocapec):** produção R$ 918,1952 e 11 chapas. A produção equivale a 10,18 pisos diários; como o boletim garante 11, o
+complemento é **R$ 73,71**. Aproveitamento de 92,6%: faixa "equilibrado" nos limiares
 operacionais do painel. O complemento é uma despesa observada; classificá-la como excesso de escala requer olhar o contexto
 da operação.
 
@@ -153,15 +157,19 @@ O painel mostra, por armazém e por dia, semana ou mês: aproveitamento, sobra e
 complemento e dias acima do piso. Também alerta quando a **mesma matrícula aparece em dois boletins no mesmo dia**
 (cada boletim paga as suas diárias, mas o efetivo conta a pessoa uma vez).
 
-**Demonstração com dados de teste** (3 semanas simuladas, origem `TESTE`, roteiro: equipe grande e pouco serviço →
-equilíbrio → equipe curta e muito serviço): o painel acusa Adubo e Insumos em equilíbrio no total, Pátio de Máquinas em
-sobra (aproveitamento 33%) e Loja em falta (121%); no Adubo a semana 1 é **sobra** e a semana 3 é **falta**, que é a
-história do histórico em miniatura.
-
 **Indicadores operacionais** (cargas por dia e armazém, espera = entrada − chegada, descarga = saída − entrada, chapas por
-recebimento, utilização dos locais, fornecedores, horários e dias de maior movimento, não recebimentos por motivo e
-custo da operação = Σ `total a pagar` dos boletins, sem encargos nem equipamentos) são calculados sobre os registros da
-plataforma, com filtro de período, armazém e origem.
+recebimento, descargas e horas ocupadas por armazém (sem percentual de utilização, cuja fórmula a Cocapec não definiu),
+fornecedores, horários e dias de maior movimento, não recebimentos por motivo e custo da operação = Σ `total a pagar`
+dos boletins, sem encargos nem equipamentos) são calculados somente sobre os registros lançados pela própria plataforma
+(origem `PLATAFORMA`), com filtro de período e armazém. A exceção são os não recebimentos, filtrados só por período,
+porque nem todo não recebimento tem armazém associado. O boletim de exemplo
+acima, de origem `HISTORICO`, não entra nesses indicadores.
+
+**Origem dos registros da plataforma.** Agendamentos (e as descargas ligadas a eles), não recebimentos e boletins lançados
+pela interface são gravados com origem `PLATAFORMA`. Registros que a equipe lançar para teste ou demonstração entram pelo mesmo caminho e
+**não são operação real da Cocapec**; por isso este relatório não apresenta resultados desses indicadores. Na revisão
+deste relatório (04/10/2026), a base não tinha agendamentos nem boletins lançados pela plataforma: o painel mostra a
+fórmula e passa a medir a partir do primeiro boletim registrado.
 
 ---
 
@@ -215,50 +223,70 @@ da operação de café). Valoração: diárias × R$ 90,1731.
 | Tabela de preços e piso do boletim | `HISTORICO` | `boletim_diario_chapas.xlsx` (Cocapec) e dossiê, seção 8 |
 | Esforço por recebimento | Norma do dossiê (parâmetro) | Dossiê, seções 7 e 9 |
 | Interpretação do complemento como alerta para revisar escala | Contexto qualitativo, não numérico | Relato oral de Dani, transcrito e organizado pela equipe; não entra nos cálculos |
-| Agendamentos, descargas, não recebimentos e boletins de demonstração | `TESTE` | gerados pela equipe: `java -jar api/target/recebimento-1.0.0.jar --demo-seed` |
-| Agendamentos, descargas, não recebimentos e boletins feitos no uso real | `PLATAFORMA` | registrados pelo sistema |
+| Boletim de exemplo (Adubo, 17/11/2025), na tela de boletins | `HISTORICO` | `boletim_diario_chapas.xlsx`: único lançamento preenchido na planilha; não são criados boletins para outros armazéns ou datas |
+| Notas fiscais históricas (XML e DANFE em PDF) e registro manual digitalizado, na tela "Notas fiscais históricas" | `HISTORICO` | `01_notas_fiscais` (460 XML com 838 itens; 461 DANFEs, 459 vinculados a um XML) e `registro_manual_recebimento.pdf`, guardados como arquivo, sem transcrição; não criam agendamentos nem recebimentos |
+| Estoque de referência por armazém, na tela de Insumos | `HISTORICO` | `02_cadastros/estoque_por_armazem` (4 planilhas, 1.242 itens); a fonte não informa a data de corte do saldo |
+| Catálogo oficial de equipamentos de descarga (tipo e utilização), na tela de Insumos | `HISTORICO` | `equipamentos_descarga.xlsx` (4 tipos); local e quantidade não são presumidos |
+| Agendamentos, descargas, não recebimentos e boletins lançados pela interface | `PLATAFORMA` | registrados pelo sistema; inclui o que a equipe lançar para teste ou demonstração, que **não é operação real da Cocapec** |
 
-Cada registro operacional carrega a coluna `origem`, e o painel filtra por ela. A tela do painel mostra a origem ao lado
-de cada bloco.
+Os arquivos de dados da Cocapec não fazem parte do repositório (ficam fora do Git); a carga `--dados` os lê do pacote
+oficial (seção 8). Os registros operacionais (agendamento, não recebimento, boletim) carregam a coluna `origem`: a
+interface grava `PLATAFORMA` e a carga grava `HISTORICO` no boletim de exemplo. Os indicadores da plataforma (seção 4)
+usam só `PLATAFORMA`. A tela do painel mostra a origem ao lado de cada bloco.
 
 ---
 
 ## 7. Tratamento das inconsistências dos dados
 
-Os dados vieram sem limpeza. O ETL (`app.etl.historico`) conta cada problema e o resultado consta aqui.
+Os dados vieram sem limpeza. A carga de dados em Java (`CargaDadosService`, acionada por `--dados`; seção 8) conta
+os principais problemas da movimentação e imprime os contadores ao terminar (`linhas_lidas`, `duplicadas_descartadas`,
+`sabados_com_recebimento`, `recebimento_antes_do_documento`, `sem_chave_de_acesso`, `chave_de_acesso_malformada`,
+`parciais_agrupados` etc.). As demais quantidades foram conferidas na planilha original e no banco carregado
+(`hist_recebimento_item`, `hist_chapa_dia`, `deposito_armazem`, `hist_nota_fiscal`, `hist_nota_fiscal_item`, `produto`).
 
 | Problema encontrado | Quantidade | Tratamento |
 |---|---:|---|
 | Linhas 100% duplicadas na movimentação | 540 | Descartadas (41.779 → 41.239) |
+| Mais de uma linha com o mesmo pedido, item, nº e data de recebimento | 396 grupos (829 linhas) | Preservadas, cada uma com a sua linha de origem na planilha; no recebimento contam uma vez. Contado no banco pela mesma chave do contador `parciais_agrupados` |
 | **Uma linha por item, não por caminhão** | 41.239 linhas → 18.821 recebimentos por armazém | A carga é o recebimento (data, nº, armazém). Contar linhas inflaria a demanda |
-| **Recebimentos por dia × caminhões informados** | mediana de **15** recebimentos por dia com movimento, contra "5 a 6 caminhões" do dossiê | Usamos o recebimento só como **índice relativo** de demanda. Um recebimento não é um caminhão; deve ser confirmado com a Cocapec |
+| **Recebimentos por dia × caminhões informados** | mediana de **15** números de recebimento distintos por dia com movimento (16 contando por armazém), contra "5 a 6 caminhões" do dossiê | Usamos o recebimento só como **índice relativo** de demanda. Um recebimento não é um caminhão; deve ser confirmado com a Cocapec |
 | Recebimentos em sábados (o dossiê diz que não há) | 21 linhas em 5 dias | Preservados e contados; a análise de equipe usa só segunda a sexta |
 | Data de recebimento anterior à data do documento | 308 | Preservadas e contadas (provável lançamento retroativo do documento) |
 | **Coluna de peso inutilizável** | mediana do Adubo ≈ 573 **toneladas** por recebimento | Não usamos peso em nenhum cálculo (unidades misturadas e itens repetidos em recebimentos parciais) |
 | Chave de acesso ausente | 224 | Guardada como nula |
-| Chave de acesso malformada (≠ 44 dígitos) | 111 | Guardada como nula (antes quebrava a carga) |
+| Chave de acesso malformada (≠ 44 dígitos) | 111 | Guardada como nula |
 | Depósitos fora do dossiê (`MATIndus`, `MATTrans`, `MATProp`, `MATDT`) | 11 | Ficam fora da quebra por armazém; contados |
 | Depósito ≠ armazém físico | – | `MATFerti`/`MATFert2`→Adubo; `MATDefe`/`MATDef2`/`MATGeral`/`MATGer2`→Insumos; `MATMaq`→Pátio; `MATLoja`→Loja |
 | Folha sem agosto e dezembro de 2025; janeiro/2025 com 5 dias | 2 meses + 1 parcial | Meses com menos de 10 dias de folha ficam fora; o recebimento desses meses aparece na série de demanda, mas não no saldo |
 | Folha de sábado (72 dias) | 72 | Fora do saldo: sábado é organização de estoque |
 | Código do item do XML é do fornecedor, não do catálogo | 837 de 838 itens não casam | Não casamos pelo código do XML; a amarração é pelo **pedido de compra** validado por Compras (Tarefa 1) |
-| NF-e sem peso bruto na amostra de XML | 29 de 460 | Usa-se o peso líquido quando existe |
-| `Peso` e `Qtd` repetidos em recebimentos parciais | 1.281 pares pedido-item (levantamento anterior da equipe; não reverificado neste relatório) | Não se somam peso nem quantidade como carga |
+| NF-e sem peso bruto na amostra de XML | 29 de 460 (só 3 delas têm peso líquido) | O histórico guarda os dois pesos como vieram; na leitura do XML do agendamento, usa-se o peso líquido quando o bruto falta |
+| `Peso` e `Qtd` repetidos em recebimentos parciais | 1.281 pares pedido-item aparecem em mais de um recebimento; em 1.140 deles o mesmo `Peso` e a mesma `Qtd` se repetem entre recebimentos | Não se somam peso nem quantidade como carga |
 
 ---
 
 ## 8. Como reproduzir
 
 ```bash
-cd api
-mvn clean package                                                       # compila e testa; Flyway aplica V1–V7 ao iniciar
-java -jar target/recebimento-1.0.0.jar --dados=<DADOS_HACKATHON_2026.zip>  # histórico real
-java -jar target/recebimento-1.0.0.jar --demo-seed                         # dados TESTE, sem apagar os existentes
-java -jar target/recebimento-1.0.0.jar                                     # painel em http://localhost:8000/painel
+# 1. Sobe PostgreSQL e API; o Flyway aplica as migrations V1–V16 ao iniciar
+docker compose up --build
+
+# 2. Carrega o histórico oficial (pasta extraída do pacote, montada só para leitura)
+docker compose run --rm -v "<caminho>/DADOS_HACKATHON_2026:/tmp/dados:ro" --entrypoint java api \
+  -jar /app/app.jar --spring.main.web-application-type=none --dados=/tmp/dados
 ```
 
-Rotas do painel: `GET /api/painel/operacao`, `/api/painel/dimensionamento/plataforma`,
-`/api/painel/dimensionamento/historico` e `/api/painel/historico/indicadores` (Swagger em `/docs`).
+Interface em `http://localhost:8000/ui/`; o painel gerencial fica em `http://localhost:8000/ui/#/painel` (perfis
+administrador, diretoria e responsável de armazém; usuários iniciais no `README.md`). A carga substitui os históricos
+importados e atualiza os cadastros oficiais de fornecedores e produtos; não cria agendamentos nem altera agendamentos e
+boletins lançados pela plataforma, e reexecutá-la produz o mesmo histórico.
+
+Sem Docker, com um PostgreSQL próprio: compile o frontend (`cd web && npm ci && npm run build`), depois a API
+(`cd api && mvn clean package`) e rode `java -jar target/recebimento-1.0.0.jar --dados=<pasta ou DADOS_HACKATHON_2026.zip>`.
+
+Rotas do painel (`GET`, exigem login): `/api/painel/operacao` e `/api/painel/dimensionamento/plataforma` (filtros `de`,
+`ate`, `armazemId` e `origem`, que aceita só `PLATAFORMA`; a segunda também aceita `agrupar=dia|semana|mes`),
+`/api/painel/dimensionamento/historico` e `/api/painel/historico/indicadores` (filtros `de` e `ate`). Swagger em `/docs`.
 
 ---
 

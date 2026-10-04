@@ -68,6 +68,8 @@ class PainelPostgresIntegrationTest {
         Map<String,Object> total = object(dimension.get("total"));
         assertEquals("80.3462", total.get("sobraReais"));
         assertEquals("0.0000", total.get("faltaReais"));
+        assertEquals(1, ((Number) total.get("diasComComplemento")).intValue());
+        assertEquals(1, ((Number) total.get("boletinsComComplemento")).intValue());
         assertEquals("SOBRA", total.get("situacao"));
         assertEquals(1, ((List<?>) dimension.get("efetivoDistintoPorDia")).size());
     }

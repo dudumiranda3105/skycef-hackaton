@@ -6,7 +6,7 @@ import { OrigemBadge } from '@/components/comum'
 import { Logo3D } from '@/components/charts/cena3d'
 import { ICONES } from '@/components/shell'
 import { LIBERAM_VAGA, PAPEL_ROTULO, SECAO_ROTULO, type Secao } from '@/lib/constants'
-import { addDays, brl0, brl4, dow, fmtDM, hojeISO, mLabel, nf0, nf1, semanaAtual } from '@/lib/format'
+import { addDays, big4, brl0, brl4, cent4, dow, fmtDM, hojeISO, mLabel, nf0, nf1, semanaAtual } from '@/lib/format'
 import { descAberta } from '@/lib/api'
 import { useAuth, useDados } from '@/lib/store'
 import { useRota } from '@/lib/rota'
@@ -77,6 +77,12 @@ export function Home() {
   }, [ags])
   const bols = useMemo(() => [...boletins].sort((a, b) => b.data.localeCompare(a.data)), [boletins])
   const ult = bols[0]
+  const boletinsPlataforma = boletins.filter(
+    (b) => (b.origem === 'PLATAFORMA' || b.origem === 'TESTE') && b.situacao === 'CONSISTENTE',
+  )
+  const complementoPlataforma = big4(
+    boletinsPlataforma.reduce((total, b) => total + cent4(b.complemento ?? '0'), 0n),
+  )
   const origPlat = ags.some((a) => a.origem === 'TESTE') ? 'TESTE' : 'PLATAFORMA'
 
   if (erro && !carregado) {
@@ -114,24 +120,20 @@ export function Home() {
         {pode('painel') ? (
           <div className="grid gap-2 rounded-[18px] bg-sidebar p-6 text-sidebar-foreground shadow-[0_26px_40px_-28px_rgba(8,47,99,.6)]">
             <small className="text-[13px] opacity-75">A pergunta da direção</small>
-            <b className="font-display text-[19px] leading-tight">A quantidade de chapas está sobrando ou faltando?</b>
-            {R ? (
+            <b className="font-display text-[19px] leading-tight">Quanto foi pago em complemento de diária?</b>
+            {boletinsPlataforma.length ? (
               <>
-                <span className="num font-display text-[38px] leading-none font-bold text-accent">{nf1.format(Number(R.menor.d))} diárias</span>
-                <span className="num font-display text-[17px] font-semibold">{brl0(R.menor.r)} a realocar</span>
-                <small className="text-[13px] opacity-75">
-                  {R.descompasso && 'Folga na safra, pressão na entressafra: a equipe está mal distribuída no tempo. '}
-                  Histórico, {mLabel(R.de)} a {mLabel(R.ate)}. Folga {brl0(R.totais.sobraReais)} · pressão {brl0(R.totais.faltaReais)}, ao piso.
-                </small>
+                <span className="num font-display text-[38px] leading-none font-bold text-accent">{brl0(complementoPlataforma)}</span>
+                <span className="num text-[13px]">{nf0.format(boletinsPlataforma.length)} boletins consistentes · PLATAFORMA e TESTE</span>
               </>
             ) : (
-              <>
-                <span className="font-display text-[17px] font-semibold">Histórico ainda não carregado</span>
-                <small className="text-[13px] opacity-75">
-                  Carregue o pacote da Cocapec (README, “Carregar dados”) para ver a folga e a pressão em reais. Os boletins da plataforma já alimentam o painel.
-                </small>
-              </>
+              <span className="font-display text-[17px] font-semibold">Nenhum boletim da plataforma registrado</span>
             )}
+            <small className="text-[13px] opacity-75">
+              {R
+                ? `Histórico ${mLabel(R.de)}–${mLabel(R.ate)}: folga ${brl0(R.totais.sobraReais)} e pressão ${brl0(R.totais.faltaReais)} são estimativas relativas, não complemento efetivamente pago nem recomendação de escala.`
+                : 'O painel separa o complemento efetivamente registrado da estimativa histórica de equipe e demanda.'}
+            </small>
             <Button variant="accent" className="mt-1 justify-self-start" onClick={() => ir('painel')}>
               Ver os números e as fontes <ArrowRight />
             </Button>
@@ -166,7 +168,7 @@ export function Home() {
           />
         )}
         {pode('painel') && (
-          <Cartao secao="painel" cor="var(--brand-blue)" grande={R ? `${nf1.format(Number(R.menor.d))} dia.` : '—'} sub="diárias a realocar entre períodos, com a fonte de cada número" origem="HISTORICO" />
+          <Cartao secao="painel" cor="var(--brand-blue)" grande={R ? `${nf1.format(Number(R.menor.d))} dia.` : '—'} sub="diárias de saldo histórico estimado; não é recomendação de escala" origem="HISTORICO" />
         )}
         {pode('d1') && (
           <Cartao secao="d1" cor="var(--brand-green)" grande={nf0.format(num.d1)} sub="entregas previstas para o próximo dia operacional, com nível de pressão e simulador de equipe" origem={origPlat} />

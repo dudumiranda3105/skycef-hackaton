@@ -29,11 +29,12 @@ Código em `web/src/features/` e `web/src/lib/` (compilado para `/ui/`).
 - O D-1 usa os agendamentos já cadastrados do próximo dia operacional: total de entregas, distribuição por horário,
   armazém e acondicionamento, alertas e o botão **"Por quê?"** (quais agendamentos contribuem e como o nível foi decidido).
 - **Cuidado metodológico:** não há número exato de chapas. O módulo trabalha com **níveis**. Para cada armazém e horário:
-  `necessidade = Σ chapas simultâneas pela norma do Dossiê (batido 5, paletizado/big bag 2)`; `razão = necessidade ÷ equipe`.
+  `necessidade = Σ chapas simultâneas pela norma do Dossiê (batido acima de 500 kg: 5; abaixo de 500 kg: 0; paletizado/big bag: 2 em qualquer peso)`; `razão = necessidade ÷ equipe`.
   Acima de 1,0 é pressão alta; acima de 0,7 é moderada; até 0,7 é compatível; até 0,4 indica capacidade potencialmente
   disponível para realocação. **Os limiares são parâmetros do projeto, não da Cocapec** (`D1_LIM` em `lib/d1.ts`).
 - Equipe usada = média de chapas dos últimos 5 boletins do armazém (referência, não a escala de amanhã) ou a do simulador.
-- DQ-016 (paletizado/big bag abaixo de 500 kg: 0 ou 2 chapas) segue em aberto: usamos 2 e sinalizamos.
+- Se o peso estiver ausente, usa-se a referência do acondicionamento: 5 para batido ou 2 para paletizado/big bag, sinalizando que o peso não foi informado.
+- Máquina/implemento exige operador de empilhadeira ou trator e ao menos 1 chapa. O agendamento não identifica o tipo de item nem a disponibilidade de operador; confirme isso com o armazém, pois o cálculo automático não infere essa necessidade.
 - O **Simulador** altera só a equipe, com o mesmo motor. Não grava nada, não altera boletim nem agendamento, não recomenda
   contratação ou demissão e não inventa impacto financeiro. Linguagem: "capacidade disponível para realocação".
 

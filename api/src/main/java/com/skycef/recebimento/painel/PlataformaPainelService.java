@@ -12,7 +12,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -163,7 +165,7 @@ public class PlataformaPainelService {
             "efetivoDistintoPorDia",efetivo.stream().map(r->map("data",r.get("data").toString(),"pessoas",r.get("pessoas"))).toList(),
             "alertas",map("matriculasEmMaisDeUmBoletimNoMesmoDia",repetidos,"observacao",
                 "Se uma matrícula aparece em dois boletins no mesmo dia, cada boletim paga as suas diárias; o efetivo distinto do dia conta a pessoa uma única vez."),
-            "comoLer","Sobra em R$ = complemento pago (diária garantida sem produção que a justifique). Falta em R$ = produção acima do piso (equipe curta para a demanda do dia).");
+            "comoLer","Complemento em R$ = diferença efetivamente paga para alcançar o piso. Produção acima do piso = valor produzido além do mínimo garantido. O complemento é um sinal para revisar escala e alocação junto com a demanda e as condições operacionais; isoladamente não comprova ociosidade nem define a quantidade de chapas necessária.");
     }
 
     private static String period(LocalDate d,String kind) {
@@ -173,7 +175,8 @@ public class PlataformaPainelService {
     }
 
     private static class Acc {
-        int boletins, inconsistentes, comComplemento, acimaPiso;
+        int boletins, inconsistentes, boletinsComComplemento, acimaPiso;
+        Set<LocalDate> diasComComplemento = new TreeSet<>();
         BigDecimal diarias=BigDecimal.ZERO,producao=BigDecimal.ZERO,total=BigDecimal.ZERO,complemento=BigDecimal.ZERO,falta=BigDecimal.ZERO;
         void add(Map<String,Object> b,BigDecimal piso) {
             boletins++;
@@ -181,7 +184,10 @@ public class PlataformaPainelService {
             BigDecimal d=decimal(b.get("diarias_equivalentes")), p=decimal(b.get("producao_total"));
             diarias=diarias.add(d);producao=producao.add(p);total=total.add(decimal(b.get("total_a_pagar")));
             BigDecimal c=decimal(b.get("complemento"));complemento=complemento.add(c);
-            if(c.signum()>0) comComplemento++;
+            if(c.signum()>0) {
+                boletinsComComplemento++;
+                diasComComplemento.add(((java.sql.Date)b.get("data")).toLocalDate());
+            }
             BigDecimal excess=p.subtract(piso.multiply(d));if(excess.signum()>0){acimaPiso++;falta=falta.add(excess);}
         }
         Map<String,Object> json(BigDecimal piso) {
@@ -192,7 +198,8 @@ public class PlataformaPainelService {
                 "diariasEquivalentes",diarias.toPlainString(),"producao",money(producao),"totalAPagar",money(total),
                 "sobraReais",money(complemento),"sobraDiarias",decimalText(complemento.divide(piso,8,RoundingMode.HALF_EVEN),2),
                 "faltaReais",money(falta),"faltaDiarias",decimalText(falta.divide(piso,8,RoundingMode.HALF_EVEN),2),
-                "diasComComplemento",comComplemento,"diasAcimaDoPiso",acimaPiso,
+                "diasComComplemento",diasComComplemento.size(),"boletinsComComplemento",boletinsComComplemento,
+                "diasAcimaDoPiso",acimaPiso,
                 "aproveitamento",aproveitamento==null?null:decimalText(aproveitamento,4),"situacao",situacao);
         }
     }

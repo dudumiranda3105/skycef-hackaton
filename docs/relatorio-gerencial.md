@@ -10,10 +10,10 @@ relatório diz isso em vez de preencher a lacuna.
 
 ## 1. A resposta à direção
 
-> **Não há sobra nem falta permanente de chapas. Há um descompasso no tempo: a equipe não acompanha a demanda.**
-> Sobram chapas nos meses de baixa demanda (jan a jun) e a equipe fica curta no pico (jul a out). O reforço de
-> pessoal informado pela Cocapec (out a mar) começa depois que a demanda já subiu em julho e continua até março,
-> quando a demanda já caiu.
+> **O histórico aponta um descompasso no tempo: a quantidade de chapas presentes não acompanha a demanda de recebimentos.**
+> A análise estima folga nos meses de baixa demanda e pressão no pico; isso não prova, por si só, que exista excesso ou falta
+> permanente de pessoas. O reforço de pessoal informado pela Cocapec (out a mar) começa depois que a demanda já subiu em julho
+> e continua até março, quando a demanda já caiu.
 
 | O que medimos (histórico real, fev/2025 a ago/2026) | Resultado |
 |---|---|
@@ -25,7 +25,8 @@ relatório diz isso em vez de preencher a lacuna.
 | Equivalente anual da folga (R$ 58.370 em 17 meses) | cerca de **R$ 41 mil por ano** |
 
 Em linguagem direta: na safra a equipe tem **19% mais gente com 14% menos recebimentos** do que na entressafra. O
-dinheiro da folga é o mesmo da pressão: é **gente no mês errado**, não gente demais nem de menos no ano.
+dinheiro da folga é o mesmo da pressão no método de equilíbrio adotado: é um **sinal de possível desencontro entre escala e
+demanda ao longo do ano**, não uma contagem de pessoas excedentes nem prova de que a folga possa ser integralmente eliminada.
 
 **O que isso vale em R$.** Pela regra do boletim, cada diária de folga custa o piso (R$ 90,1731). Valorando o saldo
 mensal ao piso, a folga acumulada é de R$ 58 mil em 17 meses. É uma **estimativa de ordem de grandeza**, não uma
@@ -33,9 +34,10 @@ economia comprovada: ela depende do ponto de equilíbrio adotado (seção 5) e d
 histórico não enxerga. Com o ponto de equilíbrio mais exigente (a capacidade que a equipe já demonstrou), o conjunto
 passa a mostrar sobra líquida de R$ 22 mil.
 
-**O que passa a responder com exatidão.** O número definitivo vem do boletim da plataforma: a sobra em R$ é o
-**complemento** pago (diária garantida sem produção que a justifique) e a falta é a **produção acima do piso**.
-Cada boletim lançado atualiza a resposta, por armazém e período (seção 4).
+**O que passa a responder com exatidão.** O boletim da plataforma mede o complemento efetivamente pago para atingir o piso
+quando a produção da equipe não o alcança, e a produção que excede o valor garantido pelas diárias. Esses valores são exatos
+para os boletins lançados, por armazém e período (seção 4); interpretar complemento como excesso de escala exige também
+examinar a demanda e as condições operacionais do período.
 
 ---
 
@@ -132,12 +134,20 @@ O boletim registra a produção e a equipe de cada dia. Dele saem a sobra e a fa
 diárias que a produção paga = produção ÷ piso (R$ 90,1731)
 SOBRA (R$)  = complemento pago          = piso × (diárias da equipe − diárias que a produção paga)
 FALTA (R$)  = produção acima do piso    = produção − piso × diárias da equipe   (equipe curta para o dia)
-aproveitamento = produção ÷ (piso × diárias):  abaixo de 90% = sobra · acima de 110% = falta
+aproveitamento = produção ÷ (piso × diárias):  abaixo de 90% = complemento · acima de 110% = produção acima do piso
 ```
 
-**Exemplo oficial (Adubo, 17/11/2025):** produção R$ 918,1952 e 11 chapas. A produção paga 10,18 diárias; a equipe
-tinha 11: sobram **0,82 diária**, que é exatamente o complemento de **R$ 73,71**. Aproveitamento de 92,6%: faixa
-"equilibrado".
+**Leitura para gestão.** No áudio transcrito pela equipe, Dani descreve o complemento como custo a acompanhar: quando há
+muita equipe para pouco volume, a produção pode não alcançar o mínimo garantido, e a empresa paga a diferença. Isso torna
+o complemento um **indicador de alerta para revisar a escala e a alocação**, em conjunto com o volume recebido e o trabalho
+realizado. O valor, isoladamente, não prova ociosidade nem quantas pessoas poderiam ser retiradas: também pode refletir
+variação de demanda, composição das cargas, restrições operacionais ou trabalho não registrado no boletim. Essa fala é
+contexto qualitativo de negócio, não uma medição adicionada ao histórico.
+
+**Exemplo oficial (Adubo, 17/11/2025):** produção R$ 918,1952 e 11 chapas. A produção equivale a 10,18 pisos diários;
+como o boletim garante 11, o complemento é **R$ 73,71**. Aproveitamento de 92,6%: faixa "equilibrado" nos limiares
+operacionais do painel. O complemento é uma despesa observada; classificá-la como excesso de escala requer olhar o contexto
+da operação.
 
 O painel mostra, por armazém e por dia, semana ou mês: aproveitamento, sobra e falta em R$ e em diárias, dias com
 complemento e dias acima do piso. Também alerta quando a **mesma matrícula aparece em dois boletins no mesmo dia**
@@ -183,9 +193,12 @@ da operação de café). Valoração: diárias × R$ 90,1731.
 
 **O que o método NÃO afirma:**
 
-1. **O tamanho absoluto ideal da equipe.** O histórico só enxerga o recebimento; o carregamento de cooperados divide a
+1. **O tamanho absoluto ideal da equipe ou a causa de cada complemento.** O histórico só enxerga o recebimento; o carregamento de cooperados divide a
    mesma equipe e nunca foi registrado. O método mostra se a equipe **acompanhou a demanda**, não quantos chapas
-   existem demais ou de menos em termos absolutos. Isso fecha com o boletim, que registra toda a movimentação.
+   existem demais ou de menos em termos absolutos. No dado da plataforma, o complemento é conhecido com exatidão, mas
+   não demonstra sozinho que houve ociosidade nem identifica a causa. Para decidir ajuste de escala, é preciso confrontá-lo
+   com recebimentos, produção, armazém, horários e outras atividades da equipe. Isso fecha com o boletim, que registra
+   movimentações declaradas, mas não mede sozinho toda a ocupação do trabalhador.
 2. **Economia garantida.** Os R$ são ordem de grandeza (valorados ao piso), não redução de folha comprovada.
 3. **Tempos de espera e de descarga do passado.** Nunca foram medidos. Não inventamos horários, chapas por descarga
    nem equipamentos para o histórico; as estimativas do dossiê são parâmetros, não medições.
@@ -201,6 +214,7 @@ da operação de café). Valoração: diárias × R$ 90,1731.
 | Chapas presentes e da operação de café por dia | `HISTORICO` | `chapas_por_dia.csv` (428 dias, jan/2025–ago/2026) |
 | Tabela de preços e piso do boletim | `HISTORICO` | `boletim_diario_chapas.xlsx` (Cocapec) e dossiê, seção 8 |
 | Esforço por recebimento | Norma do dossiê (parâmetro) | Dossiê, seções 7 e 9 |
+| Interpretação do complemento como alerta para revisar escala | Contexto qualitativo, não numérico | Relato oral de Dani, transcrito e organizado pela equipe; não entra nos cálculos |
 | Agendamentos, descargas, não recebimentos e boletins de demonstração | `TESTE` | gerados pela equipe: `java -jar api/target/recebimento-1.0.0.jar --demo-seed` |
 | Agendamentos, descargas, não recebimentos e boletins feitos no uso real | `PLATAFORMA` | registrados pelo sistema |
 

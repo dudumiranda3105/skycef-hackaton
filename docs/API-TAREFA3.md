@@ -29,16 +29,26 @@ Parâmetro inválido devolve 400 `REQUISICAO_INVALIDA`.
 ## Sobra e falta pelo boletim (`/dimensionamento/plataforma`)
 
 ```
-sobra (R$)  = Σ complemento                    (diária garantida sem produção que a justifique)
-falta (R$)  = Σ (produção − piso × diárias)    dos dias em que a produção passou do piso (equipe curta)
-aproveitamento = produção ÷ (piso × diárias)   < 0,90 SOBRA · > 1,10 FALTA · senão EQUILIBRADO
+sobra (R$)  = Σ complemento                    (diferença paga para alcançar o piso)
+falta (R$)  = Σ (produção − piso × diárias)    dos dias em que a produção passou do piso
+aproveitamento = produção ÷ (piso × diárias)   < 0,90 COMPLEMENTO · > 1,10 PRODUÇÃO ACIMA DO PISO · senão EQUILIBRADO
 ```
 
 Resposta (resumo): `total`, `porArmazem[]` e `porPeriodo[]` trazem `boletins`, `diariasEquivalentes`, `producao`,
-`totalAPagar`, `sobraReais`, `sobraDiarias`, `faltaReais`, `faltaDiarias`, `diasComComplemento`, `diasAcimaDoPiso`,
+`totalAPagar`, `sobraReais` (complemento pago), `sobraDiarias`, `faltaReais` (produção acima do piso), `faltaDiarias`,
+`diasComComplemento`, `boletinsComComplemento`, `diasAcimaDoPiso`,
 `aproveitamento` e `situacao`. Boletins `INCONSISTENTE` (sem equipe) são contados, mas ficam fora dos valores.
 `efetivoDistintoPorDia` conta cada pessoa uma vez por dia, e `alertas.matriculasEmMaisDeUmBoletimNoMesmoDia` avisa
 quando a mesma matrícula está em dois boletins (cada boletim paga as suas diárias).
+
+**Interpretação gerencial:** o complemento é um custo efetivamente pago e um sinal para revisar a relação entre equipe,
+produção e demanda. Ele não prova isoladamente excesso de chapas ou ociosidade, nem aponta sua causa; avalie junto com
+volume de descargas concluídas, chapas registradas por descarga (intensidade, não efetivo diário), armazém, período e
+condições da operação. O painel apresenta essas medidas em conjunto, mas não prescreve redução ou realocação de pessoas.
+Descargas concluídas são agrupadas pela data de saída e boletins pela data do boletim; a comparação é do período, não um
+vínculo individual entre descarga e pagamento. `diasComComplemento` conta datas distintas com complemento, e
+`boletinsComComplemento` conta boletins que tiveram complemento. O contexto qualitativo do negócio está em
+[`relatorio-gerencial.md`](relatorio-gerencial.md), seção 4.
 
 ## Sobra e falta no histórico (`/dimensionamento/historico`)
 

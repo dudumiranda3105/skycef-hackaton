@@ -96,7 +96,7 @@ Gerar identificações tipo `INS-EMPG-01`. Não há número patrimonial oficial 
 
 ### Referência normativa de chapas (Dossiê §7, para dimensionamento/alertas, não como bloqueio)
 - < 500 kg: nenhum · Batido > 500 kg: 5 · Paletizado/big bag: 2 · Máquina/implemento: 1 operador + ≥1 chapa.
-- ⚠️ Conflito aberto (DQ-016): paletizado/big bag < 500 kg → 0 ou 2? Não automatizar.
+- A regra do Dossiê para paletizado/big bag é 2 chapas em qualquer peso; abaixo de 500 kg não se aplica a exceção de carga leve.
 
 ## 5. Tarefa 2 — Boletim Diário dos Ensacadores
 
@@ -227,7 +227,7 @@ Cada número do painel deve indicar sua origem (`HISTORICO` / `PLATAFORMA` / `TE
 ## 9. Pontos em aberto (não inventar regra; parametrizar ou sinalizar)
 - DQ-006 Fila: "ordem de chegada" × prioridade do agendado → prevalece o Dossiê (agendado tem prioridade).
 - DQ-015 Tolerância de atraso: existe, mas sem minutos/consequência → parâmetro configurável, só sinalizar "atrasado".
-- DQ-016 Paletizado/big bag < 500 kg: 0 ou 2 chapas.
+- Peso exatamente 500 kg em carga batida não está definido no Dossiê; o D-1 usa 5 como referência e sinaliza para confirmação.
 - DQ-002/003 Fórmulas de "utilização" e "volume".
 - DQ-017 Não recebimento parcial em entrega multidestino (hoje ligado ao agendamento).
 - Rateio de custo quando a mesma matrícula está em 2 boletins no mesmo dia.

@@ -182,7 +182,10 @@ export function D1() {
       <Painel>
         <SecTitulo className="text-[17px]">Pressão estimada por horário e armazém</SecTitulo>
         <p className="mt-1 mb-4 text-sm text-muted-foreground">
-          Chapas simultâneas exigidas pela norma do Dossiê (batido 5, paletizado e big bag 2) comparadas com a equipe de referência do armazém (média dos últimos boletins) ou a simulada abaixo.
+          Chapas simultâneas pela norma do Dossiê (abaixo de 500 kg: 0; batido acima de 500 kg: 5; paletizado ou big bag: 2 em qualquer peso), comparadas com a equipe de referência do armazém (média dos últimos boletins) ou a simulada abaixo.
+        </p>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Cargas de máquinas e implementos também exigem operador de empilhadeira ou trator e ao menos 1 chapa. Como o agendamento ainda não identifica o tipo de item nem a disponibilidade de operador, confirme essa necessidade com o armazém; ela não é inferida neste cálculo.
         </p>
 
         <div className="overflow-x-auto">
@@ -241,7 +244,7 @@ export function D1() {
         </div>
 
         <p className="mt-3 text-xs text-muted-foreground">
-          Limiares: alta acima de {nf2.format(D1_LIM.alta)}, moderada acima de {nf2.format(D1_LIM.moderada)} (necessidade ÷ equipe). São parâmetros do projeto, não regra da Cocapec. Paletizado e big bag abaixo de 500 kg seguem em aberto (DQ-016): usamos 2 chapas e sinalizamos.
+          A norma prevê 0 chapas abaixo de 500 kg, 5 para carga batida acima de 500 kg e 2 para paletizado ou big bag em qualquer peso. O Dossiê não define o caso exato de 500 kg: a estimativa usa 5 e sinaliza para confirmação. Se o peso estiver ausente, usa-se a referência do acondicionamento e sinaliza-se a falta do dado. Limiares: alta acima de {nf2.format(D1_LIM.alta)}, moderada acima de {nf2.format(D1_LIM.moderada)} (necessidade ÷ equipe); são parâmetros do projeto, não regra da Cocapec.
         </p>
       </Painel>
 
@@ -442,7 +445,7 @@ export function D1() {
               <div>
                 <SecTitulo className="text-sm">Como o nível foi decidido</SecTitulo>
                 <ol className="mt-2 grid gap-1.5 list-decimal pl-5">
-                  <li>Chapas simultâneas exigidas pela norma do Dossiê (§7): batido 5, paletizado ou big bag 2. Neste horário: <b>{explicar.cel.need}</b>.</li>
+                  <li>Chapas simultâneas pela norma do Dossiê (§7): abaixo de 500 kg, 0; batido acima de 500 kg, 5; paletizado ou big bag, 2 em qualquer peso. Neste horário: <b>{explicar.cel.need}</b>.</li>
                   <li>Equipe considerada: {explicar.linha.tipo === 'simulada' ? `equipe simulada de ${explicar.linha.team} chapa(s)` : explicar.linha.ref ? `equipe de referência de ${explicar.linha.team} chapa(s) (média dos ${explicar.linha.ref.amostra} boletins mais recentes)` : 'sem equipe de referência para este armazém'}.</li>
                   {explicar.cel.nivel.r != null && (
                     <li>Razão = {explicar.cel.need} ÷ {explicar.linha.team} = <b>{nf2.format(explicar.cel.nivel.r)}</b>.</li>

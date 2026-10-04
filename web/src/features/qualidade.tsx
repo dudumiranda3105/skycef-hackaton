@@ -104,7 +104,7 @@ export function Qualidade() {
       ['Custo da operação', 'Σ total a pagar dos boletins consistentes', 'Boletins da plataforma', `${nf0.format(op?.custoDaOperacao?.boletins ?? 0)} boletim(ns)`, 'Sem encargos nem equipamentos (nunca R$ 180 por pessoa).'],
       ['Utilização dos locais', 'horas ocupadas (saída − entrada) por armazém', 'Nova plataforma', `${nf0.format(concl.length)} descarga(s) concluída(s)`, 'Sem percentual oficial: a Cocapec não definiu a fórmula.'],
       ['Fornecedores com maior volume', 'recebimentos distintos por fornecedor', 'Histórico Cocapec', 'todo o histórico', 'A unidade é recebimento, nunca kg.'],
-      ['Pressão do Planejamento D-1', 'chapas simultâneas pela norma ÷ equipe de referência', 'Agendamentos + boletins', 'agendamentos do dia', 'Nível, não número exato; limiares são parâmetros do projeto; DQ-016 em aberto.'],
+      ['Pressão do Planejamento D-1', 'chapas simultâneas pela norma ÷ equipe de referência', 'Agendamentos + boletins', 'agendamentos do dia', 'Nível, não número exato; limiares são parâmetros do projeto. Máquinas/implementos exigem operador e ao menos 1 chapa, mas o tipo de item não é identificado no agendamento.'],
     ],
     [hist, plat, op, concl, meses],
   )

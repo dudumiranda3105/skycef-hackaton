@@ -30,19 +30,21 @@ export interface Nivel {
 const ORDEM: Record<NivelK, number> = { ALTA: 4, MODERADA: 3, BAIXA: 2, SEM: 0, ND: 1 }
 export const pior = (niveis: Nivel[]) => niveis.slice().sort((a, b) => ORDEM[b.k] - ORDEM[a.k])[0]
 
-/** Chapas simultâneas pela norma do Dossiê (§7). DQ-016 (paletizado/big bag abaixo de 500 kg) segue em aberto. */
+/** Chapas simultâneas pela norma do Dossiê (§7). */
 export function normaChapas(a: Agendamento, fmtKg: (n: number) => string): { n: number; nota: string } {
   const pesos = a.nfs.filter((n) => n.peso != null).map((n) => Number(n.peso))
-  const conhecido = pesos.length > 0
+  const conhecido = a.nfs.length > 0 && pesos.length === a.nfs.length
   const kg = pesos.reduce((s, x) => s + x, 0)
   if (a.acond === 'BATIDO') {
+    if (conhecido && kg === 500)
+      return { n: 5, nota: 'Peso total de 500 kg: o Dossiê não define esse limite exato. A estimativa usa 5 chapas como referência e exige confirmação do armazém.' }
     return conhecido && kg < 500
       ? { n: 0, nota: `Carga batida abaixo de 500 kg (${fmtKg(kg)} kg): a norma não prevê chapas.` }
       : { n: 5, nota: conhecido ? '' : 'Peso da carga desconhecido: usamos a referência de carga batida acima de 500 kg (5 chapas).' }
   }
   return {
     n: 2,
-    nota: conhecido && kg < 500 ? 'Paletizado/big bag abaixo de 500 kg: o Dossiê é ambíguo (DQ-016, 0 ou 2 chapas). Usamos 2 e sinalizamos.' : '',
+    nota: conhecido ? '' : 'Peso da carga desconhecido: usamos a referência de 2 chapas para paletizado ou big bag.',
   }
 }
 

@@ -28,7 +28,7 @@ public final class Senhas {
     public static boolean confere(String senha, String guardado) {
         if (senha == null || guardado == null) return false;
         try {
-            String[] partes = guardado.split("\$");
+            String[] partes = guardado.split("\\$");
             if (partes.length != 4 || !partes[0].equals("pbkdf2")) return false;
             int iteracoes = Integer.parseInt(partes[1]);
             byte[] sal = Base64.getDecoder().decode(partes[2]);

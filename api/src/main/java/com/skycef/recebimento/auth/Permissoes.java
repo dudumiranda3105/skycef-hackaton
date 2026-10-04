@@ -24,8 +24,8 @@ public final class Permissoes {
         if (caminho.endsWith("/validacao-compras")) return "COMPRAS".equals(papel);
         if (caminho.startsWith("/api/boletins")) return BOLETIM.contains(papel);
         if (caminho.equals("/api/fornecedores") || caminho.equals("/api/agendamentos")
-                || caminho.matches("/api/agendamentos/\d+/notas/\d+/arquivo")
-                || caminho.matches("/api/agendamentos/\d+/(reagendamento|cancelamento)")) {
+                || caminho.matches("/api/agendamentos/\\d+/notas/\\d+/arquivo")
+                || caminho.matches("/api/agendamentos/\\d+/(reagendamento|cancelamento)")) {
             return AGENDAR.contains(papel);
         }
         /* destinos, chegada, descargas, vagas liberadas, efetivação de cancelamento e não recebimentos */

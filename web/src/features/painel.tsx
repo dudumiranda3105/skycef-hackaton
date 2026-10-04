@@ -36,10 +36,10 @@ export function Painel() {
   const { armazens, armNome, piso } = useDados()
 
   const [from, setFrom] = useState('2022-06')
-  const [to, setTo] = useState('2026-09')
+  const [to, setTo] = useState(() => hojeISO().slice(0, 7))
   const [armFiltro, setArmFiltro] = useState<string>('Todos')
   const [incluirTeste, setIncluirTeste] = useState(true)
-  const [tab, setTab] = useState<'hist' | 'plat'>('hist')
+  const [tab, setTab] = useState<'hist' | 'plat'>('plat')
 
   const [hist, setHist] = useState<Historico | null>(null)
   const [indic, setIndic] = useState<any>(null)
@@ -121,15 +121,32 @@ export function Painel() {
     () => Object.keys(MOTIVOS_NR).map((k) => [MOTIVOS_NR[k], nrMap[k] || 0]),
     [nrMap],
   )
+  const cargasPorDiaArm = (op?.cargasRecebidas?.porDiaEArmazem ?? []).slice(-14).reverse()
+  const usoPorArmazem = op?.porArmazem ?? []
+  const fornecedoresOperacao: [string, number][] = (op?.fornecedoresMaiorVolume ?? [])
+    .slice(0, 10)
+    .map((r: { fornecedor: string; recebimentos: number }) => [r.fornecedor, r.recebimentos])
+  const picosHora: [string, number][] = (op?.movimento?.porHoraDeEntrada ?? [])
+    .map((r: { hora: number; cargas: number }) => [`${String(r.hora).padStart(2, '0')}:00`, r.cargas])
+  const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
+  const picosDia: [string, number][] = (op?.movimento?.porDiaDaSemana ?? [])
+    .map((r: { diaSemana: number; cargas: number }) => [diasSemana[r.diaSemana - 1] ?? 'Outro', r.cargas])
 
   const T_plat = plat?.total ?? { boletins: 0 }
+  const origensPlataforma = Object.keys(plat?.origens ?? {})
+  const origensExibidas = origensPlataforma.length
+    ? origensPlataforma
+    : incluirTeste ? ['PLATAFORMA', 'TESTE'] : ['PLATAFORMA']
+  const complementoPago = Number(T_plat.sobraReais ?? 0)
+  const totalPago = Number(T_plat.totalAPagar ?? 0)
+  const parcelaComplemento = totalPago > 0 ? (complementoPago / totalPago) * 100 : null
 
   return (
     <div className="grid gap-6">
       <CabecalhoPagina
         titulo="Painel gerencial"
         quem="Quem usa: direção e gestores"
-        sub="A quantidade de chapas está sobrando ou faltando, e quanto isso vale em reais? Todos os números declaram a origem e abrem o cálculo em detalhes."
+        sub="Acompanhe o complemento pago e compare-o com produção, equipe registrada e demanda operacional para revisar escala e alocação. Os indicadores não prescrevem uma quantidade ideal de chapas."
         acoes={
           <Button variant="outline" size="sm" onClick={() => void carregar()} disabled={carregando}>
             <RefreshCw className={carregando ? 'animate-spin' : ''} /> {carregando ? 'Atualizando…' : 'Atualizar'}
@@ -197,7 +214,7 @@ export function Painel() {
             tab === 'plat' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-secondary'
           }`}
         >
-          Nova plataforma <OrigemBadge origem={incluirTeste ? 'TESTE' : 'PLATAFORMA'} />
+          Nova plataforma {origensExibidas.map((origem) => <OrigemBadge key={origem} origem={origem} />)}
         </button>
       </div>
 
@@ -216,7 +233,7 @@ export function Painel() {
                     </div>
                     <h2 className="mt-1 font-display text-2xl font-bold">
                       {descompasso
-                        ? 'Não há sobra nem falta permanente: a equipe está mal distribuída no tempo'
+                        ? 'A equipe presente não acompanha a variação da demanda ao longo do ano'
                         : Number(tot.saldoReais) > 0
                           ? 'Folga relativa no período'
                           : Number(tot.saldoReais) < 0
@@ -225,8 +242,8 @@ export function Painel() {
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground max-w-[65ch]">
                       {descompasso
-                        ? `Na ${safra && safra.saldoDiarias > 0 ? 'safra (out a mar)' : 'entressafra (abr a set)'} a equipe fica folgada (${sgn1(Math.max(safra?.saldoDiarias ?? 0, ent?.saldoDiarias ?? 0))} diárias) e na ${safra && safra.saldoDiarias > 0 ? 'entressafra (abr a set)' : 'safra (out a mar)'} fica apertada (${sgn1(Math.min(safra?.saldoDiarias ?? 0, ent?.saldoDiarias ?? 0))}). O que sobra em um período falta no outro.`
-                        : 'O saldo é relativo ao próprio histórico: mostra se a equipe acompanhou a demanda, não o tamanho absoluto ideal.'}
+                        ? `A estimativa histórica indica folga relativa na ${safra && safra.saldoDiarias > 0 ? 'safra (out a mar)' : 'entressafra (abr a set)'} (${sgn1(Math.max(safra?.saldoDiarias ?? 0, ent?.saldoDiarias ?? 0))} diárias) e pressão na ${safra && safra.saldoDiarias > 0 ? 'entressafra (abr a set)' : 'safra (out a mar)'} (${sgn1(Math.min(safra?.saldoDiarias ?? 0, ent?.saldoDiarias ?? 0))}). É um sinal de desencontro temporal, não uma medição de ociosidade nem uma recomendação de corte.`
+                        : 'O saldo é uma estimativa relativa ao histórico: compara equipe e demanda, não mede o tamanho absoluto ideal nem identifica o motivo de eventual ociosidade.'}
                     </p>
                   </div>
 
@@ -235,14 +252,14 @@ export function Painel() {
                       {nf1.format(Number(menor.d))} <span className="text-base text-muted-foreground font-normal">diárias</span>
                     </div>
                     <div className="num font-display text-lg font-semibold text-foreground">
-                      {brl0(menor.r)} a realocar
+                      {brl0(menor.r)} de saldo estimado
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() =>
                         setDetalheCalculo({
-                          titulo: 'Sobra ou falta de chapas (histórico)',
+                          titulo: 'Saldo histórico estimado',
                           origem: 'HISTORICO',
                           fontes: ['pedido_recebimento_notafiscal.xlsx', 'chapas_por_dia.csv'],
                           passos: [
@@ -432,32 +449,41 @@ export function Painel() {
         <div className="grid gap-6">
           {T_plat.boletins > 0 ? (
             <>
+              <Callout tom={complementoPago > 0 ? 'aviso' : 'ok'}>
+                <b>{complementoPago > 0 ? 'Revisar custo de complemento e escala' : 'Sem complemento registrado no período'}.</b>{' '}
+                {complementoPago > 0
+                  ? `Foram pagos ${brl2(T_plat.sobraReais)} em complemento${parcelaComplemento == null ? '' : ` (${nf1.format(parcelaComplemento)}% do total a pagar)`} em ${nf0.format(T_plat.diasComComplemento)} dia(s) com boletim. Compare o valor com a produção, as descargas concluídas e a equipe registrada para investigar oportunidades de ajustar a escala ou a alocação.`
+                  : 'Nos boletins consistentes deste filtro, a produção alcançou o piso garantido pelas diárias.'}{' '}
+                O complemento é um custo efetivamente pago e um alerta para análise; isoladamente, não comprova excesso de chapas
+                ou ociosidade e não determina quantas pessoas devem ser escaladas. As descargas contam apenas operações concluídas
+                pela data de saída; os boletins são agrupados pela data do boletim, então os totais são referências do período,
+                não um vínculo entre cada descarga e cada pagamento.
+              </Callout>
+
               <PainelContainer className="grid gap-4 border-l-4 border-brand-green">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <OrigemBadge origem={incluirTeste ? 'TESTE' : 'PLATAFORMA'} />
+                      {origensExibidas.map((origem) => <OrigemBadge key={origem} origem={origem} />)}
                       <span className="text-xs text-muted-foreground">boletins salvos</span>
                     </div>
                     <h2 className="mt-1 font-display text-2xl font-bold">
-                      {T_plat.situacao === 'SOBRA'
-                        ? 'Sobra de equipe: a produção ficou abaixo do piso'
+                      {complementoPago > 0
+                        ? 'Complemento de diária pago no período'
                         : T_plat.situacao === 'FALTA'
-                          ? 'Falta de equipe: a produção passou do piso'
-                          : 'Equipe alinhada à produção'}
+                          ? 'Produção acima do valor garantido pelo piso'
+                          : 'Produção próxima do valor garantido pelo piso'}
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground max-w-[65ch]">
-                      Sobra é o complemento pago para completar o piso de {brl4(piso)}; falta é a produção acima do piso, sinal de equipe curta para a demanda.
+                      O complemento cobre a diferença até o piso de {brl4(piso)} por diária equivalente. A produção acima do piso indica valor produzido além do mínimo garantido; nenhum dos dois, sozinho, mede ociosidade.
                     </p>
                   </div>
 
                   <div className="text-right">
                     <div className="num font-display text-4xl font-bold">
-                      {brl0(T_plat.situacao === 'FALTA' ? T_plat.faltaReais : T_plat.sobraReais)}
+                      {brl2(T_plat.sobraReais)}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {brl0(T_plat.situacao === 'FALTA' ? T_plat.sobraReais : T_plat.faltaReais)} no período oposto
-                    </div>
+                    <div className="text-xs text-muted-foreground">complemento pago</div>
                   </div>
                 </div>
 
@@ -465,10 +491,17 @@ export function Painel() {
                   <Tile rotulo="Boletins considerados" valor={nf0.format(T_plat.boletins)} />
                   <Tile rotulo="Diárias equivalentes" valor={nf1.format(Number(T_plat.diariasEquivalentes))} />
                   <Tile rotulo="Total a pagar" valor={brl2(T_plat.totalAPagar)} sub="custo da operação" />
+                  <Tile rotulo="Dias com complemento" valor={nf0.format(T_plat.diasComComplemento)} />
+                  <Tile rotulo="Descargas concluídas" valor={nf0.format(op?.cargasRecebidas?.total ?? 0)} sub="volume operacional no período" />
+                  <Tile
+                    rotulo="Chapas por descarga"
+                    valor={op?.chapasPorRecebimento?.media != null ? nf1.format(op.chapasPorRecebimento.media) : '—'}
+                    sub="intensidade registrada; não é efetivo diário"
+                  />
                   <Tile
                     rotulo="Aproveitamento"
                     valor={T_plat.aproveitamento != null ? nf2.format(Number(T_plat.aproveitamento)) : '—'}
-                    sub="produção ÷ piso"
+                    sub="produção ÷ valor garantido"
                   />
                 </Tiles>
               </PainelContainer>
@@ -485,9 +518,9 @@ export function Painel() {
                         <TableHead className="text-right">Diárias</TableHead>
                         <TableHead className="text-right">Produção</TableHead>
                         <TableHead className="text-right">Total a pagar</TableHead>
-                        <TableHead className="text-right">Sobra (R$)</TableHead>
-                        <TableHead className="text-right">Falta (R$)</TableHead>
-                        <TableHead>Situação</TableHead>
+                        <TableHead className="text-right">Complemento pago</TableHead>
+                        <TableHead className="text-right">Produção acima do piso</TableHead>
+                        <TableHead>Ritmo em relação ao piso</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -501,9 +534,18 @@ export function Painel() {
                           <TableCell className="text-right num">{brl2(r.sobraReais)}</TableCell>
                           <TableCell className="text-right num">{brl2(r.faltaReais)}</TableCell>
                           <TableCell>
-                            <Badge tom={r.situacao === 'SOBRA' ? 'ok' : r.situacao === 'FALTA' ? 'ruim' : 'neutro'}>
-                              {r.situacao}
-                            </Badge>
+                            {(() => {
+                              const comComplemento = Number(r.sobraReais) > 0
+                              const acimaPiso = Number(r.faltaReais) > 0
+                              const rotulo = r.situacao === 'SEM_DADOS'
+                                ? 'Sem diárias'
+                                : comComplemento
+                                  ? 'Com complemento'
+                                  : acimaPiso
+                                    ? 'Acima do piso'
+                                    : 'No piso'
+                              return <Badge tom={comComplemento ? 'aviso' : acimaPiso ? 'ok' : 'neutro'}>{rotulo}</Badge>
+                            })()}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -523,49 +565,128 @@ export function Painel() {
       {/* Indicadores Operacionais */}
       <div className="grid gap-6 lg:grid-cols-2">
         <PainelContainer>
-          <SecTitulo className="text-[17px]">Operação ao vivo (Plataforma)</SecTitulo>
+          <div className="flex flex-wrap items-center gap-2">
+            <SecTitulo className="text-[17px]">Indicadores da plataforma</SecTitulo>
+            <OrigemBadge origem="PLATAFORMA" />
+            {incluirTeste && <OrigemBadge origem="TESTE" />}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Descargas concluídas no período, agrupadas pela data de saída. Médias consideram apenas os registros que têm os marcos necessários.
+          </p>
           <div className="mt-4 grid gap-3">
             <div className="flex justify-between items-baseline border-b pb-2">
-              <span className="text-sm text-muted-foreground">Tempo médio de espera</span>
+              <span className="text-sm text-muted-foreground">Tempo médio de espera ({nf0.format(op?.tempoMedioEsperaMin?.amostra ?? 0)} amostras)</span>
               <span className="num font-bold text-base">
                 {op?.tempoMedioEsperaMin?.media != null ? fmtDur(op.tempoMedioEsperaMin.media) : '—'}
               </span>
             </div>
             <div className="flex justify-between items-baseline border-b pb-2">
-              <span className="text-sm text-muted-foreground">Tempo médio de descarga</span>
+              <span className="text-sm text-muted-foreground">Tempo médio de descarga ({nf0.format(op?.tempoMedioDescargaMin?.amostra ?? 0)} amostras)</span>
               <span className="num font-bold text-base">
                 {op?.tempoMedioDescargaMin?.media != null ? fmtDur(op.tempoMedioDescargaMin.media) : '—'}
               </span>
             </div>
             <div className="flex justify-between items-baseline border-b pb-2">
-              <span className="text-sm text-muted-foreground">Chapas por descarga</span>
+              <span className="text-sm text-muted-foreground">Chapas por descarga ({nf0.format(op?.chapasPorRecebimento?.amostra ?? 0)} amostras)</span>
               <span className="num font-bold text-base">
                 {op?.chapasPorRecebimento?.media != null ? nf1.format(op.chapasPorRecebimento.media) : '—'}
               </span>
             </div>
             <div className="flex justify-between items-baseline border-b pb-2">
-              <span className="text-sm text-muted-foreground">Custo total da operação</span>
+              <span className="text-sm text-muted-foreground">Custo da operação ({nf0.format(op?.custoDaOperacao?.boletins ?? 0)} boletins consistentes)</span>
               <span className="num font-bold text-base">
                 {op?.custoDaOperacao?.totalAPagar != null ? brl2(op.custoDaOperacao.totalAPagar) : '—'}
               </span>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Custo = produção ou piso mais complemento; não inclui encargos nem equipamentos. Chapas por descarga mede a intensidade daquela descarga, não o efetivo diário.
+            </p>
           </div>
         </PainelContainer>
 
         <PainelContainer>
           <SecTitulo className="text-[17px]">Não recebimentos por motivo</SecTitulo>
-          <p className="mt-1 mb-4 text-sm text-muted-foreground">Ocorrências registradas na cooperativa.</p>
+          <p className="mt-1 mb-4 text-sm text-muted-foreground">
+            Ocorrências no período e na origem selecionados. Não há armazém associado em todos os casos; por isso este indicador não é filtrado pelo armazém.
+          </p>
           <Barras itens={nrBarras} cor="verde" />
         </PainelContainer>
       </div>
 
-      {fornVolume.length > 0 && (
+      <div className="grid gap-6 lg:grid-cols-2">
         <PainelContainer>
-          <SecTitulo className="text-[17px]">Fornecedores com maior volume (Histórico)</SecTitulo>
-          <p className="mt-1 mb-4 text-sm text-muted-foreground">Total de recebimentos distintos em toda a base.</p>
-          <Barras itens={fornVolume} />
+          <SecTitulo className="text-[17px]">Descargas por dia e armazém</SecTitulo>
+          <p className="mt-1 mb-4 text-sm text-muted-foreground">
+            Cada linha representa um destino descarregado; um caminhão com dois destinos aparece duas vezes. Últimas 14 combinações no filtro.
+          </p>
+          {cargasPorDiaArm.length ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow><TableHead>Data de saída</TableHead><TableHead>Armazém</TableHead><TableHead className="text-right">Descargas</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {cargasPorDiaArm.map((r: { data: string; armazem: string; cargas: number }) => (
+                    <TableRow key={`${r.data}-${r.armazem}`}>
+                      <TableCell className="num">{fmtBR(r.data)}</TableCell>
+                      <TableCell>{r.armazem}</TableCell>
+                      <TableCell className="text-right num">{nf0.format(r.cargas)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : <Vazio>Sem descargas concluídas no filtro.</Vazio>}
         </PainelContainer>
-      )}
+
+        <PainelContainer>
+          <SecTitulo className="text-[17px]">Utilização observada por armazém</SecTitulo>
+          <p className="mt-1 mb-4 text-sm text-muted-foreground">
+            Descargas e horas entre entrada e saída. A Cocapec não definiu fórmula para um percentual de utilização.
+          </p>
+          {usoPorArmazem.length ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow><TableHead>Armazém</TableHead><TableHead className="text-right">Descargas</TableHead><TableHead className="text-right">Dias com movimento</TableHead><TableHead className="text-right">Horas ocupadas</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {usoPorArmazem.map((r: { armazem: string; cargas: number; diasComMovimento: number; horasOcupadas: number }) => (
+                    <TableRow key={r.armazem}>
+                      <TableCell className="font-semibold">{r.armazem}</TableCell>
+                      <TableCell className="text-right num">{nf0.format(r.cargas)}</TableCell>
+                      <TableCell className="text-right num">{nf0.format(r.diasComMovimento)}</TableCell>
+                      <TableCell className="text-right num">{nf1.format(r.horasOcupadas)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : <Vazio>Sem descargas concluídas no filtro.</Vazio>}
+        </PainelContainer>
+
+        <PainelContainer>
+          <SecTitulo className="text-[17px]">Horários de maior movimento</SecTitulo>
+          <p className="mt-1 mb-4 text-sm text-muted-foreground">Descargas concluídas por hora de entrada.</p>
+          {picosHora.length ? <Barras itens={picosHora} /> : <Vazio>Sem entradas registradas no filtro.</Vazio>}
+        </PainelContainer>
+
+        <PainelContainer>
+          <SecTitulo className="text-[17px]">Dias de maior movimento</SecTitulo>
+          <p className="mt-1 mb-4 text-sm text-muted-foreground">Descargas concluídas por dia da semana da saída.</p>
+          {picosDia.length ? <Barras itens={picosDia} /> : <Vazio>Sem descargas concluídas no filtro.</Vazio>}
+        </PainelContainer>
+
+        <PainelContainer>
+          <SecTitulo className="text-[17px]">Fornecedores com maior volume (plataforma)</SecTitulo>
+          <p className="mt-1 mb-4 text-sm text-muted-foreground">Descargas concluídas por fornecedor no período, armazém e origem selecionados.</p>
+          {fornecedoresOperacao.length ? <Barras itens={fornecedoresOperacao} /> : <Vazio>Sem descargas concluídas no filtro.</Vazio>}
+        </PainelContainer>
+
+        {fornVolume.length > 0 && (
+          <PainelContainer>
+            <SecTitulo className="text-[17px]">Fornecedores com maior volume (histórico)</SecTitulo>
+            <p className="mt-1 mb-4 text-sm text-muted-foreground">Recebimentos distintos em toda a base histórica, sem filtros de período ou armazém.</p>
+            <Barras itens={fornVolume} />
+          </PainelContainer>
+        )}
+      </div>
 
       {/* Dialog Ver Cálculo */}
       {detalheCalculo && (

@@ -11,47 +11,94 @@ const svg = (w,h,body) => `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="htt
 
 // Casos de uso UML: atores fora do sistema, elipses dentro do limite.
 {
-  let b = text(660,42,'Casos de uso — recebimento inteligente',26,700,'middle');
-  b += `<rect x="235" y="70" width="950" height="795" rx="18" fill="#f8fbfe" stroke="#4a6684" stroke-width="2"/>${text(260,101,'Sistema de recebimento inteligente',18,700)}`;
+  let b = text(790,42,'Casos de uso — recebimento inteligente',26,700,'middle');
+  b += `<rect x="230" y="62" width="1115" height="888" rx="18" fill="#f8fbfe" stroke="#4a6684" stroke-width="2"/>${text(255,905,'Sistema de recebimento inteligente',18,700)}`;
   const actor = (x,y,name) => `<circle cx="${x}" cy="${y}" r="15" fill="none" stroke="#233247" stroke-width="2"/><path d="M${x} ${y+15}v47 m-28 -25h56 m-28 25l-23 31 m23 -31l23 31" fill="none" stroke="#233247" stroke-width="2"/>${text(x,y+116,name,15,600,'middle')}`;
-  const uc = (x,y,label) => `<ellipse cx="${x}" cy="${y}" rx="145" ry="32" fill="#e6f1fa" stroke="#507090" stroke-width="2"/>${text(x,y+5,label,14,600,'middle')}`;
-  b += actor(100,130,'Fornecedor')+actor(100,390,'Compras')+actor(100,635,'Resp. armazém')+actor(1220,185,'Encarregado')+actor(1220,600,'Gestão');
-  const uses = [
-    [440,155,'Criar agendamento'],[760,155,'Anexar NFs'],[760,235,'Validar capacidade'],
-    [440,330,'Autorizar recebimento'],[760,330,'Conferir NF × pedido'],
-    [440,465,'Registrar descarga'],[760,465,'Marcos, chapas, equipamentos'],
-    [440,600,'Tratar cancelamento'],[760,600,'Reagendar caso fortuito'],
-    [440,735,'Registrar não recebimento'],[760,735,'Fechar boletim'],
-    [760,820,'Calcular piso e complemento'],[1010,685,'Consultar painel'],[1010,765,'Sobra/falta em R$']
-  ];
-  uses.forEach(u=>b+=uc(...u));
-  [[145,175,295,155],[145,435,295,330],[145,680,295,465],[145,710,295,600],[145,735,295,735],[1175,240,905,735],[1175,650,1140,685]].forEach(p=>b+=`<line x1="${p[0]}" y1="${p[1]}" x2="${p[2]}" y2="${p[3]}" stroke="#56708e" stroke-width="2"/>`);
-  [[585,155,615,155],[585,330,615,330],[585,465,615,465],[760,767,760,788],[1010,718,1010,733]].forEach(p=>b+=line(...p,'#56708e','5 4'));
-  b += text(600,145,'«include»',12,400,'middle')+text(600,318,'«include»',12,400,'middle')+text(600,453,'«include»',12,400,'middle')+text(837,787,'«include»',12,400)+text(1090,730,'«include»',12,400);
-  b += text(260,876,'Linhas contínuas: associação · setas tracejadas: inclusão · cancelamento e reagendamento: alternativas',13);
-  fs.writeFileSync(path.join(out,'caso-de-uso.svg'),svg(1320,900,b));
+  const uc = (x,y,label) => `<ellipse cx="${x}" cy="${y}" rx="150" ry="30" fill="#e6f1fa" stroke="#507090" stroke-width="2"/>${text(x,y+5,label,14,600,'middle')}`;
+  const assoc = (x1,y1,x2,y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#56708e" stroke-width="2"/>`;
+  const dep = (x1,y1,x2,y2,tipo,lx,ly) => line(x1,y1,x2,y2,'#56708e','5 4')+text(lx,ly,`«${tipo}»`,12,400,'middle');
+  b += actor(115,110,'Fornecedor')+actor(115,290,'Compras')+actor(115,450,'Porteiro')+actor(115,670,'Setor de Insumos');
+  b += actor(1475,140,'Resp. armazém')+actor(1475,500,'Encarregado')+actor(1475,730,'Diretoria');
+  [
+    [450,120,'Criar agendamento'],[450,200,'Pedir cancelamento/reagendamento'],
+    [450,320,'Autorizar recebimento'],
+    [450,470,'Conferir caminhão via QR'],[450,550,'Enviar documentos a Insumos'],
+    [450,700,'Validar e direcionar destinos'],[450,800,'Recusar recebimento'],
+    [820,95,'Anexar NF e acondicionamento'],[820,165,'Validar capacidade global'],
+    [820,320,'Conferir NF × pedido'],
+    [820,470,'Registrar chegada'],[820,570,'Perder agenda (atraso ≥ 30 min)'],
+    [820,700,'Criar descarga por destino'],[820,800,'Gravar não recebimento'],
+    [1170,100,'Registrar entrada e saída'],[1170,190,'Informar chapas e equipamentos'],
+    [1170,270,'Efetivar cancelamento e decidir vaga'],[1170,345,'Reagendar por caso fortuito'],
+    [1170,420,'Registrar não recebimento'],
+    [1170,510,'Lançar boletim do dia'],[1170,590,'Calcular piso e complemento'],
+    [1170,715,'Consultar painel'],[1170,795,'Analisar sobra/falta em R$'],[1170,880,'Perguntar aos dados']
+  ].forEach(u=>b+=uc(...u));
+  // Associações (ator — caso de uso)
+  b += assoc(145,150,300,120)+assoc(145,165,300,200);
+  b += assoc(145,335,300,320);
+  b += assoc(145,495,300,470)+assoc(145,510,300,550);
+  b += assoc(145,715,300,700)+assoc(145,730,300,800);
+  b += assoc(1445,180,1320,100)+assoc(1445,188,1320,270)+assoc(1445,196,1320,345)+assoc(1445,204,1320,420);
+  b += assoc(1445,545,1320,510);
+  b += assoc(1445,775,1320,715)+assoc(1445,790,1320,880);
+  // «include» e «extend»
+  b += dep(598,110,672,98,'include',635,86)+dep(598,130,672,160,'include',628,172);
+  b += dep(600,320,670,320,'include',635,308);
+  b += dep(600,470,670,470,'include',635,458);
+  b += dep(820,540,820,502,'extend',875,527);
+  b += dep(600,700,670,700,'include',635,688);
+  b += dep(600,800,670,800,'include',635,788);
+  b += dep(450,770,450,732,'extend',505,756);
+  b += dep(1170,130,1170,158,'include',1230,149);
+  b += dep(1170,540,1170,558,'include',1230,553);
+  b += dep(1170,745,1170,763,'include',1230,758);
+  b += text(255,940,'Linhas contínuas: associação · setas tracejadas: «include»/«extend». Regras e origem de cada uma em caso-de-uso.md.',13);
+  fs.writeFileSync(path.join(out,'caso-de-uso.svg'),svg(1580,975,b));
 }
 
-// BPMN compacto com raias, eventos, tarefas e gateways exclusivos.
+// BPMN com raias, eventos, tarefas e gateways exclusivos (processo proposto, T1 a T3).
 {
-  let b = text(760,42,'BPMN — processo proposto',26,700,'middle');
-  const lanes = [['Fornecedor',80,250],['Compras',330,145],['Armazém',475,260],['Chapas',735,150],['Gestão',885,145]];
-  lanes.forEach(([n,y,h],i)=>{b+=`<rect x="30" y="${y}" width="1460" height="${h}" fill="${i%2?'#f8fbfe':'#f1f6fa'}" stroke="#a1b2c4"/><rect x="30" y="${y}" width="155" height="${h}" fill="#e1ecf5" stroke="#a1b2c4"/>${text(108,y+h/2+5,n,17,700,'middle')}`});
+  let b = text(900,42,'BPMN — processo proposto',26,700,'middle');
+  const lanes = [['Fornecedor',70,170],['Compras',240,130],['Portaria',370,200],['Insumos',570,170],['Armazém',740,200],['Encarregado',940,130],['Gestão',1070,130]];
+  lanes.forEach(([n,y,h],i)=>{b+=`<rect x="30" y="${y}" width="1740" height="${h}" fill="${i%2?'#f8fbfe':'#f1f6fa'}" stroke="#a1b2c4"/><rect x="30" y="${y}" width="155" height="${h}" fill="#e1ecf5" stroke="#a1b2c4"/>${text(108,y+h/2+5,n,17,700,'middle')}`});
   const event=(x,y,label,end=false)=>`<circle cx="${x}" cy="${y}" r="22" fill="#fff" stroke="#42698d" stroke-width="${end?5:2}"/>${text(x,y+42,label,13,500,'middle')}`;
-  const gate=(x,y,label)=>`<path d="M${x} ${y-28}l28 28-28 28-28-28z" fill="#fff4d7" stroke="#9e7924" stroke-width="2"/>${text(x,y+5,'×',22,700,'middle')}${text(x,y+49,label,13,500,'middle')}`;
-  b+=event(225,182,'Início')+box(300,150,185,64,'Agendar + anexar NF')+gate(540,182,'Vaga?')+box(615,150,185,64,'Confirmar slot')+box(840,150,180,64,'Pedir cancelamento')+box(1070,150,180,64,'Pedir reagendamento');
-  b+=box(630,365,200,64,'Conferir NF × pedido')+gate(900,397,'Autoriza?');
-  b+=box(1010,540,190,64,'Definir destinos')+box(755,540,210,64,'Registrar chegada')+box(465,540,235,64,'Descarga por destino')+box(205,540,215,64,'Marcos + recursos')+event(1300,565,'Recebimento concluído',true);
-  b+=box(320,775,210,64,'Boletim dos 4 armazéns')+box(615,775,230,64,'Produção + equipe')+box(920,775,230,64,'Piso + complemento');
-  b+=box(395,925,250,64,'Filtrar período/armazém')+box(760,925,265,64,'Analisar sobra/falta R$')+event(1180,955,'Fim',true);
-  b+=box(1095,365,220,64,'Não recebimento', '#fff0ed')+box(1260,230,170,64,'Decidir vaga', '#fff4d7');
-  [[247,182,300,182],[485,182,512,182],[568,182,615,182],[720,215,720,365],[830,397,872,397],[928,397,1100,540],[1200,572,1278,572],[965,572,1010,572],[755,572,700,572],[465,572,420,572],[530,807,615,807],[845,807,920,807],[645,957,760,957],[1025,957,1158,957],[930,397,1095,397]].forEach(p=>b+=line(...p));
-  b+=`<path d="M540 210 V275 H1180 V365" fill="none" stroke="#56708e" stroke-width="2" marker-end="url(#arrow)"/>${text(566,265,'não: escolher outro slot ou registrar não recebimento',13)}`;
-  b+=`<path d="M310 605 V740 H425 V775" fill="none" stroke="#56708e" stroke-width="2" marker-end="url(#arrow)"/>`;
-  b+=`<path d="M1035 840 V900 H520 V925" fill="none" stroke="#56708e" stroke-width="2" marker-end="url(#arrow)"/>`;
-  b+=`<path d="M930 182 H840 M1250 182 H1350 V230" fill="none" stroke="#56708e" stroke-width="2" marker-end="url(#arrow)"/>`;
-  b+=text(190,1058,'Alternativas: cancelamento em duas etapas; reagendamento por caso fortuito registra histórico e pode exceder capacidade.',14);
-  fs.writeFileSync(path.join(out,'bpmn.svg'),svg(1520,1080,b));
+  const gate=(x,y,label,acima=false)=>`<path d="M${x} ${y-28}l28 28-28 28-28-28z" fill="#fff4d7" stroke="#9e7924" stroke-width="2"/>${text(x,y+5,'×',22,700,'middle')}${text(x,acima?y-38:y+49,label,13,500,'middle')}`;
+  const t = (x,y,w,label,fill) => box(x,y-28,w,56,label,fill);
+  const nr = '#fff0ed', alt = '#fff4d7';
+  const seta = (pts) => `<path d="M${pts}" fill="none" stroke="#56708e" stroke-width="2" marker-end="url(#arrow)"/>`;
+  const rot = (x,y,s) => text(x,y,s,13,600,'middle','#42698d');
+
+  // Fornecedor
+  b+=event(225,155,'Início')+t(275,155,265,'Agendar: NF + acondicionamento')+gate(600,155,'Vaga no horário?')+t(665,155,170,'Horário reservado');
+  b+=line(247,155,275,155)+line(540,155,572,155)+line(628,155,665,155)+rot(646,146,'sim');
+  b+=seta('600 127 V92 H407 V127')+rot(503,86,'não: outro horário');
+  b+=t(1400,155,330,'Pedir cancelamento ou reagendamento',alt);
+  // Compras
+  b+=line(750,183,750,277)+t(650,305,200,'Conferir NF × pedido')+gate(905,305,'Autoriza?',true)+line(850,305,877,305);
+  b+=line(933,305,980,305)+rot(956,296,'não')+t(980,305,265,'Não recebimento: divergência',nr)+line(1245,305,1273,305)+event(1295,305,'Vaga liberada',true);
+  // Portaria
+  b+=line(905,333,905,402)+rot(920,375,'sim');
+  b+=t(700,430,360,'QR: conferir caminhão e registrar chegada')+line(1060,430,1097,430)+gate(1125,430,'Atraso ≥ 30 min?',true);
+  b+=line(1153,430,1190,430)+rot(1171,421,'sim')+t(1190,430,260,'Não recebimento por atraso',nr)+line(1450,430,1483,430)+event(1505,430,'Agenda perdida',true);
+  b+=line(1125,458,1125,492)+rot(1140,480,'não')+t(985,520,280,'Anexar NFs e enviar a Insumos');
+  // Insumos
+  b+=line(1125,548,1125,592)+t(980,620,290,'Conferir documentos das NFs')+line(980,620,908,620)+gate(880,620,'Aprova?',true);
+  b+=line(852,620,780,620)+rot(816,611,'sim')+t(480,620,300,'Direcionar a 1–4 armazéns');
+  b+=line(880,648,880,677)+rot(895,668,'não')+t(760,705,250,'Não recebimento: recusa',nr)+line(1010,705,1038,705)+event(1060,705,'Recusado',true);
+  // Armazém (uma descarga por destino)
+  b+=line(630,648,630,772)+t(500,800,290,'Entrada: início da descarga')+line(500,800,450,800);
+  b+=t(195,800,255,'Saída + chapas + equipamentos')+line(322,828,322,868)+event(322,890,'Descarga concluída',true);
+  b+=line(1565,183,1565,772)+t(1400,800,330,'Efetivar cancelamento ou reagendar',alt)+line(1565,828,1565,868)+event(1565,890,'Vaga decidida pelo armazém',true);
+  // Encarregado (boletim, dia seguinte)
+  b+=event(225,1005,'Dia seguinte')+line(247,1005,290,1005)+t(290,1005,270,'Boletim do dia (4 armazéns)')+line(560,1005,600,1005);
+  b+=t(600,1005,310,'Produção + equipe (completa/meia)')+line(910,1005,960,1005)+t(960,1005,240,'Piso + complemento');
+  // Gestão
+  b+=line(1080,1033,1080,1107)+t(950,1135,270,'Painel por período e armazém')+line(1220,1135,1270,1135);
+  b+=t(1270,1135,290,'Sobra/falta de chapas em R$')+line(1560,1135,1608,1135)+event(1630,1135,'Fim',true);
+  b+=text(40,1228,'Exceções: caminhão sem agendamento entra só se houver vaga e for agendado na hora; sem vaga, Portaria ou Armazém registram não recebimento (também caso fortuito ou outro).',14);
+  b+=text(40,1252,'Atraso: tolerância de 15 min, aviso de 16 a 29 min, perda da agenda a partir de 30 min (esclarecimento da Cocapec registrado pela equipe). Reagendamento por caso fortuito pode exceder o limite do horário.',14);
+  fs.writeFileSync(path.join(out,'bpmn.svg'),svg(1800,1270,b));
 }
 
 // DER (migrações V1–V16): cartões com PK/FK e arestas ortogonais que correm pelos corredores

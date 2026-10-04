@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { motion } from 'motion/react'
 import { Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/label'
@@ -37,7 +36,7 @@ function CartaoCompras({ a }: { a: Agendamento }) {
   }
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }} className="grid min-w-0 gap-3.5 rounded-[14px] border border-l-[5px] bg-card p-[18px]" style={{ borderLeftColor: ACOND[a.acond].cor }}>
+    <div className="grid min-w-0 gap-3.5 rounded-xl border border-l-[5px] bg-card p-5" style={{ borderLeftColor: ACOND[a.acond].cor }}>
       <div className="flex flex-wrap items-start justify-between gap-x-3.5 gap-y-1.5">
         <div>
           <h3 className="text-[17px]">{f.nome}</h3>
@@ -60,7 +59,7 @@ function CartaoCompras({ a }: { a: Agendamento }) {
           <Button variant="danger" disabled={ocupado} onClick={() => void decidir('NAO_AUTORIZADO')}><X /> Não autorizar</Button>
         </div>
       )}
-    </motion.div>
+    </div>
   )
 }
 

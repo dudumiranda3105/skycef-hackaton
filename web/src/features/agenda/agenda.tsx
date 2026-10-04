@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'motion/react'
 import { ChevronLeft, ChevronRight, Plus, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/input'
@@ -164,7 +163,7 @@ export function Agenda() {
         <Button size="sm" variant="outline" onClick={() => setSemana(semanaAtual())}>Semana atual</Button>
       </div>
 
-      <motion.div key={semana} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="scroll-thin overflow-x-auto rounded-2xl border bg-card" role="region" aria-label="Grade de horários da semana" tabIndex={0}>
+      <div className="scroll-thin overflow-x-auto rounded-xl border bg-card shadow-sm" role="region" aria-label="Grade de horários da semana" tabIndex={0}>
         <div className="grid min-w-[960px] grid-cols-[64px_repeat(5,minmax(168px,1fr))]">
           <div className="border-b bg-secondary" />
           {dias.map((d) => {
@@ -185,7 +184,7 @@ export function Agenda() {
             </div>
           ))}
         </div>
-      </motion.div>
+      </div>
       <div className="my-3 flex flex-wrap gap-x-[18px] gap-y-1.5 px-0.5 text-[13px] text-muted-foreground">
         {(Object.keys(ACOND) as (keyof typeof ACOND)[]).map((k) => (
           <span key={k} className="inline-flex items-center gap-1.5">

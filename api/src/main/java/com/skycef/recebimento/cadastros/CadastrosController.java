@@ -24,7 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api")
 public class CadastrosController {
     public record FornecedorIn(@NotBlank @Size(max = 200) String razaoSocial,
-                               @Pattern(regexp = "[0-9]{14}") String cnpj) { }
+                               @NotBlank @Pattern(regexp = "[0-9]{14}") String cnpj) { }
     public record FornecedorOut(long id, String razaoSocial, String cnpj) { }
     public record ArmazemOut(int id, String codigo, String nome) { }
     public record EquipamentoOut(int id, int armazemId, String identificacao, String tipo, String observacao) { }
@@ -45,13 +45,12 @@ public class CadastrosController {
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
     public FornecedorOut cadastrar(@Valid @RequestBody FornecedorIn corpo) {
-        if (corpo.cnpj() != null) {
-            Integer existentes = db.queryForObject("select count(*) from fornecedor where cnpj = ?", Integer.class,
-                    corpo.cnpj());
-            if (existentes != null && existentes > 0) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Já existe um fornecedor cadastrado com este CNPJ.");
-            }
+        if (!cnpjValido(corpo.cnpj())) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Informe um CNPJ válido com 14 dígitos.");
+        }
+        Integer existentes = db.queryForObject("select count(*) from fornecedor where cnpj = ?", Integer.class, corpo.cnpj());
+        if (existentes != null && existentes > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Já existe um fornecedor cadastrado com este CNPJ.");
         }
         try {
             return db.queryForObject("insert into fornecedor (razao_social, cnpj) values (?, ?) "
@@ -61,6 +60,19 @@ public class CadastrosController {
         } catch (DuplicateKeyException erro) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Fornecedor já cadastrado.", erro);
         }
+    }
+
+    private static boolean cnpjValido(String cnpj) {
+        if (cnpj == null || !cnpj.matches("[0-9]{14}") || cnpj.chars().distinct().count() == 1) return false;
+        int[] pesos1 = {5,4,3,2,9,8,7,6,5,4,3,2};
+        int[] pesos2 = {6,5,4,3,2,9,8,7,6,5,4,3,2};
+        int soma = 0;
+        for (int i = 0; i < 12; i++) soma += (cnpj.charAt(i) - '0') * pesos1[i];
+        int d1 = soma % 11 < 2 ? 0 : 11 - soma % 11;
+        soma = 0;
+        for (int i = 0; i < 13; i++) soma += (cnpj.charAt(i) - '0') * pesos2[i];
+        int d2 = soma % 11 < 2 ? 0 : 11 - soma % 11;
+        return cnpj.charAt(12) - '0' == d1 && cnpj.charAt(13) - '0' == d2;
     }
 
     @GetMapping("/armazens")

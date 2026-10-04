@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Callout, Erros, SecTitulo } from '@/components/comum'
 import { ACOND, MAX_UNITIZADOS, SLOTS } from '@/lib/constants'
 import { GET, POST, errTxt, mapFornecedor, qs, upload } from '@/lib/api'
-import { fmtCnpj, fmtNF, hojeISO, nfValida, nowLocal, fmtDM } from '@/lib/format'
+import { cnpjValido, fmtCnpj, fmtNF, hojeISO, nfValida, nowLocal, fmtDM } from '@/lib/format'
 import { chaveValida, lerNota, type NotaLida } from '@/lib/nf'
 import { avisar, useDados } from '@/lib/store'
 import { useJanelas } from '@/lib/janelas'
@@ -150,9 +150,9 @@ export function NovoAgendamento({
   async function cadastrarForn() {
     const cnpj = cnpjNovo.replace(/\D/g, '')
     if (!razao.trim()) return setErros(['Informe a razão social do fornecedor.'])
-    if (cnpj && cnpj.length !== 14) return setErros(['O CNPJ precisa ter 14 dígitos.'])
+    if (!cnpjValido(cnpj)) return setErros(['Informe um CNPJ válido com 14 dígitos.'])
     try {
-      const f = mapFornecedor(await POST('/api/fornecedores', cnpj ? { razaoSocial: razao.trim(), cnpj } : { razaoSocial: razao.trim() }))
+      const f = mapFornecedor(await POST('/api/fornecedores', { razaoSocial: razao.trim(), cnpj }))
       setForn([...forn, f].sort((a, b) => a.nome.localeCompare(b.nome)))
       setFornTxt(opcaoForn(f))
       setErros([])
@@ -186,7 +186,7 @@ export function NovoAgendamento({
     if (new Set(nums).size !== nums.length) e.push('Há notas fiscais repetidas nesta entrega.')
     if (efetivas.some((n) => n.pendente)) e.push('Confirme (ou descarte) os dados lidos da nota fiscal antes de agendar.')
     if (efetivas.some((n) => n.chave && !chaveValida(n.chave))) e.push('A chave de acesso informada não é válida (44 dígitos com dígito verificador). Corrija ou deixe em branco.')
-    if (efetivas.some((n) => n.arquivo && !/\.(xml|pdf)$/i.test(n.arquivo.name))) e.push('Os anexos precisam ser .xml ou .pdf.')
+    if (efetivas.some((n) => n.arquivo && !/\.(xml|pdf|jpe?g|png|webp)$/i.test(n.arquivo.name))) e.push('Os anexos precisam ser XML, PDF, JPG, PNG ou WebP.')
     if (efetivas.some((n) => n.arquivo && n.arquivo.size > 10 * 1024 * 1024)) e.push('Cada anexo pode ter no máximo 10 MB.')
     if (!acond) e.push('Escolha o acondicionamento.')
     if (!data) e.push('Escolha a data.')
@@ -276,7 +276,7 @@ export function NovoAgendamento({
             <summary className="cursor-pointer text-[13.5px] text-muted-foreground">Fornecedor não está na lista? Cadastrar</summary>
             <div className="mt-2 grid gap-3.5 sm:grid-cols-2">
               <Field label="Razão social"><Input value={razao} maxLength={200} onChange={(e) => setRazao(e.target.value)} /></Field>
-              <Field label="CNPJ" hint="14 dígitos, opcional"><Input value={cnpjNovo} inputMode="numeric" maxLength={18} onChange={(e) => setCnpjNovo(e.target.value)} /></Field>
+              <Field label="CNPJ *" hint="14 dígitos válidos"><Input required value={cnpjNovo} inputMode="numeric" maxLength={18} onChange={(e) => setCnpjNovo(e.target.value)} /></Field>
             </div>
             <Button size="sm" variant="outline" className="mt-2" onClick={() => void cadastrarForn()}>Cadastrar e selecionar</Button>
           </details>
@@ -284,7 +284,7 @@ export function NovoAgendamento({
           <div className="grid gap-2">
             <div>
               <SecTitulo>Notas fiscais da entrega</SecTitulo>
-              <p className="text-[12.5px] text-muted-foreground">Número da NF no padrão de 4 dígitos: 524 vira 0524. Se anexar o XML ou o PDF da nota, o sistema sugere os dados para você confirmar.</p>
+              <p className="text-[12.5px] text-muted-foreground">Número da NF no padrão de 4 dígitos: 524 vira 0524. XML e PDF sugerem os dados; uma foto fica anexada para o setor de Insumo conferir e distribuir ao armazém.</p>
             </div>
             {linhas.map((l) => (
               <div key={l.uid} className="grid gap-2">
@@ -297,7 +297,7 @@ export function NovoAgendamento({
                     disabled={!!l.lido && l.confirmado}
                   />
                   <input
-                    type="file" accept=".xml,.pdf" aria-label="Arquivo da NF (XML ou PDF, até 10 MB)"
+                    type="file" accept=".xml,.pdf,image/jpeg,image/png,image/webp" capture="environment" aria-label="Arquivo da NF (XML, PDF ou foto, até 10 MB)"
                     className="min-w-0 rounded-lg border border-input bg-card px-2 py-1.5 text-[13px] file:mr-2 file:cursor-pointer file:rounded-md file:border-0 file:bg-secondary file:px-2.5 file:py-1 file:text-[13px]"
                     onChange={(e) => void aoEscolherArquivo(l.uid, e.target.files?.[0] ?? null)}
                   />

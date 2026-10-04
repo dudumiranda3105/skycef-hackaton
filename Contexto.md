@@ -181,7 +181,7 @@ Decisões: sem `armazem_id` em Agendamento (destinos = descargas); sem entidade 
 - **Anexo da NF:** `.pdf`/`.xml` até 10 MB, tipo definido pela extensão (não pelo cliente); XML lido com `defusedxml` (sem DTD/entidades). Nas 460 NF-e do pacote, 29 não têm peso bruto (usa-se o líquido quando existe) e há 458 chaves distintas em 460 arquivos.
 - **Equipamentos:** 19 unidades individuais (`INS-EMPG-01` etc.), geradas por nós; Loja tem 1 unidade provisória (a Cocapec não informou a quantidade).
 - **Origem do dado:** `PLATAFORMA`, `TESTE` ou `HISTORICO`.
-- **Chapas (T2):** o identificador é o `CHAPA_nn` da folha (51 cadastrados via `app.etl.chapas`). O boletim de exemplo usa matrículas numéricas, mas só há correspondência conhecida para 15 pares (tabela na própria planilha). Preços do boletim conferidos no `boletim_diario_chapas.xlsx` (Sementes 0,3224; Alimentação animal 0,3387). Dinheiro do boletim em 4 casas, arredondando só na exibição; sem equipe = `INCONSISTENTE`. Guia: `docs/GUIA-TAREFA2.md`.
+- **Chapas (T2):** o identificador é o `CHAPA_nn` da folha (51 cadastrados via `app.etl.chapas`). O boletim de exemplo usa matrículas numéricas; a própria planilha traz correspondências parciais com os identificadores da folha, e nem todas as matrículas do exemplo aparecem na folha de 2025/2026. Preços do boletim conferidos no `boletim_diario_chapas.xlsx` (Sementes 0,3224; Alimentação animal 0,3387). Dinheiro do boletim em 4 casas, arredondando só na exibição; sem equipe = `INCONSISTENTE`. Guia: `docs/GUIA-TAREFA2.md`.
 
 ## 7. Tarefa 3 — Painel gerencial
 

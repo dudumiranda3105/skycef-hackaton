@@ -58,8 +58,8 @@ Resposta: linhas com `quantidadeTotal` e `valor`, `producaoTotal`, `diariasEquiv
 
 - A planilha `boletim_diario_chapas.xlsx` **confirma a tabela de preços**, inclusive Sementes = 0,3224 e Alimentação animal =
   0,3387 (o `Contexto.md` marcava dúvida). As fórmulas dela são exatamente as do dossiê (`J64`, `J65`, `J66`).
-- O boletim de exemplo usa **matrículas numéricas** (158, 137...) e a folha só tem `CHAPA_nn`. Só 12 pares têm
-  correspondência conhecida (tabela na própria planilha). Por isso o identificador na plataforma é o `CHAPA_nn`.
+- O boletim de exemplo usa **matrículas numéricas** (158, 137...) e a folha só tem `CHAPA_nn`. A própria planilha traz
+  correspondências parciais com os identificadores da folha. Por isso o identificador na plataforma é o `CHAPA_nn`.
 - **4 dos 15 chapas da tabela do boletim não aparecem na folha** de 2025/2026 (entre eles `CHAPA_48` e `CHAPA_49`, que
   fazem parte da equipe do exemplo); o ETL os cadastra a partir da planilha do boletim. O total cadastrado é 51.
 - A folha tem 47 chapas distintos (41 em 2025, 17 em 2026) e não há registro de agosto e dezembro de 2025.

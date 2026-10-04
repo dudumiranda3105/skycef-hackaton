@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Shell } from '@/components/shell'
 import { JanelasGlobais } from '@/features/checkin/janelas'
@@ -64,8 +63,23 @@ function TelaAutenticada() {
     return (
       <div className="fixed inset-0 grid place-items-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground font-medium">Carregando Recebimento Inteligente…</p>
+          <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden className="shrink-0 opacity-90">
+            <defs>
+              <linearGradient id="llg1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#d4a017" /><stop offset="100%" stopColor="#e8b830" />
+              </linearGradient>
+              <linearGradient id="llg2" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#1a6b3c" /><stop offset="100%" stopColor="#2e7d32" />
+              </linearGradient>
+              <linearGradient id="llg3" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#1a6b3c" /><stop offset="100%" stopColor="#3a8a40" />
+              </linearGradient>
+            </defs>
+            <rect x="4" y="6" width="32" height="8" rx="3" fill="url(#llg1)" />
+            <rect x="4" y="16" width="32" height="8" rx="3" fill="url(#llg2)" />
+            <rect x="4" y="26" width="32" height="8" rx="3" fill="url(#llg3)" />
+          </svg>
+          <p className="text-sm text-muted-foreground font-medium">Carregando…</p>
         </div>
       </div>
     )

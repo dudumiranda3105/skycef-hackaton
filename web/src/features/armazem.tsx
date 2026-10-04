@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { motion } from 'motion/react'
 import { Loader2, ScanLine, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -56,7 +55,7 @@ function CartaoDestinos({ a }: { a: Agendamento }) {
     }
   }
   return (
-    <motion.div layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="grid min-w-0 gap-3.5 rounded-[14px] border border-l-[5px] bg-card p-[18px]" style={{ borderLeftColor: ACOND[a.acond].cor }}>
+    <div className="grid min-w-0 gap-3.5 rounded-xl border border-l-[5px] bg-card p-5" style={{ borderLeftColor: ACOND[a.acond].cor }}>
       <div className="flex flex-wrap items-start justify-between gap-x-3.5 gap-y-1.5">
         <div>
           <h3 className="text-[17px]">{f.nome}</h3>
@@ -84,7 +83,7 @@ function CartaoDestinos({ a }: { a: Agendamento }) {
         <Button disabled={ocupado} onClick={() => void criar()}>{ocupado && <Loader2 className="animate-spin" />}Criar descargas</Button>
         {!a.chegadaEm && <Button variant="outline" onClick={() => void chegou()}><Truck /> Caminhão chegou agora</Button>}
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -148,7 +147,7 @@ function CartaoDescarga({ ag, d }: { ag: Agendamento; d: Descarga }) {
   }
 
   return (
-    <div className="grid min-w-0 gap-3.5 rounded-[14px] border border-l-[5px] bg-card p-[18px]" style={{ borderLeftColor: ACOND[ag.acond].cor }}>
+    <div className="grid min-w-0 gap-3.5 rounded-xl border border-l-[5px] bg-card p-5" style={{ borderLeftColor: ACOND[ag.acond].cor }}>
       <div className="flex flex-wrap items-start justify-between gap-x-3.5 gap-y-1.5">
         <div>
           <h3 className="text-[17px]">{fornById(ag.fornecedorId).curto} → {d.armazem}</h3>
@@ -205,7 +204,7 @@ export function Armazem() {
   const fila = abertas.filter(({ d }) => d.chegada && !d.entrada).length
   const emDesc = abertas.filter(({ d }) => d.entrada).length
   const kpi = (r: string, v: number) => (
-    <div className="grid gap-0.5 rounded-[14px] border bg-card px-[18px] py-4"><span className="text-[13.5px] text-muted-foreground">{r}</span><span className="num font-display text-[28px] leading-tight font-bold">{v}</span></div>
+    <div className="grid gap-1 rounded-xl border bg-card px-4 py-4"><span className="text-[13px] text-muted-foreground">{r}</span><span className="num text-[clamp(24px,4vw,36px)] leading-tight font-bold">{v}</span></div>
   )
   return (
     <div>

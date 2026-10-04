@@ -1,5 +1,5 @@
-import { useMemo, type PointerEvent } from 'react'
-import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
+import { useMemo } from 'react'
+import { motion } from 'motion/react'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { OrigemBadge } from '@/components/comum'
@@ -18,35 +18,24 @@ function Cartao({
 }: { secao: Secao; cor: string; grande: string; sub: string; origem: string }) {
   const { ir } = useRota()
   const Icone = ICONES[secao]
-  const mx = useMotionValue(0)
-  const my = useMotionValue(0)
-  const rx = useSpring(useTransform(my, [-0.5, 0.5], [9, -9]), { stiffness: 220, damping: 20 })
-  const ry = useSpring(useTransform(mx, [-0.5, 0.5], [-11, 11]), { stiffness: 220, damping: 20 })
-  const mover = (e: PointerEvent<HTMLButtonElement>) => {
-    const r = e.currentTarget.getBoundingClientRect()
-    mx.set((e.clientX - r.left) / r.width - 0.5)
-    my.set((e.clientY - r.top) / r.height - 0.5)
-  }
   return (
     <motion.button
       onClick={() => ir(secao)}
-      onPointerMove={mover}
-      onPointerLeave={() => {
-        mx.set(0)
-        my.set(0)
-      }}
-      style={{ rotateX: rx, rotateY: ry, transformPerspective: 900, borderTopColor: cor }}
-      whileHover={{ y: -3 }}
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="grid cursor-pointer content-start gap-1.5 rounded-2xl border border-t-4 bg-card p-[18px] text-left shadow-xs hover:shadow-xl"
+      whileHover={{ scale: 1.02 }}
+      transition={{ duration: 0.2 }}
+      className="grid cursor-pointer content-start gap-2 rounded-xl border bg-card p-5 text-left shadow-sm hover:shadow-lg active:scale-[0.98]"
+      style={{ borderLeft: `4px solid ${cor}` }}
     >
-      <span className="grid size-[38px] place-items-center rounded-[10px]" style={{ background: `color-mix(in srgb, ${cor} 14%, var(--card))`, color: cor }}>
-        <Icone className="size-5" />
+      <span className="flex items-center gap-2.5">
+        <span className="grid size-9 place-items-center rounded-lg" style={{ background: `color-mix(in srgb, ${cor} 14%, var(--card))`, color: cor }}>
+          <Icone className="size-[18px]" />
+        </span>
+        <span className="text-sm font-semibold text-muted-foreground">{SECAO_ROTULO[secao]}</span>
       </span>
-      <span className="mt-1 font-display text-[17px] font-bold">{SECAO_ROTULO[secao]}</span>
-      <span className="num font-display text-[26px] leading-tight font-bold whitespace-nowrap">{grande}</span>
-      <span className="min-h-14 text-[13px] leading-snug text-muted-foreground">{sub}</span>
+      <span className="num text-[clamp(24px,4vw,36px)] leading-tight font-bold tracking-tight">{grande}</span>
+      <span className="text-[13px] leading-snug text-muted-foreground">{sub}</span>
       <OrigemBadge origem={origem} />
     </motion.button>
   )
@@ -88,7 +77,7 @@ export function Home() {
   if (erro && !carregado) {
     return (
       <div className="grid gap-4">
-        <h1 className="text-[clamp(30px,4vw,44px)]">Recebimento Inteligente</h1>
+        <h1 className="text-[clamp(26px,3.6vw,38px)]">Recebimento Inteligente</h1>
         <div className="flex flex-wrap items-center gap-3 rounded-xl border-l-4 border-destructive bg-danger-soft p-3.5 text-sm">
           {erro}
           <Button size="sm" variant="outline" onClick={() => void carregarTudo()}>Tentar de novo</Button>
@@ -106,49 +95,51 @@ export function Home() {
 
   return (
     <div>
-      <section className="mb-8 grid items-center gap-x-10 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,440px)]">
+      <section className="mb-6 grid items-center gap-x-8 gap-y-4 lg:grid-cols-[minmax(0,1fr)_minmax(240px,400px)]">
         <div>
-          <div className="flex items-center gap-2">
-            <Logo3D tamanho={92} className="!w-[92px] shrink-0" />
-            <h1 className="text-[clamp(30px,4vw,44px)]">Recebimento Inteligente</h1>
+          <div className="flex items-center gap-2.5">
+            <Logo3D tamanho={80} className="!w-10" />
+            <div>
+              <span className="text-[11.5px] text-muted-foreground font-semibold tracking-wider">COCAPEC</span>
+              <h1 className="text-[clamp(24px,3.6vw,38px)] font-bold">Recebimento Inteligente</h1>
+            </div>
           </div>
           <p className="mt-2.5 max-w-[52ch] text-muted-foreground">
             Agende o caminhão, receba no armazém, feche o boletim da equipe e veja o que isso significa em reais.
-            Escolha uma seção no menu ao lado.
           </p>
         </div>
         {pode('painel') ? (
-          <div className="grid gap-2 rounded-[18px] bg-sidebar p-6 text-sidebar-foreground shadow-[0_26px_40px_-28px_rgba(8,47,99,.6)]">
-            <small className="text-[13px] opacity-75">A pergunta da direção</small>
-            <b className="font-display text-[19px] leading-tight">Quanto foi pago em complemento de diária?</b>
+          <div className="grid gap-2 rounded-xl bg-primary/8 p-5 border-l-4 border-primary">
+            <small className="text-[12.5px] opacity-70">A pergunta da direção</small>
+            <b className="text-[17px] leading-tight font-semibold">Quanto foi pago em complemento de diária?</b>
             {boletinsPlataforma.length ? (
               <>
-                <span className="num font-display text-[38px] leading-none font-bold text-accent">{brl0(complementoPlataforma)}</span>
+                <span className="num text-[clamp(28px,3.6vw,40px)] leading-none font-bold" style={{ color: 'var(--accent)' }}>{brl0(complementoPlataforma)}</span>
                 <span className="num text-[13px]">{nf0.format(boletinsPlataforma.length)} boletins consistentes · PLATAFORMA e TESTE</span>
               </>
             ) : (
-              <span className="font-display text-[17px] font-semibold">Nenhum boletim da plataforma registrado</span>
+              <span className="text-[17px] font-semibold">Nenhum boletim da plataforma registrado</span>
             )}
-            <small className="text-[13px] opacity-75">
+            <small className="text-[12.5px] opacity-70">
               {R
                 ? `Histórico ${mLabel(R.de)}–${mLabel(R.ate)}: folga ${brl0(R.totais.sobraReais)} e pressão ${brl0(R.totais.faltaReais)} são estimativas relativas, não complemento efetivamente pago nem recomendação de escala.`
                 : 'O painel separa o complemento efetivamente registrado da estimativa histórica de equipe e demanda.'}
             </small>
-            <Button variant="accent" className="mt-1 justify-self-start" onClick={() => ir('painel')}>
+            <Button variant="outline" className="mt-1 justify-self-start" onClick={() => ir('painel')}>
               Ver os números e as fontes <ArrowRight />
             </Button>
           </div>
         ) : (
-          <div className="grid gap-2 rounded-[18px] bg-sidebar p-6 text-sidebar-foreground">
-            <small className="text-[13px] opacity-75">Bem-vindo</small>
-            <b className="font-display text-[19px] leading-tight">{eu?.nome}</b>
-            <span className="font-display text-[17px] font-semibold">{eu && PAPEL_ROTULO[eu.papel]}</span>
-            <small className="text-[13px] opacity-75">{dica}</small>
+          <div className="grid gap-2 rounded-xl bg-card/80 p-5 border border-border/60">
+            <small className="text-[12.5px] opacity-70">Bem-vindo</small>
+            <b className="text-[17px] leading-tight font-semibold">{eu?.nome}</b>
+            <span className="text-[15px] font-semibold">{eu && PAPEL_ROTULO[eu.papel]}</span>
+            <small className="text-[12.5px] opacity-70">{dica}</small>
           </div>
         )}
       </section>
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
         {pode('agenda') && (
           <Cartao secao="agenda" cor="var(--brand-blue)" grande={nf0.format(num.semana)} sub={`entregas na semana · ${num.pend} aguardando Compras`} origem={origPlat} />
         )}
@@ -156,32 +147,32 @@ export function Home() {
           <Cartao secao="compras" cor="var(--brand-green)" grande={nf0.format(num.pend)} sub={num.pend === 1 ? 'entrega aguardando validação' : 'entregas aguardando validação'} origem={origPlat} />
         )}
         {pode('armazem') && (
-          <Cartao secao="armazem" cor="#c98f00" grande={nf0.format(num.semDest + num.fila + num.emDesc)} sub={`${num.semDest} sem destino · ${num.fila} na fila · ${num.emDesc} em descarga`} origem={origPlat} />
+          <Cartao secao="armazem" cor="#b8860b" grande={nf0.format(num.semDest + num.fila + num.emDesc)} sub={`${num.semDest} sem destino · ${num.fila} na fila · ${num.emDesc} em descarga`} origem={origPlat} />
         )}
         {pode('boletim') && (
           <Cartao
             secao="boletim"
             cor="var(--brand-green)"
             grande={ult ? brl4(ult.total || ult.producao) : '—'}
-            sub={ult ? `último: ${ult.armazem}, ${fmtDM(ult.data)} · ${nf0.format(bols.length)} boletins salvos` : 'nenhum boletim salvo ainda'}
+            sub={ult ? `último: ${ult.armazem}, ${fmtDM(ult.data)} · ${nf0.format(bols.length)} boletins` : 'nenhum boletim salvo'}
             origem={ult ? ult.origem : origPlat}
           />
         )}
         {pode('painel') && (
-          <Cartao secao="painel" cor="var(--brand-blue)" grande={R ? `${nf1.format(Number(R.menor.d))} dia.` : '—'} sub="diárias de saldo histórico estimado; não é recomendação de escala" origem="HISTORICO" />
+          <Cartao secao="painel" cor="var(--brand-blue)" grande={R ? `${nf1.format(Number(R.menor.d))} dia.` : '—'} sub="diárias de saldo histórico estimado" origem="HISTORICO" />
         )}
         {pode('d1') && (
-          <Cartao secao="d1" cor="var(--brand-green)" grande={nf0.format(num.d1)} sub="entregas previstas para o próximo dia operacional, com nível de pressão e simulador de equipe" origem={origPlat} />
+          <Cartao secao="d1" cor="var(--brand-green)" grande={nf0.format(num.d1)} sub="entregas previstas para o próximo dia operacional" origem={origPlat} />
         )}
         {pode('perguntar') && (
-          <Cartao secao="perguntar" cor="#c98f00" grande="?" sub="faça perguntas em linguagem natural; a resposta traz número, período, filtros e origem" origem="PLATAFORMA" />
+          <Cartao secao="perguntar" cor="#b8860b" grande="?" sub="faça perguntas em linguagem natural" origem="PLATAFORMA" />
         )}
         {pode('qualidade') && (
-          <Cartao secao="qualidade" cor="var(--brand-blue)" grande={nf0.format(INCONSISTENCIAS_HIST.length)} sub="tratamentos documentados nos dados, com a fonte e as limitações de cada indicador" origem="HISTORICO" />
+          <Cartao secao="qualidade" cor="var(--brand-blue)" grande={nf0.format(INCONSISTENCIAS_HIST.length)} sub="tratamentos documentados nos dados" origem="HISTORICO" />
         )}
         {pode('usuarios') && <Cartao secao="usuarios" cor="var(--brand-blue)" grande="Acesso" sub="quem pode entrar e com qual perfil" origem="PLATAFORMA" />}
       </div>
-      <div className="mt-5 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[13px] text-muted-foreground">
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
         <span>Origem dos números:</span>
         <OrigemBadge origem="HISTORICO" /> pacote de dados da Cocapec
         <OrigemBadge origem="PLATAFORMA" /> registrado no sistema

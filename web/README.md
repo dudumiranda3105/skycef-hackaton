@@ -2,7 +2,7 @@
 
 Interface web moderna desenvolvida para o **Skycef — Recebimento Inteligente (Cocapec)** no Hackathon Uni-FACEF 2026.
 
-Construída com **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, **Motion**, **Three.js** e componentes de design system acessíveis.
+Construída com **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, **Motion** e componentes de design system acessíveis. Os gráficos de colunas são SVG e continuam legíveis sem WebGL.
 
 ---
 
@@ -49,7 +49,7 @@ web/
 │   │   ├── ui/               # Botões, diálogos, tabelas, tabs, sheets, badges
 │   │   ├── comum.tsx         # Componentes base da aplicação (Painel, Cartao, etc.)
 │   │   ├── shell.tsx         # Layout principal com menu lateral, navegação e cabeçalho
-│   │   └── graficos3d.tsx    # Gráficos e visualizações 3D em Three.js
+│   │   └── charts/cena3d.tsx  # Gráficos SVG e logotipo
 │   ├── features/             # Módulos e telas por domínio
 │   │   ├── agenda/           # Tarefa 1: Novo agendamento (leitura de NF), detalhes, reagendamento
 │   │   ├── compras.tsx       # Tarefa 1: Validação, aprovação e recusa de agendamentos por Compras

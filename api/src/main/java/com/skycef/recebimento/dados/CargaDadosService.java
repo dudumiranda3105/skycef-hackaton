@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +50,7 @@ public class CargaDadosService {
             Map.entry("Nº Recebimento", "nr_recebimento"), Map.entry("Data Recebimento", "data_recebimento"),
             Map.entry("Nota Fiscal de Entrada", "nf_numero"), Map.entry("Chave de Acesso", "nf_chave"));
 
-    public record Resumo(int linhasLidas, int duplicadasDescartadas, int recebimentosInseridos,
+    public record Resumo(int linhasLidas, int duplicadasDescartadas, int parciaisAgrupados, int recebimentosInseridos,
             int sabadosComRecebimento, int recebimentoAntesDoDocumento, int semChaveDeAcesso,
             int chaveDeAcessoMalformada, int diasDaFolha, int chapasDistintos, int chapasNovos) {}
 
@@ -74,8 +75,8 @@ public class CargaDadosService {
                 novos += jdbc.update("insert into chapa (matricula, nome) values (?, ?) on conflict do nothing", chapa, chapa);
             }
 
-            List<Recebimento> recebimentos = new ArrayList<>();
-            int duplicadas = 0, sabados = 0, antes = 0, semChave = 0, chaveRuim = 0;
+            Map<String, Recebimento> recebimentosAgrupados = new LinkedHashMap<>();
+            int duplicadas = 0, parciaisAgrupados = 0, sabados = 0, antes = 0, semChave = 0, chaveRuim = 0;
             try (InputStream in = new BufferedInputStream(fonte.abrir(MOVIMENTACAO)); Workbook workbook = WorkbookFactory.create(in)) {
                 Sheet sheet = workbook.getSheetAt(0);
                 Row header = sheet.getRow(0);
@@ -107,11 +108,14 @@ public class CargaDadosService {
                     String chave = r.get("nf_chave").trim();
                     if (chave.isEmpty()) semChave++;
                     else if (!CHAVE.matcher(chave).matches()) { chaveRuim++; chave = ""; }
-                    recebimentos.add(new Recebimento(numeroTexto(r.get("pedido")), nulo(r.get("item_codigo")),
-                            nulo(r.get("fornecedor_codigo")), nulo(r.get("fornecedor_nome")),
-                            nulo(truncar(r.get("descricao"), 300)), decimal(r.get("quantidade")),
-                            decimal(r.get("peso")), nulo(r.get("deposito")), numeroTexto(r.get("nr_recebimento")),
-                            documento, recebimento, numeroTexto(r.get("nf_numero")), nulo(chave)));
+                    String chaveParcial = r.get("pedido") + "|" + nulo(r.get("item_codigo")) + "|"
+                        + numeroTexto(r.get("nr_recebimento")) + "|" + (recebimento == null ? "" : recebimento.toString());
+                    Recebimento rec = new Recebimento(numeroTexto(r.get("pedido")), nulo(r.get("item_codigo")),
+                        nulo(r.get("fornecedor_codigo")), nulo(r.get("fornecedor_nome")),
+                        nulo(truncar(r.get("descricao"), 300)), decimal(r.get("quantidade")),
+                        decimal(r.get("peso")), nulo(r.get("deposito")), numeroTexto(r.get("nr_recebimento")),
+                        documento, recebimento, numeroTexto(r.get("nf_numero")), nulo(chave));
+                    if (recebimentosAgrupados.putIfAbsent(chaveParcial, rec) != null) parciaisAgrupados++;
                 }
             }
 
@@ -133,6 +137,7 @@ public class CargaDadosService {
                 }
             }
 
+            List<Recebimento> recebimentos = new ArrayList<>(recebimentosAgrupados.values());
             // A exclusão e as inserções fazem parte da mesma transação. Reexecutar produz o mesmo histórico.
             jdbc.update("delete from hist_recebimento_item");
             jdbc.update("delete from hist_chapa_dia");
@@ -156,7 +161,7 @@ public class CargaDadosService {
                 ps.setDate(1, Date.valueOf(d.data)); ps.setString(2, d.diaSemana);
                 ps.setInt(3, d.presentes); ps.setInt(4, d.cafe); ps.setBigDecimal(5, d.valor);
             });
-            return new Resumo(recebimentos.size() + duplicadas, duplicadas, recebimentos.size(), sabados,
+            return new Resumo(recebimentos.size() + duplicadas + parciaisAgrupados, duplicadas, parciaisAgrupados, recebimentos.size(), sabados,
                     antes, semChave, chaveRuim, dias.size(), chapas.size(), novos);
         }
     }

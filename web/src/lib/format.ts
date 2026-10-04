@@ -110,6 +110,18 @@ export const brl0 = (s?: string | null) => brl(s, 0)
 export const absS = (s: string | null | undefined) => String(s ?? '').replace('-', '')
 export const fmtCnpj = (c?: string | null) =>
   c && c.length === 14 ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : c || ''
+export const cnpjValido = (value: string) => {
+  const c = value.replace(/\D/g, '')
+  if (!/^\d{14}$/.test(c) || /^([\d])\1{13}$/.test(c)) return false
+  const calc = (base: string, pesos: number[]) => {
+    const soma = [...base].reduce((s, n, i) => s + Number(n) * pesos[i], 0)
+    const r = soma % 11
+    return r < 2 ? 0 : 11 - r
+  }
+  const d1 = calc(c.slice(0, 12), [5,4,3,2,9,8,7,6,5,4,3,2])
+  const d2 = calc(c.slice(0, 12) + d1, [6,5,4,3,2,9,8,7,6,5,4,3,2])
+  return c.endsWith(`${d1}${d2}`)
+}
 
 /** Valores com 4 casas como inteiros (1e-4): soma exata com BigInt. */
 export const cent4 = (s: string | number) => {

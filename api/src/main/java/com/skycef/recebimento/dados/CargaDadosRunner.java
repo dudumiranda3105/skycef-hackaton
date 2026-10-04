@@ -26,6 +26,7 @@ public class CargaDadosRunner implements ApplicationRunner {
         CargaDadosService.Resumo resumo = service.carregar(Path.of(caminho));
         System.out.println("linhas_lidas: " + resumo.linhasLidas());
         System.out.println("duplicadas_descartadas: " + resumo.duplicadasDescartadas());
+        System.out.println("parciais_agrupados: " + resumo.parciaisAgrupados());
         System.out.println("recebimentos_inseridos: " + resumo.recebimentosInseridos());
         System.out.println("sabados_com_recebimento: " + resumo.sabadosComRecebimento());
         System.out.println("recebimento_antes_do_documento: " + resumo.recebimentoAntesDoDocumento());

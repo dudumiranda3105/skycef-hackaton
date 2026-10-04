@@ -39,7 +39,7 @@ export function Callout({
 }: { tom?: 'info' | 'aviso' | 'ruim' | 'ok'; children: ReactNode; className?: string }) {
   const estilo = {
     info: 'border-info bg-info-soft',
-    aviso: 'border-[#c98f00] bg-warning-soft',
+    aviso: 'border-[#b8860b] bg-warning-soft',
     ruim: 'border-destructive bg-danger-soft',
     ok: 'border-brand-green bg-success-soft',
   }[tom]
@@ -78,11 +78,11 @@ export function CabecalhoPagina({
   return (
     <header className="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
       <div className="min-w-0 flex-[1_1_420px]">
-        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
-          <h1 className="text-[clamp(26px,3vw,34px)]">{titulo}</h1>
-          {quem && <span className="rounded-full bg-info-soft px-3 py-0.5 text-[12.5px] text-info">{quem}</span>}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h1 className="text-[clamp(22px,3vw,30px)] font-bold">{titulo}</h1>
+          {quem && <span className="rounded-full bg-info-soft px-3 py-0.5 text-[12px] text-info font-medium">{quem}</span>}
         </div>
-        <p className="mt-2 max-w-[64ch] text-muted-foreground">{sub}</p>
+        <p className="mt-2 max-w-[64ch] text-muted-foreground text-sm">{sub}</p>
       </div>
       {acoes && <div className="flex flex-wrap gap-2">{acoes}</div>}
     </header>
@@ -90,21 +90,21 @@ export function CabecalhoPagina({
 }
 
 export function Painel({ className, children, id }: { className?: string; children: ReactNode; id?: string }) {
-  return <section id={id} className={cn('rounded-2xl border bg-card p-6', className)}>{children}</section>
+  return <section id={id} className={cn('rounded-xl border bg-card p-5', className)}>{children}</section>
 }
 
 export function Tile({ rotulo, valor, sub }: { rotulo: string; valor: ReactNode; sub?: ReactNode }) {
   return (
-    <div className="grid gap-px rounded-xl bg-background px-3.5 py-3">
-      <span className="text-[12.5px] text-muted-foreground">{rotulo}</span>
-      <span className="num font-display text-[22px] font-bold">{valor}</span>
-      {sub && <span className="text-[12.5px] text-muted-foreground">{sub}</span>}
+    <div className="grid gap-1 rounded-xl bg-background px-4 py-3">
+      <span className="text-[12px] text-muted-foreground">{rotulo}</span>
+      <span className="num text-[clamp(20px,3vw,30px)] font-bold tracking-tight">{valor}</span>
+      {sub && <span className="text-[12px] text-muted-foreground">{sub}</span>}
     </div>
   )
 }
 
 export function Tiles({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-3', className)}>{children}</div>
+  return <div className={cn('grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3', className)}>{children}</div>
 }
 
 /** Barras horizontais simples (rótulo, barra proporcional, valor). */

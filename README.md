@@ -26,7 +26,10 @@ Com Docker: `docker compose up --build` inicia PostgreSQL e API. As migrations s
 Sem Docker, inicie um PostgreSQL e configure `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD` (exemplo em `.env.example`). Depois:
 
 ```bash
-cd api
+cd web
+npm ci
+npm run build
+cd ../api
 mvn clean test
 mvn spring-boot:run
 ```

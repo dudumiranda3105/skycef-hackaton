@@ -1,8 +1,8 @@
 import { useMemo, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  BarChart3, CalendarClock, CalendarDays, ClipboardList, FileCheck2, KeyRound, LogOut, MessageCircleQuestionMark, Moon, RefreshCw,
-  ShieldCheck, ShieldQuestionMark, Sun, Users, Warehouse, BookOpen,
+  BarChart3, CalendarClock, ClipboardList, FileCheck2, KeyRound, LogOut, MessageCircleQuestionMark, Moon, RefreshCw,
+  ShieldCheck, ShieldQuestionMark, Sun, Users, Warehouse, BookOpen, CalendarDays,
 } from 'lucide-react'
 import { Toaster } from '@/components/ui/sonner'
 import { cn } from '@/lib/utils'
@@ -60,28 +60,39 @@ export function Shell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="grid h-dvh grid-cols-[248px_minmax(0,1fr)] overflow-hidden max-lg:grid-cols-1 max-lg:grid-rows-[auto_minmax(0,1fr)]">
-      <aside className="scroll-thin relative z-30 flex flex-col overflow-auto bg-sidebar px-3.5 pt-5 pb-4 text-sidebar-foreground max-lg:flex-row max-lg:items-center max-lg:gap-2 max-lg:overflow-x-auto max-lg:overflow-y-hidden max-lg:p-2">
+    <div className="grid h-dvh grid-cols-[220px_minmax(0,1fr)] overflow-hidden max-lg:grid-cols-1 max-lg:grid-rows-[auto_minmax(0,1fr)]">
+      <aside className="scroll-thin relative z-30 flex flex-col overflow-auto bg-sidebar px-4 pt-5 pb-4 text-sidebar-foreground border-r border-sidebar-border max-lg:flex-row max-lg:items-center max-lg:gap-2 max-lg:overflow-x-auto max-lg:overflow-y-hidden max-lg:p-2">
         <button
           onClick={() => ir(null)}
-          className="flex cursor-pointer items-center gap-3 border-b border-sidebar-border px-1.5 pb-[18px] text-left max-lg:border-0 max-lg:p-0 max-lg:pr-2"
+          className="flex cursor-pointer items-center gap-2.5 border-b border-sidebar-border px-1 pb-4 text-left max-lg:border-0 max-lg:p-0 max-lg:pr-2"
           aria-label="Voltar ao início"
         >
-          <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden className="shrink-0">
-            <rect x="3" y="5" width="28" height="7" rx="2" fill="#FFC81F" />
-            <rect x="3" y="14" width="28" height="7" rx="2" fill="#2E9B4B" />
-            <rect x="3" y="23" width="28" height="7" rx="2" fill="#FFFFFF" opacity=".92" />
+          <svg width="28" height="28" viewBox="0 0 40 40" aria-hidden className="shrink-0">
+            <defs>
+              <linearGradient id="ls1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#d4a017" /><stop offset="100%" stopColor="#e8b830" />
+              </linearGradient>
+              <linearGradient id="ls2" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#1a6b3c" /><stop offset="100%" stopColor="#2e7d32" />
+              </linearGradient>
+              <linearGradient id="ls3" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#1a6b3c" /><stop offset="100%" stopColor="#3a8a40" />
+              </linearGradient>
+            </defs>
+            <rect x="4" y="6" width="32" height="8" rx="3" fill="url(#ls1)" />
+            <rect x="4" y="16" width="32" height="8" rx="3" fill="url(#ls2)" />
+            <rect x="4" y="26" width="32" height="8" rx="3" fill="url(#ls3)" />
           </svg>
-          <div className="leading-tight">
-            <b className="block font-display text-base max-lg:whitespace-nowrap max-lg:text-sm">Recebimento Inteligente</b>
-            <span className="text-[12.5px] opacity-70 max-lg:hidden">Cocapec · Franca</span>
+          <div className="leading-snug">
+            <b className="font-sans text-sm font-bold max-lg:text-xs">Recebimento Inteligente</b>
+            <span className="hidden text-[12px] opacity-60 max-lg:hidden">Cocapec</span>
           </div>
         </button>
 
-        <nav className="mt-2.5 flex flex-col gap-0.5 max-lg:mt-0 max-lg:flex-row" aria-label="Seções">
+        <nav className="mt-3 flex flex-col gap-1 max-lg:mt-0 max-lg:flex-row" aria-label="Seções">
           {grupos.map(([g, itens]) => (
             <div key={g} className="contents">
-              <div className="mx-2 mt-4 mb-1 text-[12.5px] opacity-60 max-lg:hidden">{g}</div>
+              <div className="mx-1 mt-3 mb-1 text-[11.5px] font-semibold opacity-50 tracking-wider max-lg:hidden">{g}</div>
               {itens.map((s) => {
                 const Icone = ICONES[s]
                 const ativo = secao === s
@@ -92,21 +103,14 @@ export function Shell({ children }: { children: ReactNode }) {
                     onClick={() => ir(ativo ? null : s)}
                     aria-current={ativo ? 'page' : undefined}
                     className={cn(
-                      'relative flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-white/7 max-lg:w-auto max-lg:whitespace-nowrap',
-                      ativo && 'bg-sidebar-accent font-semibold',
+                      'relative flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[14px] transition-colors hover:bg-sidebar-accent max-lg:w-auto max-lg:whitespace-nowrap',
+                      ativo && 'bg-sidebar-accent font-semibold text-primary',
                     )}
                   >
-                    {ativo && (
-                      <motion.span
-                        layoutId="nav-barra"
-                        className="absolute top-[7px] bottom-[7px] -left-3.5 w-1 rounded-r-[3px] bg-accent max-lg:inset-x-1.5 max-lg:top-auto max-lg:bottom-0 max-lg:left-1.5 max-lg:h-[3px] max-lg:w-auto max-lg:rounded-t-[3px] max-lg:rounded-b-none"
-                        transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                      />
-                    )}
-                    <Icone className="size-[18px] shrink-0 opacity-90 max-lg:hidden" />
+                    <Icone className="size-[16px] shrink-0 opacity-80 max-lg:hidden" />
                     {SECAO_ROTULO[s]}
                     {!!n && (
-                      <span className="ml-auto min-w-5 rounded-full bg-accent px-1.5 text-center text-xs font-semibold text-accent-foreground">{n}</span>
+                      <span className="ml-auto min-w-5 rounded-full bg-accent/15 px-1.5 text-center text-xs font-semibold text-accent-foreground">{n}</span>
                     )}
                   </button>
                 )
@@ -115,53 +119,48 @@ export function Shell({ children }: { children: ReactNode }) {
           ))}
         </nav>
 
-        <div className="mt-auto grid gap-1.5 pt-4 max-lg:mt-0 max-lg:ml-auto max-lg:flex max-lg:gap-1.5 max-lg:p-0">
+        <div className="mt-auto grid gap-1 pt-3 border-t border-sidebar-border max-lg:mt-0 max-lg:ml-auto max-lg:flex max-lg:gap-1.5 max-lg:p-0">
           {eu && (
-            <div className="mb-1.5 rounded-[10px] border border-sidebar-border px-3 py-2.5 max-lg:hidden">
-              <div className="leading-tight font-semibold">{eu.nome}</div>
-              <div className="text-[12.5px] opacity-75">
+            <div className="mb-2 rounded-lg border border-sidebar-border/60 px-3 py-2 max-lg:hidden">
+              <div className="leading-tight text-sm font-semibold">{eu.nome.split(' ')[0]}</div>
+              <div className="text-[12px] opacity-60">
                 {PAPEL_ROTULO[eu.papel]}
                 {!eu.autenticacaoAtiva && ' · login desativado'}
               </div>
-              {eu.autenticacaoAtiva && (
-                <div className="mt-2 flex gap-1.5">
-                  <BotaoLateral onClick={abrirSenha} className="flex-1" icone={<KeyRound className="size-3.5" />}>Senha</BotaoLateral>
-                  <BotaoLateral onClick={() => void sair()} className="flex-1" icone={<LogOut className="size-3.5" />}>Sair</BotaoLateral>
-                </div>
-              )}
             </div>
           )}
-          <p className="px-1 pb-1 text-[12.5px] leading-snug opacity-70 max-lg:hidden">
-            {erro ? 'Sem conexão com a API.' : carregado ? 'Ligado à API. Os dados ficam no PostgreSQL.' : 'Conectando à API…'}
-          </p>
-          <BotaoLateral onClick={abrirVerificar} icone={<ShieldQuestionMark className="size-3.5" />}>Conferir o cálculo oficial</BotaoLateral>
-          <BotaoLateral onClick={() => void atualizar()} icone={<RefreshCw className="size-3.5" />}>Atualizar dados</BotaoLateral>
+          <BotaoLateral onClick={abrirVerificar} icone={<ShieldQuestionMark className="size-3.5" />}>Conferir cálculo</BotaoLateral>
+          <BotaoLateral onClick={() => void atualizar()} icone={<RefreshCw className="size-3.5" />}>Atualizar</BotaoLateral>
           <BotaoLateral onClick={alternar} icone={tema === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}>
-            Tema {tema === 'dark' ? 'claro' : 'escuro'}
+            {tema === 'dark' ? 'Claro' : 'Escuro'}
           </BotaoLateral>
           <a
             href="/docs"
             target="_blank"
             rel="noopener"
-            className="flex cursor-pointer items-center gap-2 rounded-lg border border-sidebar-border px-2.5 py-1.5 text-[13.5px] transition-colors hover:bg-white/9 max-lg:hidden"
+            className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] transition-colors hover:bg-sidebar-accent max-lg:hidden"
           >
-            <BookOpen className="size-3.5" /> Documentação da API
+            <BookOpen className="size-3.5" /> API
           </a>
           {eu?.autenticacaoAtiva && (
-            <BotaoLateral onClick={() => void sair()} className="lg:hidden" icone={<LogOut className="size-3.5" />}>Sair</BotaoLateral>
+            <BotaoLateral onClick={() => void sair()} icone={<LogOut className="size-3.5" />}>
+              Sair
+            </BotaoLateral>
+          )}
+          {eu?.autenticacaoAtiva && (
+            <BotaoLateral onClick={abrirSenha} icone={<KeyRound className="size-3.5" />}>Senha</BotaoLateral>
           )}
         </div>
       </aside>
 
-      <main className="relative min-w-0 overflow-hidden bg-background [perspective:1800px]">
+      <main className="relative min-w-0 overflow-hidden bg-background">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={secao ?? 'inicio'}
-            initial={{ opacity: 0, x: -36, rotateY: 7 }}
-            animate={{ opacity: 1, x: 0, rotateY: 0 }}
-            exit={{ opacity: 0, x: 18 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            style={{ transformOrigin: '0% 50%' }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="scroll-thin absolute inset-0 overflow-auto px-[clamp(18px,3.4vw,52px)] pt-8 pb-14"
           >
             <div className="mx-auto max-w-[1220px]">{children}</div>
@@ -180,7 +179,7 @@ function BotaoLateral({
     <button
       onClick={onClick}
       className={cn(
-        'flex cursor-pointer items-center gap-2 rounded-lg border border-sidebar-border px-2.5 py-1.5 text-left text-[13.5px] transition-colors hover:bg-white/9 max-lg:whitespace-nowrap',
+        'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors hover:bg-sidebar-accent max-lg:whitespace-nowrap',
         className,
       )}
     >

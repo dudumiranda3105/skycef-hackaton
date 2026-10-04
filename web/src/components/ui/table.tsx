@@ -16,10 +16,10 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
   return <tr className={cn(props.onClick && 'cursor-pointer hover:bg-info-soft', className)} {...props} />
 }
 function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
-  return <th className={cn('whitespace-nowrap border-b px-2.5 py-2 text-left text-[13px] font-semibold text-muted-foreground', className)} {...props} />
+  return <th className={cn('whitespace-nowrap border-b px-2.5 py-2.5 text-left text-[13px] font-semibold text-muted-foreground tracking-tight', className)} {...props} />
 }
 function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
-  return <td className={cn('border-b px-2.5 py-2.5 align-middle', className)} {...props} />
+  return <td className={cn('border-b border-border/50 px-2.5 py-2.5 align-middle', className)} {...props} />
 }
 
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell }

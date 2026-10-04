@@ -290,10 +290,10 @@ export function Painel() {
                 </Tiles>
               </PainelContainer>
 
-              {/* 3D Colunas dos Armazéns */}
+              {/* Colunas dos Armazéns */}
               <PainelContainer>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <SecTitulo className="text-[17px]">Volume por armazém (Visualização 3D)</SecTitulo>
+                  <SecTitulo className="text-[17px]">Volume por armazém</SecTitulo>
                   <span className="text-xs text-muted-foreground">Altura proporcional aos recebimentos</span>
                 </div>
                 <div className="mt-4 rounded-xl border bg-secondary/15 p-2">

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { HelpCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CabecalhoPagina, Callout, Lista, Painel, SecTitulo } from '@/components/comum'
 import { GET, errTxt } from '@/lib/api'
@@ -50,6 +51,7 @@ export function Qualidade() {
   const [plat, setPlat] = useState<any>(null)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [detalhe, setDetalhe] = useState<[string, string, string, string, string] | null>(null)
 
   const carregar = async () => {
     setCarregando(true)
@@ -130,7 +132,7 @@ export function Qualidade() {
       )}
 
       <Callout tom="info">
-        <b>Como ler:</b> cada indicador do painel tem um botão “Ver cálculo” e um bloco “Sobre este dado” (fórmula, fonte, período, registros e limitação). Esta página reúne a visão geral da base.
+        <b>Como ler:</b> cada indicador tem um cálculo detalhado e informa sua fonte, registros usados e limitações.
       </Callout>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -281,22 +283,39 @@ export function Qualidade() {
                 <TableHead>Fonte</TableHead>
                 <TableHead>Registros</TableHead>
                 <TableHead>Limitação</TableHead>
+                <TableHead>Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sobre.map(([indicador, formula, fonte, registros, limitacao], i) => (
+              {sobre.map((item, i) => {
+                const [indicador, formula, fonte, registros, limitacao] = item
+                return (
                 <TableRow key={i}>
                   <TableCell className="font-semibold whitespace-nowrap">{indicador}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{formula}</TableCell>
                   <TableCell className="text-xs whitespace-nowrap">{fonte}</TableCell>
                   <TableCell className="text-xs whitespace-nowrap">{registros}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{limitacao}</TableCell>
+                  <TableCell><Button size="sm" variant="outline" onClick={() => setDetalhe(item)}><HelpCircle className="size-3.5" /> Ver cálculo</Button></TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         </div>
       </Painel>
+
+      <Dialog open={!!detalhe} onOpenChange={(aberto) => !aberto && setDetalhe(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{detalhe?.[0]} — cálculo e origem</DialogTitle></DialogHeader>
+          {detalhe && <DialogBody className="grid gap-3 text-sm">
+            <p><b>Fórmula:</b> {detalhe[1]}</p>
+            <p><b>Fonte:</b> {detalhe[2]}</p>
+            <p><b>Registros considerados:</b> {detalhe[3]}</p>
+            <p><b>Limitação:</b> {detalhe[4]}</p>
+            <Callout tom="info">Os valores são recalculados com os registros carregados agora. Atualize a página para buscar os dados mais recentes.</Callout>
+          </DialogBody>}
+        </DialogContent>
+      </Dialog>
 
       <Painel>
         <SecTitulo className="text-[17px]">Limitações conhecidas</SecTitulo>

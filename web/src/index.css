@@ -1,97 +1,94 @@
 @import "tailwindcss";
 @import "@fontsource-variable/instrument-sans";
-@import "@fontsource-variable/bricolage-grotesque";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* Paleta Cocapec: azul, verde, amarelo e branco. Os nomes seguem o shadcn/ui. */
 :root {
   --radius: 0.75rem;
-  --background: #f2f6fb;
-  --foreground: #10253f;
+  --background: #f4f2ee;
+  --foreground: #1a1a1a;
   --card: #ffffff;
-  --card-foreground: #10253f;
+  --card-foreground: #1a1a1a;
   --popover: #ffffff;
-  --popover-foreground: #10253f;
-  --primary: #0b4f9e;
+  --popover-foreground: #1a1a1a;
+  --primary: #1a6b3c;
   --primary-foreground: #ffffff;
-  --secondary: #e8eff7;
-  --secondary-foreground: #10253f;
-  --muted: #e8eff7;
-  --muted-foreground: #4f647c;
-  --accent: #ffc81f;
+  --secondary: #e8e6e1;
+  --secondary-foreground: #1a1a1a;
+  --muted: #e8e6e1;
+  --muted-foreground: #6b6b6b;
+  --accent: #d4a017;
   --accent-foreground: #3a2a00;
   --destructive: #bc3a26;
   --destructive-foreground: #ffffff;
-  --border: #dce5ef;
-  --input: #dce5ef;
-  --ring: #0b6bdc;
+  --border: #d4d0c8;
+  --input: #d4d0c8;
+  --ring: #1a6b3c;
 
-  --success: #1f7d39;
-  --success-soft: #dff2e4;
+  --success: #1a6b3c;
+  --success-soft: #e8f5e9;
   --warning: #7a5800;
-  --warning-soft: #fff2c4;
+  --warning-soft: #fcf3e1;
   --danger-soft: #fbe4df;
-  --info: #0b4f9e;
-  --info-soft: #e1ecf9;
+  --info: #1a6b3c;
+  --info-soft: #eaf3e9;
 
-  --brand-blue: #0b4f9e;
-  --brand-green: #2e9b4b;
-  --brand-yellow: #ffc81f;
-  --folga: #2e9b4b;
+  --brand-blue: #1a6b3c;
+  --brand-green: #2e7d32;
+  --brand-yellow: #d4a017;
+  --folga: #2e7d32;
   --pressao: #d2452f;
 
-  --sidebar: #082f63;
-  --sidebar-foreground: #eaf2fc;
-  --sidebar-border: #1b4a86;
-  --sidebar-accent: rgba(255, 255, 255, 0.13);
+  --sidebar: #faf8f5;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-border: #e0dcd4;
+  --sidebar-accent: rgba(26, 107, 60, 0.08);
 }
 
 .dark {
-  --background: #0a1626;
-  --foreground: #e7eff8;
-  --card: #10233a;
-  --card-foreground: #e7eff8;
-  --popover: #10233a;
-  --popover-foreground: #e7eff8;
-  --primary: #2f7fd6;
+  --background: #0f0f0f;
+  --foreground: #e0e0e0;
+  --card: #1a1a1a;
+  --card-foreground: #e0e0e0;
+  --popover: #1a1a1a;
+  --popover-foreground: #e0e0e0;
+  --primary: #2e7d32;
   --primary-foreground: #ffffff;
-  --secondary: #172f4b;
-  --secondary-foreground: #e7eff8;
-  --muted: #172f4b;
-  --muted-foreground: #9bb0c6;
-  --accent: #ffc81f;
+  --secondary: #1f1f1f;
+  --secondary-foreground: #e0e0e0;
+  --muted: #1f1f1f;
+  --muted-foreground: #8a8a8a;
+  --accent: #d4a017;
   --accent-foreground: #3a2a00;
-  --destructive: #f2897a;
+  --destructive: #e06060;
   --destructive-foreground: #1b0a07;
-  --border: #23405e;
-  --input: #23405e;
-  --ring: #8fc2fa;
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #4caf50;
 
-  --success: #5ed07b;
-  --success-soft: #12361f;
-  --warning: #f0c24a;
-  --warning-soft: #3b3010;
-  --danger-soft: #40201c;
-  --info: #7fb8f8;
-  --info-soft: #17365c;
+  --success: #4caf50;
+  --success-soft: #1a2e1a;
+  --warning: #d4a017;
+  --warning-soft: #2a2010;
+  --danger-soft: #2a1414;
+  --info: #4caf50;
+  --info-soft: #1a2e1a;
 
-  --brand-blue: #6aaef7;
-  --brand-green: #4cc06c;
-  --brand-yellow: #ffc81f;
-  --folga: #4cc06c;
-  --pressao: #f08a78;
+  --brand-blue: #4caf50;
+  --brand-green: #66bb6a;
+  --brand-yellow: #d4a017;
+  --folga: #66bb6a;
+  --pressao: #e06060;
 
-  --sidebar: #06182e;
-  --sidebar-foreground: #dce9f6;
-  --sidebar-border: #163456;
-  --sidebar-accent: rgba(255, 255, 255, 0.1);
+  --sidebar: #141414;
+  --sidebar-foreground: #d4d4d4;
+  --sidebar-border: #2a2a2a;
+  --sidebar-accent: rgba(76, 175, 80, 0.1);
 }
 
 @theme inline {
   --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Bricolage Grotesque Variable", "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -147,8 +144,9 @@
     overflow: hidden;
   }
   h1, h2, h3 {
-    @apply font-display font-bold tracking-tight;
-    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
   }
   :focus-visible {
     outline: 2px solid var(--ring);

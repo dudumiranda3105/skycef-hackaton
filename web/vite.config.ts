@@ -49,7 +49,16 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: '../api/src/main/resources/static/ui',
       emptyOutDir: true,
-      chunkSizeWarningLimit: 900,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/three')) return 'three'
+            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) return 'react-vendor'
+            if (id.includes('node_modules/motion')) return 'motion'
+          },
+        },
+      },
+      chunkSizeWarningLimit: 600,
     },
   }
 })

@@ -1,0 +1,15 @@
+.git
+.github
+data
+api/.venv
+api/.pytest_cache
+api/.ruff_cache
+api/target
+web/node_modules
+web/dist
+node_modules
+*.log
+.env
+.env.*
+api/src/main/resources/static/ui/*
+!api/src/main/resources/static/ui/.gitkeep

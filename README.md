@@ -5,7 +5,7 @@ Projeto do X Hackathon Uni-FACEF 2026. Implementa agendamento e recebimento (Tar
 ## Tecnologia
 
 - Backend: **Java 21 + Spring Boot 3.5**, Spring JDBC, Flyway e PostgreSQL.
-- Interface usada na demonstração: HTML, CSS e JavaScript servidos pelo Spring Boot em `/ui/`, sem outro processo. O diretório `web/` contém uma interface React/Vite separada, que não é iniciada pelo Docker Compose.
+- Frontend: **React 19 + TypeScript + Vite + Tailwind CSS v4 + Motion + Three.js** em `web/`. É compilado via Docker multi-stage build e servido pelo Spring Boot em `/ui/`. Suporta execução autônoma com API mock (`npm run dev:mock`) e desenvolvimento integrado (`npm run dev`).
 - Dados: migrations PostgreSQL em `api/migrations/V*.sql`; carga opcional do histórico com Apache POI.
 
 ## Executar
@@ -46,7 +46,7 @@ Depois do resumo da carga, encerre o processo se estiver usando essa execução 
 
 ## Testes
 
-`mvn clean test` executa os testes Java. Testes de integração com PostgreSQL usam `TEST_DB_URL` e um schema temporário. O frontend pode ser verificado com `npm run build` dentro de `web/`.
+`mvn clean test` executa os testes Java. Testes de integração com PostgreSQL usam `TEST_DB_URL` e um schema temporário. A interface frontend em `web/` pode ser verificada com `npm run typecheck` e compilada com `npm run build`.
 
 O histórico não registra horários de descarga nem chapas por recebimento. O painel separa dados `HISTORICO`, `PLATAFORMA` e `TESTE`; a estimativa histórica de sobra/falta é uma faixa de sensibilidade, detalhada no [relatório gerencial](docs/relatorio-gerencial.md).
 

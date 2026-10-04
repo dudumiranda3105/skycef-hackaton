@@ -3,17 +3,17 @@
 Os sete diferenciais priorizados pelo grupo (documento *Diferenciais priorizados* do projeto) estão na interface
 `/ui/` e funcionam como **extensões**: se um deles falhar, o fluxo obrigatório (agendar, validar em Compras, receber,
 fechar o boletim, painel) continua igual. Nenhum altera regra do Regulamento, do Dossiê ou dos esclarecimentos.
-Código em `api/src/main/resources/static/ui/`.
+Código em `web/src/features/` e `web/src/lib/` (compilado para `/ui/`).
 
 | # | Diferencial | Onde | Arquivo |
 |---|---|---|---|
-| 1 | QR Code + check-in | confirmação do agendamento, gaveta da entrega, botão "Check-in por QR" no Armazém, link `#/checkin/<id>` | `checkin.js`, `qr.js` |
-| 2 | Planejamento D-1 | painel **Planejamento D-1** | `d1.js` |
-| 3 | Simulador de equipe | final do painel **Planejamento D-1** | `d1.js` |
-| 4 | Adicionar ao calendário | confirmação do agendamento e gaveta da entrega | `checkin.js` |
-| 5 | Leitura assistida da NF | novo agendamento, ao anexar o XML ou o PDF | `nf.js` |
-| 6 | Pergunte aos Dados | painel **Pergunte aos dados** | `pergunte.js` |
-| 7 | Qualidade dos Dados | painel **Qualidade dos dados** e bloco "Sobre este dado" de cada indicador | `qualidade.js`, `painel.js` |
+| 1 | QR Code + check-in | confirmação do agendamento, gaveta da entrega, botão "Check-in por QR" no Armazém, link `#/checkin/<id>` | `features/checkin/janelas.tsx`, `lib/qr.ts` |
+| 2 | Planejamento D-1 | painel **Planejamento D-1** | `features/d1.tsx`, `lib/d1.ts` |
+| 3 | Simulador de equipe | final do painel **Planejamento D-1** | `features/d1.tsx`, `lib/d1.ts` |
+| 4 | Adicionar ao calendário | confirmação do agendamento e gaveta da entrega | `features/agenda/detalhe.tsx`, `features/checkin/janelas.tsx` |
+| 5 | Leitura assistida da NF | novo agendamento, ao anexar o XML ou o PDF | `features/agenda/novo.tsx`, `lib/nf.ts` |
+| 6 | Pergunte aos Dados | painel **Pergunte aos dados** | `features/perguntar.tsx`, `lib/pergunte.ts` |
+| 7 | Qualidade dos Dados | painel **Qualidade dos dados** e bloco "Sobre este dado" de cada indicador | `features/qualidade.tsx`, `features/painel.tsx` |
 
 ## 1. QR Code + check-in
 - Ao concluir o agendamento a tela mostra o QR da entrega (código `AG-0012`). O QR é gerado no navegador, sem biblioteca
@@ -31,7 +31,7 @@ Código em `api/src/main/resources/static/ui/`.
 - **Cuidado metodológico:** não há número exato de chapas. O módulo trabalha com **níveis**. Para cada armazém e horário:
   `necessidade = Σ chapas simultâneas pela norma do Dossiê (batido 5, paletizado/big bag 2)`; `razão = necessidade ÷ equipe`.
   Acima de 1,0 é pressão alta; acima de 0,7 é moderada; até 0,7 é compatível; até 0,4 indica capacidade potencialmente
-  disponível para realocação. **Os limiares são parâmetros do projeto, não da Cocapec** (`D1_LIM` em `d1.js`).
+  disponível para realocação. **Os limiares são parâmetros do projeto, não da Cocapec** (`D1_LIM` em `lib/d1.ts`).
 - Equipe usada = média de chapas dos últimos 5 boletins do armazém (referência, não a escala de amanhã) ou a do simulador.
 - DQ-016 (paletizado/big bag abaixo de 500 kg: 0 ou 2 chapas) segue em aberto: usamos 2 e sinalizamos.
 - O **Simulador** altera só a equipe, com o mesmo motor. Não grava nada, não altera boletim nem agendamento, não recomenda
@@ -59,7 +59,7 @@ O calendário é só conveniência: mudar o compromisso no celular não muda o a
   sobra ou falta de chapas, Planejamento D-1 e "por que há pressão amanhã".
 - Os números vêm de `/api/painel/*`, `/api/boletins` e do motor do D-1. Pergunta fora do catálogo recebe "não sei", com sugestões.
 - **Estado atual honesto:** a interpretação usa regras locais (palavras-chave, armazém, período). Para ligar um modelo de
-  linguagem, troque `interpretar()` em `pergunte.js` por uma chamada em servidor (a chave `ANTHROPIC_API_KEY` não pode ir
+  linguagem, troque `interpretar()` em `lib/pergunte.ts` por uma chamada em servidor (a chave `ANTHROPIC_API_KEY` não pode ir
   para o navegador) que devolva só `{metrica, armazem, periodo, motivo}` do catálogo. O restante não muda.
 
 ## 7. Qualidade dos Dados

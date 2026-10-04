@@ -22,6 +22,9 @@ api/target/
 # Node / front
 node_modules/
 dist/
+web/dist/
+api/src/main/resources/static/ui/*
+!api/src/main/resources/static/ui/.gitkeep
 
 # Ambiente e IDE
 .env

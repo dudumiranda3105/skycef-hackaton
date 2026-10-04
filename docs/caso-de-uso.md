@@ -1,6 +1,6 @@
 # Caso de uso UML — recebimento inteligente
 
-O diagrama [em SVG](caso-de-uso.svg) mostra as responsabilidades da solução. Os atores são papéis de operação; o projeto não implementa autenticação ou perfis.
+O diagrama [em SVG](caso-de-uso.svg) mostra as responsabilidades operacionais da solução; autenticação e perfis são tratados separadamente em [Login e perfis](API-LOGIN.md).
 
 ## Atores e casos
 

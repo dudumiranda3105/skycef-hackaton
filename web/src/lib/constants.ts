@@ -1,0 +1,96 @@
+import type { Acond, Papel, StatusAg } from './types'
+
+export const SLOTS = ['08:00', '10:00', '13:00', '15:00'] as const
+export const DOW = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+export const DOW_LONGO = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+export const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+
+export const ACOND: Record<Acond, { nome: string; chapas: number; desc: string; cor: string }> = {
+  BATIDO: { nome: 'Batido', chapas: 5, desc: 'Ocupa o horário inteiro', cor: '#d49a00' },
+  PALETIZADO: { nome: 'Paletizado', chapas: 2, desc: 'Até 2 caminhões por horário', cor: '#2b6fc0' },
+  BIG_BAG: { nome: 'Big bag', chapas: 2, desc: 'Até 2 caminhões por horário', cor: '#2e9b4b' },
+}
+
+export const MOTIVOS_NR: Record<string, string> = {
+  DIVERGENCIA_NF_PEDIDO: 'Divergência entre NF e pedido',
+  SEM_AGENDAMENTO_SEM_VAGA: 'Chegou sem agendamento e sem vaga',
+  CASO_FORTUITO: 'Caso fortuito',
+  OUTRO: 'Outro',
+}
+
+export const STATUS: Record<StatusAg, string> = {
+  PENDENTE_COMPRAS: 'Aguardando Compras',
+  AUTORIZADO: 'Autorizado',
+  NAO_AUTORIZADO: 'Não autorizado',
+  EM_DESCARGA: 'Descarregando',
+  CONCLUIDO: 'Concluído',
+  CANCELADO: 'Cancelado',
+  NAO_RECEBIDO: 'Não recebido',
+}
+
+export type Tom = 'neutro' | 'ok' | 'aviso' | 'ruim' | 'info'
+export const STATUS_TOM: Record<StatusAg, Tom> = {
+  PENDENTE_COMPRAS: 'aviso',
+  AUTORIZADO: 'info',
+  NAO_AUTORIZADO: 'ruim',
+  EM_DESCARGA: 'info',
+  CONCLUIDO: 'ok',
+  CANCELADO: 'neutro',
+  NAO_RECEBIDO: 'ruim',
+}
+
+/** Estes status liberam a vaga do horário (mesma regra da API). */
+export const LIBERAM_VAGA: StatusAg[] = ['CANCELADO', 'NAO_AUTORIZADO', 'NAO_RECEBIDO']
+export const TOLERANCIA_MIN = 15 // DQ-015: a Cocapec não definiu; só sinaliza "atrasado"
+export const MAX_UNITIZADOS = 2
+export const MAX_CHAPAS_BOLETIM = 20
+export const PISO_PADRAO = '90.1731'
+
+export const ORDEM_TIPOS = [
+  'SACARIA_MALAS_25', 'SACARIA_MALAS_40', 'SACARIA_MALAS_50', 'SACARIA_FARDO_250', 'SACARIA_FARDO_500',
+  'PECAS', 'MAQUINAS', 'AGROQUIMICO', 'FERTILIZANTES', 'SEMENTES', 'MEDICAMENTOS', 'ALIMENTACAO_ANIMAL',
+  'ACESSORIOS', 'SERVICOS_DIVERSOS',
+]
+
+export const PAPEL_ROTULO: Record<Papel, string> = {
+  ADMIN: 'Administrador',
+  DIRETORIA: 'Diretoria',
+  COMPRAS: 'Compras',
+  ARMAZEM: 'Responsável pelo armazém',
+  ENCARREGADO: 'Encarregado dos chapas',
+  FORNECEDOR: 'Fornecedor',
+}
+
+export type Secao =
+  | 'agenda' | 'compras' | 'armazem' | 'boletim' | 'painel' | 'd1' | 'perguntar' | 'qualidade' | 'usuarios'
+
+/** Seções que cada perfil enxerga (espelha o que a API deixa cada um chamar). */
+export const PAPEL_SECOES: Record<Papel, Secao[]> = {
+  ADMIN: ['agenda', 'compras', 'armazem', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade', 'usuarios'],
+  DIRETORIA: ['agenda', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade'],
+  COMPRAS: ['agenda', 'compras'],
+  ARMAZEM: ['agenda', 'armazem', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade'],
+  ENCARREGADO: ['agenda', 'boletim'],
+  FORNECEDOR: ['agenda'],
+}
+
+/** Grupos de gravação (mesma divisão de Permissoes.java). */
+export type Grupo = 'agendar' | 'armazem' | 'compras' | 'boletim'
+export const GRUPOS: Record<Grupo, Papel[]> = {
+  agendar: ['ADMIN', 'FORNECEDOR', 'ARMAZEM'],
+  armazem: ['ADMIN', 'ARMAZEM'],
+  compras: ['ADMIN', 'COMPRAS'],
+  boletim: ['ADMIN', 'ENCARREGADO', 'ARMAZEM'],
+}
+
+export const SECAO_ROTULO: Record<Secao, string> = {
+  agenda: 'Agenda',
+  compras: 'Compras',
+  armazem: 'Armazém',
+  boletim: 'Boletim diário',
+  painel: 'Painel gerencial',
+  d1: 'Planejamento D-1',
+  perguntar: 'Pergunte aos dados',
+  qualidade: 'Qualidade dos dados',
+  usuarios: 'Usuários',
+}

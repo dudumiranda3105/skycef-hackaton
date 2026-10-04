@@ -12,6 +12,13 @@ api/target/
 .pg-test/
 *.log
 
+# Python / tooling leftovers
+**/.venv/
+**/.pytest_cache/
+**/.ruff_cache/
+**/__pycache__/
+**/*.py[cod]
+
 # Node / front
 node_modules/
 dist/

@@ -1,0 +1,173 @@
+@import "tailwindcss";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Paleta Cocapec: azul, verde, amarelo e branco. Os nomes seguem o shadcn/ui. */
+:root {
+  --radius: 0.75rem;
+  --background: #f2f6fb;
+  --foreground: #10253f;
+  --card: #ffffff;
+  --card-foreground: #10253f;
+  --popover: #ffffff;
+  --popover-foreground: #10253f;
+  --primary: #0b4f9e;
+  --primary-foreground: #ffffff;
+  --secondary: #e8eff7;
+  --secondary-foreground: #10253f;
+  --muted: #e8eff7;
+  --muted-foreground: #4f647c;
+  --accent: #ffc81f;
+  --accent-foreground: #3a2a00;
+  --destructive: #bc3a26;
+  --destructive-foreground: #ffffff;
+  --border: #dce5ef;
+  --input: #dce5ef;
+  --ring: #0b6bdc;
+
+  --success: #1f7d39;
+  --success-soft: #dff2e4;
+  --warning: #7a5800;
+  --warning-soft: #fff2c4;
+  --danger-soft: #fbe4df;
+  --info: #0b4f9e;
+  --info-soft: #e1ecf9;
+
+  --brand-blue: #0b4f9e;
+  --brand-green: #2e9b4b;
+  --brand-yellow: #ffc81f;
+  --folga: #2e9b4b;
+  --pressao: #d2452f;
+
+  --sidebar: #082f63;
+  --sidebar-foreground: #eaf2fc;
+  --sidebar-border: #1b4a86;
+  --sidebar-accent: rgba(255, 255, 255, 0.13);
+}
+
+.dark {
+  --background: #0a1626;
+  --foreground: #e7eff8;
+  --card: #10233a;
+  --card-foreground: #e7eff8;
+  --popover: #10233a;
+  --popover-foreground: #e7eff8;
+  --primary: #2f7fd6;
+  --primary-foreground: #ffffff;
+  --secondary: #172f4b;
+  --secondary-foreground: #e7eff8;
+  --muted: #172f4b;
+  --muted-foreground: #9bb0c6;
+  --accent: #ffc81f;
+  --accent-foreground: #3a2a00;
+  --destructive: #f2897a;
+  --destructive-foreground: #1b0a07;
+  --border: #23405e;
+  --input: #23405e;
+  --ring: #8fc2fa;
+
+  --success: #5ed07b;
+  --success-soft: #12361f;
+  --warning: #f0c24a;
+  --warning-soft: #3b3010;
+  --danger-soft: #40201c;
+  --info: #7fb8f8;
+  --info-soft: #17365c;
+
+  --brand-blue: #6aaef7;
+  --brand-green: #4cc06c;
+  --brand-yellow: #ffc81f;
+  --folga: #4cc06c;
+  --pressao: #f08a78;
+
+  --sidebar: #06182e;
+  --sidebar-foreground: #dce9f6;
+  --sidebar-border: #163456;
+  --sidebar-accent: rgba(255, 255, 255, 0.1);
+}
+
+@theme inline {
+  --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-green: var(--brand-green);
+  --color-brand-yellow: var(--brand-yellow);
+  --color-folga: var(--folga);
+  --color-pressao: var(--pressao);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-background text-foreground font-sans text-[15px] leading-normal;
+    overflow: hidden;
+  }
+  h1, h2, h3 {
+    @apply font-display font-bold tracking-tight;
+    line-height: 1.15;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .scroll-thin {
+    scrollbar-width: thin;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

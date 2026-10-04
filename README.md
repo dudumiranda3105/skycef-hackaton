@@ -5,7 +5,7 @@ Projeto do X Hackathon Uni-FACEF 2026. Implementa agendamento e recebimento (Tar
 ## Tecnologia
 
 - Backend: **Java 21 + Spring Boot 3.5**, Spring JDBC, Flyway e PostgreSQL.
-- Interface: HTML, CSS e JavaScript servidos pelo Spring Boot, sem outro processo.
+- Interface usada na demonstração: HTML, CSS e JavaScript servidos pelo Spring Boot em `/ui/`, sem outro processo. O diretório `web/` contém uma interface React/Vite separada, que não é iniciada pelo Docker Compose.
 - Dados: migrations PostgreSQL em `api/migrations/V*.sql`; carga opcional do histórico com Apache POI.
 
 ## Executar
@@ -44,17 +44,12 @@ java -jar target/recebimento-1.0.0.jar --dados=C:/caminho/DADOS_HACKATHON_2026.z
 
 Depois do resumo da carga, encerre o processo se estiver usando essa execução só para importar. O comando substitui as tabelas históricas em uma transação; não altera agendamentos ou boletins da plataforma. Para gerar três semanas de dados de demonstração marcados `TESTE`, use `--demo-seed`. O seed não apaga dados existentes e deve ser chamado explicitamente.
 
-## Testes e contratos
+## Testes
 
-`mvn clean test` executa os testes Java. Testes de integração com PostgreSQL usam `TEST_DB_URL` e um schema temporário. Os contratos HTTP e as regras estão em [Tarefa 1](docs/API-TAREFA1.md), [Tarefa 2](docs/API-TAREFA2.md) e [Tarefa 3](docs/API-TAREFA3.md). Dinheiro é calculado com `BigDecimal` em quatro casas e arredondado apenas para exibição.
+`mvn clean test` executa os testes Java. Testes de integração com PostgreSQL usam `TEST_DB_URL` e um schema temporário. O frontend pode ser verificado com `npm run build` dentro de `web/`.
 
 O histórico não registra horários de descarga nem chapas por recebimento. O painel separa dados `HISTORICO`, `PLATAFORMA` e `TESTE`; a estimativa histórica de sobra/falta é uma faixa de sensibilidade, detalhada no [relatório gerencial](docs/relatorio-gerencial.md).
 
-## Artefatos obrigatórios
+## Documentação
 
-- [Relatório gerencial](docs/relatorio-gerencial.md)
-- [Caso de uso UML](docs/caso-de-uso.md)
-- [BPMN](docs/bpmn.md)
-- [DER](docs/der.md)
-
-As imagens SVG estão incorporadas em [docs/README.md](docs/README.md).
+Consulte o [índice da documentação](docs/README.md) para encontrar os guias de uso, contratos da API, regras de negócio, análise gerencial e artefatos do hackathon.

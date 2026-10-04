@@ -1,30 +1,32 @@
-# Artefatos obrigatórios
+# Documentação
 
-A ausência de qualquer um destes itens é eliminatória. Devem estar em texto e imagem,
-visíveis direto na página do GitHub.
+Use este índice para ir direto ao documento certo. Para instalar e executar o projeto, comece pelo [README principal](../README.md).
 
-| Artefato | Arquivo | Status |
-|---|---|---|
-| Relatório gerencial (resposta à pergunta da Tarefa 3, números, método, tratamento das inconsistências, origem dos dados) | [`relatorio-gerencial.md`](relatorio-gerencial.md) | disponível |
-| Diagrama de Caso de Uso (UML) | [`caso-de-uso.md`](caso-de-uso.md) + [`caso-de-uso.svg`](caso-de-uso.svg) | disponível |
-| Diagrama BPMN do processo proposto | [`bpmn.md`](bpmn.md) + [`bpmn.svg`](bpmn.svg) | disponível |
-| DER | [`der.md`](der.md) + [`der.svg`](der.svg) | disponível; base: [`api/migrations/V1__schema.sql`–`V7__painel_base.sql`](../api/migrations/) |
+## Para entender e usar a plataforma
 
-As imagens também podem ser vistas nesta página:
+- [Diferenciais e funcionalidades](DIFERENCIAIS.md) — recursos da interface, limites e regras de segurança.
+- [Login e perfis](API-LOGIN.md) — usuários iniciais, permissões e endpoints de autenticação.
+
+## Contratos da API e regras de negócio
+
+- [Tarefa 1 — Agendamento e recebimento](API-TAREFA1.md) — fluxo, status, regras e endpoints.
+- [Tarefa 2 — Boletim dos chapas](API-TAREFA2.md) — cálculo, validações, endpoints e formatos.
+- [Tarefa 3 — Painel gerencial](API-TAREFA3.md) — indicadores, filtros e dimensionamento em R$.
+- [Guia da Tarefa 2](GUIA-TAREFA2.md) — implementação, casos de teste, achados e decisões em aberto.
+
+## Análise gerencial e artefatos do projeto
+
+Os quatro itens abaixo são os entregáveis obrigatórios do hackathon:
+
+- [Relatório gerencial](relatorio-gerencial.md) — resposta à pergunta sobre sobra/falta, método, fontes e limitações.
+- [Caso de uso UML](caso-de-uso.md) — responsabilidades dos atores e casos de uso ([diagrama SVG](caso-de-uso.svg)).
+- [BPMN](bpmn.md) — processo proposto ([diagrama SVG](bpmn.svg)).
+- [DER](der.md) — modelo do banco ([diagrama SVG](der.svg)).
+
+Os três diagramas são exibidos abaixo. Para regenerá-los, execute `node docs/render-diagramas.cjs`.
 
 ![Casos de uso UML](caso-de-uso.svg)
 
 ![BPMN do processo proposto](bpmn.svg)
 
 ![DER PostgreSQL](der.svg)
-
-Os SVGs são gerados a partir de [`render-diagramas.cjs`](render-diagramas.cjs) com `node docs/render-diagramas.cjs`.
-
-Outros documentos:
-
-- [`API-TAREFA1.md`](API-TAREFA1.md) — fluxo, status, regras e todos os endpoints da Tarefa 1 (contrato para o front).
-- [`API-TAREFA2.md`](API-TAREFA2.md) — contrato da API do boletim dos chapas (regra do piso, endpoints, erros).
-- [`API-TAREFA3.md`](API-TAREFA3.md) — contrato do painel gerencial (indicadores, sobra/falta de chapas em R$, histórico) e a página `/painel`.
-- [`GUIA-TAREFA2.md`](GUIA-TAREFA2.md) — guia da Tarefa 2 (regras, armadilhas e achados nos dados).
-- [`API-LOGIN.md`](API-LOGIN.md) — login, perfis, permissões por perfil e usuários iniciais.
-- [`DIFERENCIAIS.md`](DIFERENCIAIS.md) — os 7 diferenciais (QR + check-in, D-1, simulador, calendário, leitura da NF, Pergunte aos Dados, Qualidade dos Dados) e o boletim do dia com os 4 armazéns.

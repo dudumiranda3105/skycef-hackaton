@@ -1,6 +1,6 @@
 # DER — esquema PostgreSQL
 
-O [DER em SVG](der.svg) resume as tabelas efetivas das migrações [`V1`–`V7`](../api/migrations/), após as alterações da V5. PK = chave primária; FK = chave estrangeira; UK = unicidade. As tabelas históricas aparecem em área própria porque o ETL preserva seus códigos de origem e não força FK com cadastros operacionais.
+O [DER em SVG](der.svg) resume as tabelas efetivas das migrações [`V1`–`V8`](../api/migrations/), após as alterações da V5. PK = chave primária; FK = chave estrangeira; UK = unicidade. As tabelas históricas aparecem em área própria porque o ETL preserva seus códigos de origem e não força FK com cadastros operacionais.
 
 ## Relações operacionais
 

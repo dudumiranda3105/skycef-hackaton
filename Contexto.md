@@ -1,8 +1,8 @@
 # Contexto.md — Recebimento Inteligente (COCAPEC · X Hackathon Uni-FACEF 2026)
 
-> Contexto para o Claude Code. Leia inteiro antes de escrever código.
+> Notas de contexto e decisões do projeto. Para executar a versão atual, use o [README](README.md); para documentação atual organizada por assunto, consulte [`docs/`](docs/README.md).
 > Precedência das fontes: **Regulamento > Dossiê > esclarecimentos da Cocapec > este arquivo > spec antiga (`recebimento_inteligente_cocapec.pdf`)**.
-> Os docs completos estão em `/docs` (01 a 07). Se algo aqui conflitar com eles, os docs vencem.
+> Este arquivo preserva contexto do desenvolvimento e pode conter decisões históricas. Contratos e instruções de execução atuais estão nos documentos específicos em [`docs/`](docs/README.md).
 
 ## 1. O que estamos construindo
 

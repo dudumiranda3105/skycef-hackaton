@@ -37,4 +37,5 @@ api/src/main/resources/static/ui/*
 .idea/
 *.iml
 .vscode/
+.vercel/
 .DS_Store

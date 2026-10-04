@@ -262,7 +262,7 @@ export function Usuarios() {
               </TableRow>
               <TableRow>
                 <TableCell className="font-bold">Diretoria</TableCell>
-                <TableCell>Agenda, boletim, painel, D-1, perguntas, qualidade</TableCell>
+                <TableCell>Agenda, boletim, painel, D-1 e perguntas</TableCell>
                 <TableCell className="text-muted-foreground">Nada (só consulta)</TableCell>
               </TableRow>
               <TableRow>
@@ -272,7 +272,7 @@ export function Usuarios() {
               </TableRow>
               <TableRow>
                 <TableCell className="font-bold">Responsável pelo armazém</TableCell>
-                <TableCell>Agenda, armazém, boletim, painel, D-1, perguntas, qualidade</TableCell>
+                <TableCell>Agenda, armazém, boletim, painel, D-1 e perguntas</TableCell>
                 <TableCell>Destinos, descargas, vagas, não recebimentos, boletim; agenda</TableCell>
               </TableRow>
               <TableRow>

@@ -59,9 +59,12 @@ O calendário é só conveniência: mudar o compromisso no celular não muda o a
   operação, não recebimentos (por motivo), armazém com mais recebimentos, fornecedores de maior volume, descargas concluídas,
   sobra ou falta de chapas, Planejamento D-1 e "por que há pressão amanhã".
 - Os números vêm de `/api/painel/*`, `/api/boletins` e do motor do D-1. Pergunta fora do catálogo recebe "não sei", com sugestões.
-- **Estado atual honesto:** a interpretação usa regras locais (palavras-chave, armazém, período). Para ligar um modelo de
-  linguagem, troque `interpretar()` em `lib/pergunte.ts` por uma chamada em servidor (a chave `ANTHROPIC_API_KEY` não pode ir
-  para o navegador) que devolva só `{metrica, armazem, periodo, motivo}` do catálogo. O restante não muda.
+- A interpretação usa o Gemini no servidor (`GEMINI_API_KEY`) para escolher apenas uma métrica permitida; período e
+  armazém continuam sendo extraídos localmente, e os números são sempre calculados pelas métricas existentes. A pergunta
+  é enviada ao Google Gemini, mas nenhum dado operacional nem chave é enviado pelo navegador. Sem chave ou se o serviço
+  estiver indisponível, o motor usa as regras locais como fallback.
+- A tela funciona como chat, mantém o histórico da conversa na sessão atual e exibe tokens de entrada/saída retornados
+  pelo Gemini por pergunta e no acumulado da sessão. É uma contagem de uso, não uma estimativa de custo monetário.
 
 ## 7. Qualidade dos Dados
 - Painel com período coberto por fonte, registros processados e válidos, duplicidades e tratamentos (carga documentada em

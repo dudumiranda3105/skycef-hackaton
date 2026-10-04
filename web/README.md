@@ -59,7 +59,6 @@ web/
 │   │   ├── painel.tsx        # Tarefa 3: Painel gerencial executivo com filtros, métricas e auditoria
 │   │   ├── d1.tsx            # Diferencial: Planejamento D-1 com matriz de pressão e simulador de equipe
 │   │   ├── perguntar.tsx     # Diferencial: Pergunte aos Dados (processamento em linguagem natural)
-│   │   ├── qualidade.tsx     # Diferencial: Auditoria de qualidade dos dados e limites das fontes
 │   │   └── usuarios.tsx      # Gestão de usuários, perfis e permissões
 │   ├── lib/                  # Lógica de negócio, clientes e utilitários
 │   │   ├── api.ts            # Cliente HTTP com interceptor de autenticação e tipagem de contratos

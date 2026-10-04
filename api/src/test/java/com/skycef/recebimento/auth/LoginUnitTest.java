@@ -56,6 +56,9 @@ class LoginUnitTest {
         // painel: direção e armazém; usuários: só administrador
         assertTrue(Permissoes.permite("DIRETORIA", "GET", "/api/painel/operacao"));
         assertFalse(Permissoes.permite("FORNECEDOR", "GET", "/api/painel/operacao"));
+        assertTrue(Permissoes.permite("DIRETORIA", "POST", "/api/ia/interpretar"));
+        assertTrue(Permissoes.permite("ARMAZEM", "POST", "/api/ia/interpretar"));
+        assertFalse(Permissoes.permite("FORNECEDOR", "POST", "/api/ia/interpretar"));
         assertFalse(Permissoes.permite("DIRETORIA", "POST", "/api/boletins"));
         assertFalse(Permissoes.permite("ARMAZEM", "GET", "/api/usuarios"));
         assertTrue(Permissoes.permite("ADMIN", "GET", "/api/usuarios"));

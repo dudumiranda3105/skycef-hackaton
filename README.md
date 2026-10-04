@@ -23,7 +23,7 @@ Organiza o recebimento de mercadorias nos 4 armazéns da cooperativa — agenda 
 | **Estilização** | Tailwind CSS v4 + shadcn/ui |
 | **Componentes** | Lucide (ícones), Motion (animações) |
 | **Importação ETL** | Apache POI (Excel/XML) |
-| **Diferencial** | Anthropic API (Pergunte aos Dados) |
+| **Diferenciais** | Leitura de NF-e (XML e DANFE com texto) e Pergunte aos Dados (Gemini para interpretar; cálculos determinísticos) |
 
 ## Estrutura do projeto
 
@@ -61,6 +61,24 @@ docker compose up --build
 ```
 
 Acesse `http://localhost:8000/ui/`. As migrations são aplicadas automaticamente.
+
+Para habilitar a IA em **Pergunte aos Dados**, configure `GEMINI_API_KEY` no arquivo `.env` da raiz antes de subir o Compose.
+Sem essa variável, a tela continua funcionando com as regras locais. A chave é usada somente pela API e não deve ser
+colocada no frontend ou versionada. O texto da pergunta é enviado ao Google Gemini; os dados operacionais não são.
+
+## Publicar o frontend na Vercel
+
+O frontend pode ser hospedado na Vercel, mas a Vercel não executa este backend Spring Boot nem o PostgreSQL do Compose.
+Hospede a API e o PostgreSQL em um serviço que aceite Docker e PostgreSQL gerenciado (por exemplo, Render ou Railway),
+configure a API com `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`,
+`AUTH_ATIVA=true`, `SENHA_INICIAL` forte e `GEMINI_API_KEY`, e mantenha `/health` público para o health check.
+
+Na Vercel, importe este repositório e defina **Root Directory** como `web`. O arquivo `web/vercel.json` configura
+instalação, build, saída e proxy. Depois de publicar a API, adicione a variável `BACKEND_URL` nas configurações da Vercel
+com a URL HTTPS base da API (sem `/api` e sem barra final) e faça um novo deploy. O roteamento passa `/api/*` pela
+Vercel para manter a sessão por cookie no mesmo host.
+Não cadastre `GEMINI_API_KEY` na Vercel: ela pertence somente ao ambiente privado do backend. Não coloque segredos no
+Git nem em variáveis `VITE_*`.
 
 ## Portaria e Insumos
 
@@ -122,9 +140,9 @@ Todos com a senha definida em `SENHA_INICIAL` (padrão demo: `cocapec2026`):
 | **T2 — Boletim Diário** | Cálculo de produção, piso (R$ 90,1731) e complemento dos ensacadores |
 | **T3 — Painel Gerencial** | Sobra/falta de chapas em R$, indicadores operacionais, séries históricas |
 | **D-1 (Planejamento)** | Simulador de equipe com matriz de pressão |
-| **Pergunte aos Dados** | Consulta em linguagem natural via Anthropic |
+| **Pergunte aos Dados** | Gemini interpreta a intenção em uma métrica permitida; o sistema calcula a resposta usando o catálogo seguro. Usa regras locais como fallback (veja [DIFERENCIAIS.md](docs/DIFERENCIAIS.md#6-pergunte-aos-dados)) |
 | **QR Code** | Check-in por QR ou código de barras na portaria |
-| **OCR de NF-e** | Leitura de XML e PDF DANFE |
+| **Leitura assistida da NF-e** | Lê o XML e o DANFE em PDF com texto. Não faz OCR: PDF escaneado é preenchido à mão |
 
 ## Documentação
 

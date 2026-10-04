@@ -38,7 +38,10 @@ export function Painel() {
   const [from, setFrom] = useState('2022-06')
   const [to, setTo] = useState(() => hojeISO().slice(0, 7))
   const [armFiltro, setArmFiltro] = useState<string>('Todos')
-  const [tab, setTab] = useState<'hist' | 'plat'>('plat')
+  // A base importada contém série histórica real; a nova plataforma começa
+  // sem descargas encerradas. Abra no histórico para evitar um painel inicial
+  // aparentemente vazio durante apresentações.
+  const [tab, setTab] = useState<'hist' | 'plat'>('hist')
 
   const [hist, setHist] = useState<Historico | null>(null)
   const [indic, setIndic] = useState<any>(null)
@@ -104,7 +107,9 @@ export function Painel() {
       rotulo: a.armazem,
       valor: a.recebimentos,
       texto: `${nf0.format(a.recebimentos)} rec.`,
-      sub: `${nf1.format(a.participacaoNaNecessidade * 100)}%`,
+      sub: a.esforcoPessoaMinutos > 0
+        ? `${nf1.format(a.participacaoNaNecessidade * 100)}% da necessidade`
+        : 'sem esforço na premissa',
       cor: ARM_COR[a.armazem] ?? '#005ba0',
       esmaecida: armFiltro !== 'Todos' && armFiltro !== String(a.armazemId),
     }))
@@ -137,6 +142,7 @@ export function Painel() {
   const complementoPago = Number(T_plat.sobraReais ?? 0)
   const totalPago = Number(T_plat.totalAPagar ?? 0)
   const parcelaComplemento = totalPago > 0 ? (complementoPago / totalPago) * 100 : null
+  const ocorrenciasNaoRecebimento = nrBarras.some(([, quantidade]) => quantidade > 0)
 
   return (
     <div className="grid gap-6">
@@ -306,14 +312,17 @@ export function Painel() {
                             {a.armazem}
                           </TableCell>
                           <TableCell className="text-right num">{nf0.format(a.recebimentos)}</TableCell>
-                          <TableCell className="text-right num">{nf1.format(a.participacaoNaNecessidade * 100)}%</TableCell>
-                          <TableCell className="text-right num">{brl0(a.parcelaDaSobraReais)}</TableCell>
-                          <TableCell className="text-right num">{brl0(a.parcelaDaFaltaReais)}</TableCell>
+                          <TableCell className="text-right num" title={a.premissa}>{a.esforcoPessoaMinutos > 0 ? `${nf1.format(a.participacaoNaNecessidade * 100)}%` : '—'}</TableCell>
+                          <TableCell className="text-right num" title={a.premissa}>{a.esforcoPessoaMinutos > 0 ? brl0(a.parcelaDaSobraReais) : '—'}</TableCell>
+                          <TableCell className="text-right num" title={a.premissa}>{a.esforcoPessoaMinutos > 0 ? brl0(a.parcelaDaFaltaReais) : '—'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  “—” indica que a premissa do dossiê não atribui esforço de chapas àquele armazém. O recebimento continua contado; os valores por armazém são estimativas de alocação, não custos observados.
+                </p>
               </PainelContainer>
 
               {/* Números de cada estação */}
@@ -561,27 +570,27 @@ export function Painel() {
           </p>
           <div className="mt-4 grid gap-3">
             <div className="flex justify-between items-baseline border-b pb-2">
-              <span className="text-sm text-muted-foreground">Tempo médio de espera ({nf0.format(op?.tempoMedioEsperaMin?.amostra ?? 0)} amostras)</span>
+              <span className="text-sm text-muted-foreground">Tempo médio de espera ({op?.tempoMedioEsperaMin?.amostra ? `${nf0.format(op.tempoMedioEsperaMin.amostra)} amostras` : 'sem amostra'})</span>
               <span className="num font-bold text-base">
                 {op?.tempoMedioEsperaMin?.media != null ? fmtDur(op.tempoMedioEsperaMin.media) : '—'}
               </span>
             </div>
             <div className="flex justify-between items-baseline border-b pb-2">
-              <span className="text-sm text-muted-foreground">Tempo médio de descarga ({nf0.format(op?.tempoMedioDescargaMin?.amostra ?? 0)} amostras)</span>
+              <span className="text-sm text-muted-foreground">Tempo médio de descarga ({op?.tempoMedioDescargaMin?.amostra ? `${nf0.format(op.tempoMedioDescargaMin.amostra)} amostras` : 'sem amostra'})</span>
               <span className="num font-bold text-base">
                 {op?.tempoMedioDescargaMin?.media != null ? fmtDur(op.tempoMedioDescargaMin.media) : '—'}
               </span>
             </div>
             <div className="flex justify-between items-baseline border-b pb-2">
-              <span className="text-sm text-muted-foreground">Chapas por descarga ({nf0.format(op?.chapasPorRecebimento?.amostra ?? 0)} amostras)</span>
+              <span className="text-sm text-muted-foreground">Chapas por descarga ({op?.chapasPorRecebimento?.amostra ? `${nf0.format(op.chapasPorRecebimento.amostra)} amostras` : 'sem amostra'})</span>
               <span className="num font-bold text-base">
                 {op?.chapasPorRecebimento?.media != null ? nf1.format(op.chapasPorRecebimento.media) : '—'}
               </span>
             </div>
             <div className="flex justify-between items-baseline border-b pb-2">
-              <span className="text-sm text-muted-foreground">Custo da operação ({nf0.format(op?.custoDaOperacao?.boletins ?? 0)} boletins consistentes)</span>
+              <span className="text-sm text-muted-foreground">Custo da operação ({op?.custoDaOperacao?.boletins ? `${nf0.format(op.custoDaOperacao.boletins)} boletins consistentes` : 'sem boletim consistente'})</span>
               <span className="num font-bold text-base">
-                {op?.custoDaOperacao?.totalAPagar != null ? brl2(op.custoDaOperacao.totalAPagar) : '—'}
+                {op?.custoDaOperacao?.boletins ? brl2(op.custoDaOperacao.totalAPagar) : '—'}
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -595,7 +604,7 @@ export function Painel() {
           <p className="mt-1 mb-4 text-sm text-muted-foreground">
             Ocorrências no período e na origem selecionados. Não há armazém associado em todos os casos; por isso este indicador não é filtrado pelo armazém.
           </p>
-          <Barras itens={nrBarras} cor="verde" />
+          {ocorrenciasNaoRecebimento ? <Barras itens={nrBarras} cor="verde" /> : <Vazio>Nenhuma ocorrência registrada no período e origem selecionados.</Vazio>}
         </PainelContainer>
       </div>
 

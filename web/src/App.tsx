@@ -21,7 +21,6 @@ import { Boletim } from '@/features/boletim'
 import { Painel } from '@/features/painel'
 import { D1 } from '@/features/d1'
 import { Perguntar } from '@/features/perguntar'
-import { Qualidade } from '@/features/qualidade'
 import { Usuarios } from '@/features/usuarios'
 import { AuthProvider, DadosProvider, useAuth } from '@/lib/store'
 import { JanelasProvider, useJanelas } from '@/lib/janelas'
@@ -63,8 +62,6 @@ function Conteudo() {
       return <D1 />
     case 'perguntar':
       return <Perguntar />
-    case 'qualidade':
-      return <Qualidade />
     case 'usuarios':
       return <Usuarios />
     default:

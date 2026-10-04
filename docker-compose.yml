@@ -31,7 +31,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
       AUTH_ATIVA: ${AUTH_ATIVA:-true}
       SENHA_INICIAL: ${SENHA_INICIAL:-cocapec2026}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       TZ: America/Sao_Paulo
     ports:
       - "127.0.0.1:8000:8000"

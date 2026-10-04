@@ -4,9 +4,10 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig(() => {
+  const naVercel = process.env.VERCEL === '1'
   return {
-    // A interface é servida pelo Spring Boot em /ui/. O build vai direto para a pasta estática da API.
-    base: '/ui/',
+    // Na Vercel o app fica na raiz; no Docker continua sendo servido pelo Spring em /ui/.
+    base: naVercel ? '/' : '/ui/',
     plugins: [react(), tailwindcss()],
     resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
     server: {
@@ -14,7 +15,7 @@ export default defineConfig(() => {
       proxy: { '/api': 'http://localhost:8000', '/health': 'http://localhost:8000' },
     },
     build: {
-      outDir: '../api/src/main/resources/static/ui',
+      outDir: naVercel ? 'dist' : '../api/src/main/resources/static/ui',
       emptyOutDir: true,
       rollupOptions: {
         output: {

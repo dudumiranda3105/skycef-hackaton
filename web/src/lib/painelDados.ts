@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { GET } from './api'
 
-/* O histórico completo (sem filtro) alimenta a pergunta da direção no início, a sazonalidade e a qualidade dos dados.
+/* O histórico completo (sem filtro) alimenta a pergunta da direção no início e a sazonalidade.
    Fica em cache enquanto a pessoa está logada; sair limpa tudo para não vazar dados entre usuários. */
 export interface Historico {
   piso?: string

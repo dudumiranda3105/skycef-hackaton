@@ -1,5 +1,6 @@
 server:
   port: ${PORT:8000}
+  forward-headers-strategy: framework
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/skycef}
@@ -29,3 +30,6 @@ app:
     ativa: ${AUTH_ATIVA:true}
   # senha dos usuários iniciais, criados só na primeira subida; vazia = gera uma e mostra no log da API
   senha-inicial: ${SENHA_INICIAL:}
+  gemini:
+    # A chave fica apenas no servidor. Sem configuração, o Pergunte aos Dados usa as regras locais.
+    api-key: ${GEMINI_API_KEY:}

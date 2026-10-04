@@ -3,7 +3,7 @@
    número, período, filtros e origem. A interpretação nunca calcula nem inventa números e não existe SQL livre.
    Hoje a interpretação usa regras locais (palavras-chave, armazém, período). Um modelo de linguagem pode ser ligado
    em interpretar() sem mudar o resto: ele só escolheria uma métrica do catálogo e os parâmetros dela. */
-import { GET, qs } from './api'
+import { GET, POST, qs } from './api'
 import { ACOND, DOW_LONGO, MOTIVOS_NR, SLOTS } from './constants'
 import { calcularD1, D1_PERIODOS, NIVEL_TXT } from './d1'
 import {
@@ -52,6 +52,12 @@ export interface Contexto {
   armazens: Armazem[]
   boletins: Boletim[]
   fornById: (id: number) => Fornecedor
+}
+
+export interface UsoTokens {
+  entrada: number | null
+  resposta: number | null
+  total: number | null
 }
 
 function interpretarPeriodo(t: string): Periodo | null {
@@ -113,6 +119,33 @@ export function interpretar(pergunta: string, armazens: Armazem[]): Interpretaca
   else if (/custo|gastamos|gasto|total a pagar|quanto pagamos/.test(t)) metrica = 'custo'
   else if (/(quantas?|quantos?).*(entregas|cargas|recebimentos|descargas|caminhoes)/.test(t)) metrica = 'entregas'
   return { metrica, periodo, arm, motivo, periodoDia: manha ? 'manha' : tarde ? 'tarde' : null, texto: pergunta }
+}
+
+export async function interpretarComIA(pergunta: string, armazens: Armazem[]) {
+  const local = interpretar(pergunta, armazens)
+  try {
+    const resultado = await POST<{
+      iaAtiva: boolean
+      metrica: string
+      tokensEntrada?: number
+      tokensResposta?: number
+      tokensTotal?: number
+    }>('/api/ia/interpretar', { pergunta })
+    if (resultado.iaAtiva && (resultado.metrica === '' || Object.hasOwn(METRICAS, resultado.metrica))) {
+      return {
+        interpretacao: { ...local, metrica: resultado.metrica || null },
+        viaIA: true,
+        uso: {
+          entrada: resultado.tokensEntrada ?? null,
+          resposta: resultado.tokensResposta ?? null,
+          total: resultado.tokensTotal ?? null,
+        } satisfies UsoTokens,
+      }
+    }
+  } catch {
+    // Sem Gemini disponível, mantém a interpretação local já existente.
+  }
+  return { interpretacao: local, viaIA: false, uso: null }
 }
 
 /* ---------- catálogo de métricas permitidas ---------- */

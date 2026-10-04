@@ -66,14 +66,14 @@ export const PAPEL_ROTULO: Record<Papel, string> = {
 }
 
 export type Secao =
-  | 'agenda' | 'portaria' | 'compras' | 'armazem' | 'insumo' | 'fiscal' | 'boletim' | 'painel' | 'd1' | 'perguntar' | 'qualidade' | 'usuarios'
+  | 'agenda' | 'portaria' | 'compras' | 'armazem' | 'insumo' | 'fiscal' | 'boletim' | 'painel' | 'd1' | 'perguntar' | 'usuarios'
 
 /** Seções que cada perfil enxerga (espelha o que a API deixa cada um chamar). */
 export const PAPEL_SECOES: Record<Papel, Secao[]> = {
-  ADMIN: ['agenda', 'portaria', 'compras', 'armazem', 'insumo', 'fiscal', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade', 'usuarios'],
-  DIRETORIA: ['agenda', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade'],
+  ADMIN: ['agenda', 'portaria', 'compras', 'armazem', 'insumo', 'fiscal', 'boletim', 'painel', 'd1', 'perguntar', 'usuarios'],
+  DIRETORIA: ['agenda', 'boletim', 'painel', 'd1', 'perguntar'],
   COMPRAS: ['agenda', 'compras', 'fiscal'],
-  ARMAZEM: ['agenda', 'armazem', 'fiscal', 'boletim', 'painel', 'd1', 'perguntar', 'qualidade'],
+  ARMAZEM: ['agenda', 'armazem', 'fiscal', 'boletim', 'painel', 'd1', 'perguntar'],
   ENCARREGADO: ['agenda', 'boletim'],
   FORNECEDOR: ['agenda'],
   INSUMO: ['agenda', 'armazem', 'insumo', 'fiscal'],
@@ -100,6 +100,5 @@ export const SECAO_ROTULO: Record<Secao, string> = {
   painel: 'Painel gerencial',
   d1: 'Planejamento D-1',
   perguntar: 'Pergunte aos dados',
-  qualidade: 'Qualidade dos dados',
   usuarios: 'Usuários',
 }

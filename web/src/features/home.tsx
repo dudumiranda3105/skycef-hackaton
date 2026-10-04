@@ -13,7 +13,6 @@ import { descAberta } from '@/lib/api'
 import { useAuth, useDados } from '@/lib/store'
 import { useRota } from '@/lib/rota'
 import { respostaDirecao, useHistoricoCompleto } from '@/lib/painelDados'
-import { INCONSISTENCIAS_HIST } from '@/features/qualidade'
 import { MapaPressao } from '@/components/mapa-pressao'
 import type { Agendamento, StatusAg } from '@/lib/types'
 
@@ -151,6 +150,8 @@ export function Home() {
   )
   const nomeForn = (id: number) => forn.find((f) => f.id === id)?.curto ?? '—'
   const hojeTxt = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const recebimentosHistoricos = hist?.armazens.reduce((total, armazem) => total + armazem.recebimentos, 0) ?? 0
+  const armazensComHistorico = hist?.armazens.filter((armazem) => armazem.recebimentos > 0).length ?? 0
 
   const boletinsPlataforma = boletins.filter(
     (b) => b.origem === 'PLATAFORMA' && b.situacao === 'CONSISTENTE',
@@ -212,9 +213,6 @@ export function Home() {
     ),
     pode('perguntar') && (
       <Metrica key="perguntar" i={6} secao="perguntar" cor="var(--brand-yellow)" grande="?" sub="faça perguntas em linguagem natural" origem="PLATAFORMA" />
-    ),
-    pode('qualidade') && (
-      <Metrica key="qualidade" i={7} secao="qualidade" cor="var(--brand-blue)" grande={nf0.format(INCONSISTENCIAS_HIST.length)} sub="tratamentos documentados nos dados" origem="HISTORICO" />
     ),
     pode('insumo') && (
       <Metrica key="insumo" i={9} secao="insumo" cor="var(--brand-green-deep)" grande={nf0.format(ags.filter((a) => a.portaria?.situacao === 'PENDENTE_INSUMOS').length)} sub="recebimentos aguardando validação · consulte a fila e o estoque" origem="PLATAFORMA" />
@@ -280,9 +278,47 @@ export function Home() {
         </section>
       )}
 
-      <div className="grid grid-cols-2 overflow-hidden rounded-xl border bg-card shadow-card sm:grid-cols-[repeat(auto-fill,minmax(230px,1fr))]">
+      <div
+        className="grid overflow-hidden rounded-xl border bg-card shadow-card"
+        style={{
+          gridTemplateColumns:
+            metricas.length === 1
+              ? 'minmax(0, 1fr)'
+              : metricas.length === 2
+                ? 'repeat(2, minmax(0, 1fr))'
+                : 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))',
+        }}
+      >
         {metricas}
       </div>
+
+      {pode('painel') && hist && (
+        <section className="rounded-xl border border-brand-blue/20 bg-card p-5 shadow-card">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-3xl">
+              <h2 className="text-[17px] font-semibold">Histórico oficial importado</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Os indicadores operacionais acima consultam registros feitos nesta plataforma. O pacote histórico está disponível abaixo e nas consultas próprias; ele não foi convertido em agendamentos, chegadas ou descargas atuais.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => ir('painel')}>Abrir painel histórico <ArrowRight /></Button>
+              {pode('fiscal') && <Button size="sm" variant="outline" onClick={() => ir('fiscal')}>Notas fiscais</Button>}
+              {pode('insumo') && <Button size="sm" variant="outline" onClick={() => ir('insumo')}>Estoque oficial</Button>}
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg bg-secondary/60 p-3">
+              <div className="num text-2xl font-bold">{nf0.format(recebimentosHistoricos)}</div>
+              <div className="text-sm text-muted-foreground">recebimentos históricos mapeados nos armazéns</div>
+            </div>
+            <div className="rounded-lg bg-secondary/60 p-3">
+              <div className="num text-2xl font-bold">{nf0.format(armazensComHistorico)} de 4</div>
+              <div className="text-sm text-muted-foreground">armazéns com movimento histórico importado</div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {pode('d1') && <MapaPressao />}
 

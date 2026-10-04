@@ -197,3 +197,143 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Em telas estreitas, a navegação vira uma barra no topo e libera a largura do conteúdo. */
+.shell-mobile-user {
+  display: none;
+}
+
+/* Usa a altura máxima do viewport para o painel continuar até o fim da tela em dispositivos móveis. */
+.shell-layout {
+  height: 100vh;
+  height: 100lvh;
+}
+
+.shell-sidebar {
+  height: 100vh;
+  height: 100lvh;
+}
+
+@media (max-width: 30rem) {
+  .shell-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .shell-sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-rows: auto auto;
+    grid-template-areas: "brand account actions" "navigation navigation navigation";
+    align-content: start;
+    align-items: center;
+    column-gap: 0.5rem;
+    row-gap: 0.25rem;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--sidebar-border);
+    padding: 0.55rem 0.75rem 0.4rem;
+  }
+
+  .shell-brand {
+    grid-area: brand;
+    display: flex;
+    align-items: center;
+    align-self: center;
+    min-width: 0;
+    height: 2.5rem;
+    border: 0;
+    padding: 0;
+  }
+
+  .shell-brand img {
+    display: block;
+    width: 96px;
+    height: auto;
+  }
+
+  .shell-tagline,
+  .shell-navigation-heading {
+    display: none;
+  }
+
+  .shell-mobile-user {
+    grid-area: account;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+
+  .shell-mobile-user > span {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .shell-mobile-user > div {
+    max-width: 5rem;
+  }
+
+  .shell-sidebar-user {
+    display: none;
+  }
+
+  .shell-navigation {
+    grid-area: navigation;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    min-width: 0;
+    margin-top: 0;
+    padding: 0 0 0.1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+
+  .shell-nav-item {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .shell-sidebar-actions {
+    grid-area: actions;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.25rem;
+    width: auto;
+    margin: 0;
+    border: 0;
+    padding: 0;
+  }
+
+  .shell-settings-button {
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  .shell-settings-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .shell-layout > main {
+    min-width: 0;
+    min-height: 0;
+  }
+}

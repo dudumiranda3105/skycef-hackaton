@@ -23,6 +23,7 @@ public final class Permissoes {
         if (caminho.startsWith("/api/usuarios")) return false;
 
         boolean leitura = "GET".equals(metodo) || "HEAD".equals(metodo);
+        if (caminho.equals("/api/ia/interpretar")) return "POST".equals(metodo) && PAINEL.contains(papel);
         if (caminho.startsWith("/api/painel")) return leitura && PAINEL.contains(papel);
         if (caminho.startsWith("/api/historico/")) return leitura && HISTORICO.contains(papel);
         if (caminho.equals("/api/armazens")) return leitura && CADASTROS.contains(papel);
@@ -50,7 +51,7 @@ public final class Permissoes {
         if (caminho.equals("/api/insumos/recebimentos")) return leitura && "INSUMO".equals(papel);
         if (caminho.matches("/api/insumos/recebimentos/\\d+/decisao")) return "POST".equals(metodo) && "INSUMO".equals(papel);
         if (caminho.matches("/api/agendamentos/\\d+/validacao-compras")) return !leitura && "COMPRAS".equals(papel);
-        if (caminho.matches("/api/agendamentos/\\d+/destinos")) return !leitura && Set.of("ARMAZEM", "INSUMO").contains(papel);
+        if (caminho.matches("/api/agendamentos/\\d+/destinos")) return !leitura && Set.of("ARMAZEM", "INSUMO", "PORTEIRO").contains(papel);
         if (caminho.matches("/api/agendamentos/\\d+/chegada") || caminho.matches("/api/descargas/\\d+/chegada"))
             return !leitura && Set.of("ARMAZEM", "PORTEIRO").contains(papel);
         if (caminho.matches("/api/descargas/\\d+/(entrada|saida)")) return !leitura && "ARMAZEM".equals(papel);

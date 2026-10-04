@@ -23,3 +23,9 @@ management:
 springdoc:
   swagger-ui:
     path: /docs
+app:
+  auth:
+    # false desliga o login (testes de integração e desenvolvimento). Em uso normal, deixe ligado.
+    ativa: ${AUTH_ATIVA:true}
+  # senha dos usuários iniciais, criados só na primeira subida; vazia = gera uma e mostra no log da API
+  senha-inicial: ${SENHA_INICIAL:}

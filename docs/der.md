@@ -23,6 +23,7 @@ O [DER em SVG](der.svg) resume as tabelas efetivas das migrações [`V1`–`V7`]
 - `nota_fiscal`: índice único parcial para `nf_chave` ativa; há uma ou mais NFs por agendamento na regra de aplicação.
 - `boletim`: `UNIQUE(armazem_id, data)`; `boletim_producao` e `boletim_equipe` têm PK composta.
 - Dinheiro e preços usam `numeric(...,4)`; `total_a_pagar` é o custo do boletim para o painel. O `quantidade_chapas` da descarga mede intensidade, não efetivo diário.
+- `usuario` e `sessao` (migration V8) só servem ao login e não aparecem no diagrama: senha em PBKDF2 e, da sessão, apenas o SHA-256 do token.
 - `data_nao_operacional` e `parametro` são tabelas de regra independentes. `hist_recebimento_item`, `hist_chapa_dia` e `hist_chapa_presenca` guardam a base histórica; `deposito_armazem` traduz depósitos físicos para a análise.
 
 ## Fonte textual Mermaid

@@ -47,7 +47,7 @@ function cellHtml(d,hora){
     lanes=b.h.replace('class="lane ','class="lane full ')+itens.filter((x,j)=>j!==i).map(x=>x.h).join('');
   }else{
     for(let i=0;i<Math.max(MAX_UNITIZADOS,itens.length);i++)
-      lanes+=itens[i]?itens[i].h:'<button class="lane empty'+(passado?'':' free')+'" data-act="new-ag" data-data="'+d+'" data-hora="'+hora+'"'+(passado?' disabled':'')+'>Livre</button>';
+      lanes+=itens[i]?itens[i].h:'<button class="lane empty'+(passado||!pf('agendar')?'':' free')+'" data-act="new-ag" data-data="'+d+'" data-hora="'+hora+'"'+(passado||!pf('agendar')?' disabled':'')+'>Livre</button>';
   }
   const foot=bat?'Exclusivo · carga batida':n>MAX_UNITIZADOS?'Acima do limite · caso fortuito':n===MAX_UNITIZADOS?'Lotado · 2 de 2':(MAX_UNITIZADOS-n)===1?'1 vaga livre':'2 vagas livres';
   return '<div class="cell">'+lanes+'<div class="foot">'+foot+'</div></div>';
@@ -65,7 +65,7 @@ function viewAgenda(){
     return '<tr class="click" data-act="open-ag" data-id="'+a.id+'"><td class="num">'+fmtDM(a.data)+' '+a.horario+'</td><td>'+esc(fornById(a.fornecedorId).nome)+'</td><td>'+nfsTxt(a)+'</td><td>'+acChipS(a.acond)+'</td><td>'+stChip(a.status)+'</td><td>'+(ds.length?ds.map(x=>esc(x.armazem)).join(', '):'<span class="muted">a definir</span>')+'</td><td>'+origBadge(a.origem)+'</td></tr>';}).join('');
   const vagasAbertas=S.vagas.filter(v=>v.status==='ABERTA').length;
   return head('Agenda de recebimento','Todos os caminhões precisam de horário. A capacidade é única para a cooperativa inteira: ou uma carga batida sozinha, ou até dois caminhões paletizados ou big bag.','Quem usa: fornecedor (agenda) · Responsável pelo armazém (acompanha)',
-    '<button class="btn" data-act="walkin">Chegou sem agendamento</button><button class="btn accent" data-act="new-ag-btn">Novo agendamento</button>')+
+    (pf('armazem')?'<button class="btn" data-act="walkin">Chegou sem agendamento</button>':'')+(pf('agendar')?'<button class="btn accent" data-act="new-ag-btn">Novo agendamento</button>':''))+
   (vagasAbertas?'<div class="callout warn" style="margin-bottom:14px"><b>'+vagasAbertas+' vaga(s) liberada(s) por cancelamento</b> aguardando decisão do armazém: clique na vaga tracejada da grade para escolher quem ocupa ou liberar ao público.</div>':'')+
   '<div class="wkbar"><button class="btn sm" data-act="week" data-d="-1" aria-label="Semana anterior">‹</button><h2 class="num">'+fmtDM(days[0])+' a '+fmtDM(days[4])+'/'+ano+'</h2><button class="btn sm" data-act="week" data-d="1" aria-label="Próxima semana">›</button><button class="btn sm" data-act="week-today">Semana atual</button></div>'+
   '<div class="agenda-wrap" role="region" aria-label="Grade de horários da semana" tabindex="0"><div class="agenda-grid">'+g+'</div></div>'+
@@ -102,7 +102,7 @@ function openNewAg(pre,walkin){
 }
 function addNfRow(){
   const c=$('#na-nfs');if(!c)return;const row=document.createElement('div');row.className='nfrow';
-  row.innerHTML='<input class="nf" type="text" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="0000" aria-label="Número da NF, padrão de 4 dígitos"><input type="file" accept=".xml,.pdf" aria-label="Arquivo da NF (XML ou PDF, até 10 MB)"><button class="btn sm" data-act="na-rmnf" aria-label="Remover NF">×</button>';
+  row.innerHTML='<input class="nf" type="text" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="0000" aria-label="Número da NF, padrão de 4 dígitos"><input type="file" accept=".xml,.pdf" aria-label="Arquivo da NF (XML ou PDF, até 10 MB)"><button class="btn sm" data-act="na-rmnf" aria-label="Remover NF">×</button><div class="nfread" hidden></div>';
   c.appendChild(row);
 }
 function readNA(){NA.data=$('#na-data').value;const r=$('input[name=na-ac]:checked');NA.acond=r?r.value:'';}
@@ -129,7 +129,7 @@ async function refreshSlots(){
   const nr=$('#na-nr');if(nr)nr.hidden=!(NA.walkin&&NA.acond&&NA.data&&ag&&(!livres||bloq));
 }
 function lerNfs(){
-  return $$('#na-nfs .nfrow').map(r=>({numero:fmtNF(r.querySelector('input[type=text]').value),arquivo:r.querySelector('input[type=file]').files[0]||null})).filter(n=>n.numero||n.arquivo);
+  return $$('#na-nfs .nfrow').map(r=>{const l=r._lido,arquivo=r.querySelector('input[type=file]').files[0]||null;let numero=fmtNF(r.querySelector('input.nf').value),chave='',peso=null,pendente=false;if(l){if(l.confirmado){numero=fmtNF(r.querySelector('.nl-num').value)||numero;chave=r.querySelector('.nl-chave').value.replace(/\D/g,'');const p=r.querySelector('.nl-peso').value.trim().replace(',','.');peso=p||null;}else pendente=true;}return{numero,arquivo,chave,peso,pendente};}).filter(n=>n.numero||n.arquivo);
 }
 async function saveNewAg(){
   readNA();const forn=resolveForn($('#na-forn').value);const erros=[];
@@ -139,6 +139,8 @@ async function saveNewAg(){
   const nums=nfs.map(n=>n.numero).filter(Boolean);
   if(nums.some(n=>!nfValida(n)))erros.push('O número da nota fiscal precisa ter de 1 a 9 dígitos e não pode ser só zeros (ex.: 0524).');
   if(new Set(nums).size!==nums.length)erros.push('Há notas fiscais repetidas nesta entrega.');
+  if(nfs.some(n=>n.pendente))erros.push('Confirme (ou descarte) os dados lidos da nota fiscal antes de agendar.');
+  if(nfs.some(n=>n.chave&&!chaveValida(n.chave)))erros.push('A chave de acesso informada não é válida (44 dígitos com dígito verificador). Corrija ou deixe em branco.');
   if(nfs.some(n=>n.arquivo&&!/\.(xml|pdf)$/i.test(n.arquivo.name)))erros.push('Os anexos precisam ser .xml ou .pdf.');
   if(nfs.some(n=>n.arquivo&&n.arquivo.size>10*1024*1024))erros.push('Cada anexo pode ter no máximo 10 MB.');
   if(!NA.acond)erros.push('Escolha o acondicionamento.');
@@ -148,7 +150,7 @@ async function saveNewAg(){
   let criado;
   try{
     criado=await POST('/api/agendamentos',{fornecedorId:forn.id,data:NA.data,horario:NA.hora,acondicionamento:NA.acond,agendadoNaHora:NA.walkin,
-      notas:nfs.map(n=>n.numero?{nfNumero:n.numero}:{})});
+      notas:nfs.map(n=>{const o={};if(n.numero)o.nfNumero=n.numero;if(n.chave)o.nfChave=n.chave;if(n.peso)o.pesoTotalKg=Number(n.peso);return o;})});
   }catch(e){setMsg('#na-msg',errTxt(e));refreshSlots();return;}
   const falhas=[];
   for(let i=0;i<nfs.length;i++){
@@ -160,6 +162,7 @@ async function saveNewAg(){
   if(NA.walkin){try{await POST('/api/agendamentos/'+criado.id+'/chegada',{});}catch(e){falhas.push('Chegada não registrada: '+errTxt(e));}}
   closeAll();U.weekStart=mondayOf(NA.data);await refresh();go('agenda');
   toast('Agendamento criado para '+fmtDM(NA.data)+' às '+NA.hora+'. Aguardando Compras.');
+  setTimeout(()=>openQr(criado.id,true),falhas.length?1200:350);
   if(falhas.length)setTimeout(()=>toast('O agendamento foi criado, mas houve problema com o anexo. '+falhas.join(' | '),true),600);
 }
 async function walkinNaoRecebido(){
@@ -189,12 +192,13 @@ async function openAg(id){
   const reag=eventos.filter(e=>e.tipo==='REAGENDAMENTO'&&e.detalhe&&e.detalhe.de&&e.detalhe.para);
   const nrs=S.nr.filter(n=>n.agendamentoId===id),vaga=vagaAbertaDe(id);
   const ativo=ativoAg(a),acts=[];
-  if(ativo)acts.push('<button class="btn" data-act="reag" data-id="'+id+'">Reagendar</button>');
-  if(ativo&&!a.chegadaEm&&!ds.length)acts.push('<button class="btn" data-act="chegou" data-id="'+id+'">Registrar chegada do caminhão</button>');
-  if(ativo&&!a.canc)acts.push('<button class="btn" data-act="canc-req" data-id="'+id+'">Solicitar cancelamento</button>');
-  if(a.canc&&a.canc.situacao==='SOLICITADO'&&a.status!=='CANCELADO')acts.push('<button class="btn danger" data-act="canc-ok" data-id="'+id+'">Efetivar cancelamento</button>');
-  if(ativo)acts.push('<button class="btn" data-act="nr" data-id="'+id+'">Registrar não recebimento</button>');
-  if(vaga)acts.push('<button class="btn accent" data-act="open-vaga" data-id="'+vaga.id+'">Decidir quem ocupa a vaga</button>');
+  if(ativo&&pf('agendar'))acts.push('<button class="btn" data-act="reag" data-id="'+id+'">Reagendar</button>');
+  if(ativo&&pf('armazem')&&!a.chegadaEm&&!ds.length)acts.push('<button class="btn" data-act="chegou" data-id="'+id+'">Registrar chegada do caminhão</button>');
+  if(ativo&&pf('agendar')&&!a.canc)acts.push('<button class="btn" data-act="canc-req" data-id="'+id+'">Solicitar cancelamento</button>');
+  if(pf('armazem')&&a.canc&&a.canc.situacao==='SOLICITADO'&&a.status!=='CANCELADO')acts.push('<button class="btn danger" data-act="canc-ok" data-id="'+id+'">Efetivar cancelamento</button>');
+  if(!['CANCELADO','NAO_RECEBIDO','NAO_AUTORIZADO'].includes(a.status)){acts.push('<button class="btn" data-act="qr" data-id="'+id+'">QR Code e calendário</button>');if(pf('armazem'))acts.push('<button class="btn" data-act="abrir-checkin" data-id="'+id+'">Check-in</button>');}
+  if(ativo&&pf('armazem'))acts.push('<button class="btn" data-act="nr" data-id="'+id+'">Registrar não recebimento</button>');
+  if(vaga&&pf('armazem'))acts.push('<button class="btn accent" data-act="open-vaga" data-id="'+vaga.id+'">Decidir quem ocupa a vaga</button>');
   const nomeDest={AGUARDANDO:'aguardando chegada',NA_FILA:'na fila',EM_DESCARGA:'em descarga',CONCLUIDA:'concluída'};
   drawer.innerHTML=
    '<div class="dlg-head"><div><h2>'+esc(f.nome)+'</h2><div class="row" style="margin-top:6px">'+stChip(a.status)+acChipS(a.acond)+origBadge(a.origem)+'</div></div><button class="icon-btn" data-act="close-drawer" aria-label="Fechar">×</button></div>'+
@@ -264,7 +268,7 @@ async function fillVaga(vagaId){
   const v=S.vagas.find(x=>x.id===vagaId);if(!v)return;
   let cand=[];try{cand=(await GET('/api/vagas-liberadas/'+vagaId+'/candidatos')).map(mapAg);}catch(e){toast(errTxt(e),true);return;}
   cand.sort(porDataHora);
-  const aberta=v.status==='ABERTA',hora=String(v.horario).slice(0,5);
+  const aberta=v.status==='ABERTA'&&pf('armazem'),hora=String(v.horario).slice(0,5);
   modal('Quem ocupa a vaga de '+fmtDM(v.data)+' às '+hora+'?',
    '<p class="muted">Vaga de '+ACOND[v.acondicionamento].nome.toLowerCase()+' liberada por cancelamento. O sistema não escolhe sozinho: decida abaixo ou libere ao público. Estes agendamentos cabem na vaga conforme a regra de capacidade:</p>'+
    (cand.length?'<div class="stack" style="gap:6px">'+cand.map((a,i)=>'<label class="row" style="gap:10px;border:1px solid var(--line);border-radius:6px;padding:8px 10px"><input type="radio" name="fv" value="'+a.id+'"'+(i===0?' checked':'')+'><span><b>'+esc(fornById(a.fornecedorId).curto)+'</b> · '+ACOND[a.acond].nome+' · hoje em '+fmtDM(a.data)+' '+a.horario+'</span></label>').join('')+'</div>':'<div class="empty">Nenhum agendamento candidato. Libere a vaga ao público ou deixe aberta.</div>')+'<div id="fv-msg" class="errs"></div>',
@@ -292,7 +296,7 @@ function viewArmazem(){
   const recentes=todasDescs().filter(d=>d.saida&&doFiltro(d)).sort((a,b)=>b.saida.localeCompare(a.saida)).slice(0,8);
   const cnt={fila:abertas.filter(d=>d.chegada&&!d.entrada).length,desc:abertas.filter(d=>d.entrada).length};
   return head('Recebimento no armazém','Defina para onde cada caminhão vai e registre, em cada descarga, chegada, entrada, saída, chapas e equipamentos.','Quem usa: responsável pelo armazém',
-   '<select data-chg="armFiltro" style="width:auto" aria-label="Filtrar por armazém"><option value="Todos">Todos os armazéns</option>'+optsHtml(S.armazens.map(a=>[a.id,a.nome]),filt)+'</select>')+
+   '<button class="btn accent" data-act="leitor">Check-in por QR</button><select data-chg="armFiltro" style="width:auto" aria-label="Filtrar por armazém"><option value="Todos">Todos os armazéns</option>'+optsHtml(S.armazens.map(a=>[a.id,a.nome]),filt)+'</select>')+
   '<div class="kpis" style="margin-bottom:22px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"><div class="kpi"><span class="l">Aguardando destino</span><span class="v num">'+aguard.length+'</span></div><div class="kpi"><span class="l">Na fila</span><span class="v num">'+cnt.fila+'</span></div><div class="kpi"><span class="l">Em descarga</span><span class="v num">'+cnt.desc+'</span></div><div class="kpi"><span class="l">Concluídas (recentes)</span><span class="v num">'+recentes.length+'</span></div></div>'+
   '<h2 style="font-size:21px;margin-bottom:10px">Definir destinos</h2>'+
   (aguard.length?'<div class="cards">'+aguard.map(a=>'<div class="card ac-'+a.acond+'"><div class="card-head"><div><h3>'+esc(fornById(a.fornecedorId).nome)+'</h3><div class="kv"><span>Entrega <b class="num">'+fmtDM(a.data)+' · '+a.horario+'</b></span><span>Pedido <b>'+esc(a.compras&&a.compras.pedido||'—')+'</b></span><span>Notas <b>'+nfsTxt(a)+'</b></span></div></div><div class="row">'+acChipS(a.acond)+(a.chegadaEm?'<span class="chip info">Chegou '+fmtHM(a.chegadaEm)+'</span>':'')+origBadge(a.origem)+'</div></div>'+

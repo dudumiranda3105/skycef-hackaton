@@ -9,7 +9,7 @@ O diagrama [em SVG](caso-de-uso.svg) mostra as responsabilidades da solução. O
 | Fornecedor | Criar agendamento com uma ou mais notas fiscais; solicitar cancelamento; solicitar reagendamento |
 | Compras | Conferir nota fiscal e pedido; autorizar ou recusar |
 | Responsável do armazém | Definir destinos; registrar chegada, entrada, saída, chapas e equipamentos por descarga; efetivar cancelamento e decidir a vaga liberada; registrar não recebimento |
-| Encarregado dos chapas | Preencher boletim diário por armazém; informar produção e equipe; conferir piso e complemento |
+| Encarregado dos chapas | Lançar o boletim do dia com os 4 armazéns de uma vez; informar produção e equipe de cada armazém; conferir piso e complemento |
 | Gestão | Consultar painel por período e armazém; analisar sobra ou falta em R$ e origem dos dados |
 
 ## Relações UML

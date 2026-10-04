@@ -36,7 +36,7 @@ Resposta: linhas com `quantidadeTotal` e `valor`, `producaoTotal`, `diariasEquiv
 
 ## 3. Regras (e armadilhas)
 
-- **Um boletim por armazém por dia** (`UNIQUE(armazem_id, data)`): o segundo deve dar **409**. O boletim se refere ao **dia anterior**.
+- **Um lançamento por dia, com os 4 armazéns de uma vez**: a interface lança o dia inteiro (uma seção por armazém) e chama a API uma vez por armazém. A API segue com **um boletim por armazém por dia** (`UNIQUE(armazem_id, data)`): o segundo do mesmo armazém e dia deve dar **409**. O boletim se refere ao **dia anterior**.
 - **Linhas:** `qtd = descarga + remoção + transferência`; `valor = qtd × preço`. As colunas da planilha original são
   C = Descarga, D = Remoção e F = Transferência. O boletim registra **toda** a movimentação (descarregar caminhão,
   carregar cooperado, mover entre armazéns), não só o recebimento de fornecedor.

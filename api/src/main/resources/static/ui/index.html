@@ -11,6 +11,20 @@
 <link rel="stylesheet" href="/ui/styles.css">
 </head>
 <body>
+<div id="login" class="login" hidden>
+  <form class="login-card" id="lg-form" autocomplete="on">
+    <div class="login-brand">
+      <svg width="44" height="44" viewBox="0 0 34 34" aria-hidden="true"><rect x="3" y="5" width="28" height="7" rx="2" fill="#FFC81F"/><rect x="3" y="14" width="28" height="7" rx="2" fill="#2E9B4B"/><rect x="3" y="23" width="28" height="7" rx="2" fill="#FFFFFF" opacity=".92"/></svg>
+      <div><b>Recebimento Inteligente</b><span>Cocapec · Franca</span></div>
+    </div>
+    <h1>Entrar</h1>
+    <p class="muted small" id="lg-sub">Use o usuário e a senha do seu perfil.</p>
+    <label class="f">Usuário<input type="text" id="lg-user" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+    <label class="f">Senha<input type="password" id="lg-pass" name="password" autocomplete="current-password" required></label>
+    <div id="lg-msg" class="errs" role="alert" aria-live="assertive"></div>
+    <button class="btn primary" type="submit" id="lg-btn">Entrar</button>
+  </form>
+</div>
 <div class="app">
   <aside class="side">
     <button class="brand" data-act="home" aria-label="Voltar ao início">
@@ -19,6 +33,7 @@
     </button>
     <nav class="nav" id="nav" aria-label="Seções"></nav>
     <div class="side-foot">
+      <div class="userbox" id="userbox" hidden></div>
       <p class="note" id="conn">Conectando à API…</p>
       <button class="side-btn" data-act="verify">Conferir o cálculo oficial</button>
       <button class="side-btn" data-act="reload">Atualizar dados</button>
@@ -33,9 +48,16 @@
 <div id="toasts" popover="manual" aria-live="polite"></div>
 <script src="/ui/core.js"></script>
 <script src="/ui/api.js"></script>
+<script src="/ui/qr.js"></script>
 <script src="/ui/recebimento.js"></script>
+<script src="/ui/checkin.js"></script>
+<script src="/ui/nf.js"></script>
 <script src="/ui/boletim.js"></script>
 <script src="/ui/painel.js"></script>
+<script src="/ui/d1.js"></script>
+<script src="/ui/pergunte.js"></script>
+<script src="/ui/qualidade.js"></script>
+<script src="/ui/auth.js"></script>
 <script src="/ui/main.js"></script>
 </body>
 </html>

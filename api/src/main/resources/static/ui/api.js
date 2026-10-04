@@ -15,6 +15,7 @@ async function http(method,url,body,form){
   catch(e){throw new ApiError('Não foi possível falar com a API. Confira se o servidor está no ar.',0,'SEM_CONEXAO');}
   const txt=await r.text();let data=null;
   if(txt){try{data=JSON.parse(txt);}catch(e){data=null;}}
+  if(r.status===401&&!url.startsWith('/api/auth/'))window.dispatchEvent(new Event('sessao-expirada'));
   if(!r.ok){
     const det=data&&(data.detail||data.message)||('Falha '+r.status+' ao chamar '+url);
     throw new ApiError(det,r.status,data&&data.codigo,data&&data.erros);
@@ -26,7 +27,7 @@ const POST=(u,b)=>http('POST',u,b===undefined?{}:b);
 const qs=o=>{const p=Object.entries(o).filter(([,v])=>v!=null&&v!=='').map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(v));return p.length?'?'+p.join('&'):'';};
 
 /* ---------- Estado ---------- */
-const S={forn:[],armazens:[],equip:[],tipos:[],chapas:[],ags:[],vagas:[],nr:[],boletins:[],diasAgenda:{},piso:PISO_PADRAO,carregado:false};
+const S={eu:null,forn:[],armazens:[],equip:[],tipos:[],chapas:[],ags:[],vagas:[],nr:[],boletins:[],diasAgenda:{},piso:PISO_PADRAO,carregado:false};
 
 const semSufixo=n=>String(n||'').replace(/\s+(S\/?A\.?|S\.A\.?|LTDA\.?|EIRELI|ME|EPP)\s*$/i,'').trim();
 const fornById=id=>S.forn.find(f=>f.id===id)||{id,nome:'—',curto:'—',cnpj:''};

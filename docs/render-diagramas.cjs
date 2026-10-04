@@ -42,7 +42,7 @@ const svg = (w,h,body) => `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="htt
   b+=event(225,182,'Início')+box(300,150,185,64,'Agendar + anexar NF')+gate(540,182,'Vaga?')+box(615,150,185,64,'Confirmar slot')+box(840,150,180,64,'Pedir cancelamento')+box(1070,150,180,64,'Pedir reagendamento');
   b+=box(630,365,200,64,'Conferir NF × pedido')+gate(900,397,'Autoriza?');
   b+=box(1010,540,190,64,'Definir destinos')+box(755,540,210,64,'Registrar chegada')+box(465,540,235,64,'Descarga por destino')+box(205,540,215,64,'Marcos + recursos')+event(1300,565,'Recebimento concluído',true);
-  b+=box(320,775,210,64,'Boletim por armazém')+box(615,775,230,64,'Produção + equipe')+box(920,775,230,64,'Piso + complemento');
+  b+=box(320,775,210,64,'Boletim dos 4 armazéns')+box(615,775,230,64,'Produção + equipe')+box(920,775,230,64,'Piso + complemento');
   b+=box(395,925,250,64,'Filtrar período/armazém')+box(760,925,265,64,'Analisar sobra/falta R$')+event(1180,955,'Fim',true);
   b+=box(1095,365,220,64,'Não recebimento', '#fff0ed')+box(1260,230,170,64,'Decidir vaga', '#fff4d7');
   [[247,182,300,182],[485,182,512,182],[568,182,615,182],[720,215,720,365],[830,397,872,397],[928,397,1100,540],[1200,572,1278,572],[965,572,1010,572],[755,572,700,572],[465,572,420,572],[530,807,615,807],[845,807,920,807],[645,957,760,957],[1025,957,1158,957],[930,397,1095,397]].forEach(p=>b+=line(...p));

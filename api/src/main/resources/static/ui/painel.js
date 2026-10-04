@@ -234,6 +234,30 @@ function viewPainel(){
   const SZ=sazonalidade(f.arm),mediaSaz=SZ.med.reduce((a,b)=>a+b,0)/12;
   ORIG.saz={t:'Sazonalidade dos recebimentos',b:'HISTORICO',fontes:[F_PED+': Data Recebimento, Nº Recebimento, Depósito'],passos:['Recebimentos únicos por mês, '+(SZ.completos?'nos anos completos ':'nos anos disponíveis ')+SZ.anos.join(', ')+', tirando a média de cada mês do ano','Média mensal do ano: '+nf1.format(mediaSaz)+' recebimentos'],notas:['Os meses mais altos ficam em amarelo no gráfico.','O reforço de equipe previsto vai de outubro a março; a faixa de fundo marca esse período.']};
 
+  /* "Sobre este dado": fórmula, fonte, período, registros e limitação de cada indicador */
+  const todoHist='todo o histórico (não muda com o filtro)',pf=perTxt+' · '+armTxt;
+  const SB={
+    saldo:['saldo do mês = chapas presentes − esforço do mês ÷ equilíbrio do histórico (em diárias)','Relativo ao próprio histórico; ordem de grandeza, não o tamanho ideal absoluto.',perTxt+' · todos os armazéns',nf0.format(diasTot)+' dias úteis em '+meses.length+' mês(es)'],
+    valor:['diárias × piso do boletim (R$ 90,1731)','Faixa de sensibilidade ao piso; não é economia comprovada.',perTxt,nf0.format(sobraDiariasTxt())+' + '+nf0.format(faltaDiariasTxt())+' diárias'],
+    plat:['sobra = Σ complemento; falta = Σ (produção − piso × diárias) quando positivo','Só dias com boletim; boletins inconsistentes ficam fora dos valores.',pf,nf0.format((Z.total||{}).boletins||0)+' boletim(ns)'],
+    arm:['participação = esforço do armazém ÷ esforço total (recebimentos × norma do Dossiê)','Repartição proporcional; a folha não distingue o armazém de cada chapa.',perTxt,nf0.format(totEv)+' recebimentos-destino'],
+    cargas:['recebimentos-destino únicos ÷ dias úteis com folha','Um recebimento não é um caminhão; a unidade é documental.',perTxt,nf0.format(evTot)+' recebimentos em '+nf0.format(diasTot)+' dias'],
+    desc:['descargas com saída registrada','Um caminhão com dois destinos conta duas vezes.',pf,nf0.format(cr.total||0)+' descarga(s)'],
+    espera:['entrada − chegada','O histórico não registra chegada: só existe na plataforma.',pf,nf0.format(esp.amostra||0)+' descarga(s)'],
+    dur:['saída − entrada','Estimativas do Dossiê (ex.: 10 paletes ≈ 15 min) não entram.',pf,nf0.format(dur.amostra||0)+' descarga(s)'],
+    chap:['média de quantidade_chapas por descarga','Mede a intensidade de cada descarga; não é o efetivo do dia.',pf,nf0.format(chap.amostra||0)+' descarga(s)'],
+    custo:['Σ total a pagar dos boletins consistentes','Sem encargos nem equipamentos; inconsistentes ficam de fora.',pf,nf0.format(custo.boletins||0)+' boletim(ns)'],
+    util:['horas ocupadas (saída − entrada) por armazém','A Cocapec não definiu uma fórmula oficial de utilização: sem percentual.',pf,nf0.format(sum(ut,'cargas'))+' descarga(s)'],
+    forn:['recebimentos distintos por fornecedor','A unidade é recebimento, nunca kg.',todoHist,nf0.format(forn.length)+' fornecedores no ranking'],
+    dow:['recebimentos únicos por dia da semana','Inclui os poucos sábados com recebimento.',todoHist,nf0.format(sum(I.porDiaDaSemana||[],'recebimentos'))+' recebimentos'],
+    hora:['contagem de descargas por hora de entrada','O histórico não tem horários; só plataforma.',pf,nf0.format(sum(horas.map(h=>({v:h[1]})),'v'))+' descarga(s)'],
+    nr:['contagem de não recebimentos por motivo','Recusa de Compras entra como divergência entre NF e pedido (assunção a confirmar).',pf,nf0.format(totalAbsNr(nrCnt))+' ocorrência(s)'],
+    saz:['média do mês do ano nos anos completos do histórico','Poucos anos: leitura de tendência, não de previsão.',todoHist,SZ.anos.join(', ')||'sem histórico']
+  };
+  Object.entries(SB).forEach(([k,[f,l,p,r]])=>{if(ORIG[k])ORIG[k].sobre={formula:f,limite:l,periodo:p,registros:r};});
+  function sobraDiariasTxt(){return Number(tot.sobraDiarias)||0;}
+  function faltaDiariasTxt(){return Number(tot.faltaDiarias)||0;}
+  function totalAbsNr(a){return a.reduce((s,x)=>s+x[1],0);}
   const mesesNomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const totalAbs=nr=>nr.reduce((s,x)=>s+x[1],0);
   return head('Painel gerencial','A quantidade de chapas está sobrando ou faltando, e quanto isso vale em reais? Cada número vem com a sua fonte; clique em “Ver cálculo” para ver as contas.','Quem usa: direção e gestores',P.carregando?'<span class="chip info">Atualizando…</span>':'')+
@@ -266,6 +290,7 @@ function abrirOrigem(k){
   const o=ORIG[k];if(!o)return;
   const lista=a=>'<ul class="dl-list">'+a.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
   modal(esc(o.t),'<div class="row">'+origBadge(o.b)+'<span class="muted small">Os números abaixo seguem o filtro atual do painel.</span></div>'+
+    (o.sobre?'<div><div class="sec-t">Sobre este dado</div><table class="mini"><tbody><tr><td class="muted">Indicador</td><td>'+esc(o.t)+'</td></tr><tr><td class="muted">Fórmula</td><td>'+esc(o.sobre.formula)+'</td></tr><tr><td class="muted">Fonte</td><td>'+esc(o.fontes[0]||'')+'</td></tr><tr><td class="muted">Período</td><td>'+esc(o.sobre.periodo)+'</td></tr><tr><td class="muted">Registros</td><td>'+esc(o.sobre.registros)+'</td></tr><tr><td class="muted">Limitação</td><td>'+esc(o.sobre.limite)+'</td></tr></tbody></table></div>':'')+
     '<div><div class="sec-t">De onde vem</div>'+lista(o.fontes)+'</div>'+
     '<div><div class="sec-t">Como o número é calculado</div><ol class="dl-steps">'+o.passos.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol></div>'+
     (o.notas&&o.notas.length?'<div><div class="sec-t">Para ler com cuidado</div>'+lista(o.notas)+'</div>':''),null,true);

@@ -14,12 +14,14 @@ Com Docker: `docker compose up --build` inicia PostgreSQL e API. As migrations s
 
 | Módulo | URL |
 |---|---|
-| **Interface completa** (agenda, Compras, armazém, boletim e painel) | http://localhost:8000/ui/ |
+| **Interface completa** (agenda, Compras, armazém, boletim do dia, painel, D-1, Pergunte aos dados e Qualidade dos dados; ver [diferenciais](docs/DIFERENCIAIS.md)) | http://localhost:8000/ui/ |
 | Agendamentos (interface simples) | http://localhost:8000/app/ |
 | Boletim (interface simples) | http://localhost:8000/app/boletim.html |
 | Painel (página única) | http://localhost:8000/painel |
 | Swagger | http://localhost:8000/docs |
 | Saúde | http://localhost:8000/health |
+
+**Login.** A plataforma exige entrar. Na primeira subida são criados os usuários `admin`, `diretoria`, `compras`, `armazem`, `encarregado` e `fornecedor`, todos com a senha de `SENHA_INICIAL` (no `docker-compose.yml` e no `.env.example` há um valor de **demonstração**: troque em *Alterar senha*, ou defina `SENHA_INICIAL` antes da primeira subida; vazia, a API gera uma e mostra no log). Perfis, permissões e endpoints em [docs/API-LOGIN.md](docs/API-LOGIN.md).
 
 Sem Docker, inicie um PostgreSQL e configure `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD` (exemplo em `.env.example`). Depois:
 

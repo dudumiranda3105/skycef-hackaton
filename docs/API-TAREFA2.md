@@ -115,3 +115,9 @@ A **mesma matrícula pode** aparecer em boletins de armazéns diferentes no mesm
 - Se a mesma matrícula está em dois boletins no mesmo dia, cada boletim paga as suas diárias: o painel precisa
   decidir como não contar a mesma pessoa duas vezes no efetivo (ver "Em aberto" no `GUIA-TAREFA2.md`).
 - Cada boletim traz `origem` (`PLATAFORMA` · `TESTE` · `HISTORICO`).
+
+## Lançamento do dia com os 4 armazéns
+
+A interface lança o boletim **por dia, com os 4 armazéns de uma vez** (`/ui/`). Não há endpoint novo: a tela valida cada
+armazém com `POST /api/boletins/calculo` e depois grava um por armazém com `POST /api/boletins`. A regra
+`UNIQUE(armazem_id, data)` continua valendo, e um armazém já gravado no dia não é gravado de novo.

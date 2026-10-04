@@ -23,7 +23,9 @@ Três módulos encadeados:
 
 **Prioridade de execução:** T1 funcionando → T2 com cálculos corretos e testados → T3 com análise forte → docs → pitch → diferenciais (OCR de NF, consulta em linguagem natural) só se sobrar tempo.
 
-**Não gastar tempo com:** design visual, responsividade, autenticação/perfis, preocupações de produção, integração SAP/SEFAZ, microsserviços.
+**Não gastar tempo com:** design visual, responsividade, preocupações de produção, integração SAP/SEFAZ, microsserviços.
+
+**Login (decisão posterior do grupo):** a plataforma tem login e perfis (ver `docs/API-LOGIN.md`). Não é critério do Regulamento, então continua sendo o mínimo seguro (hash PBKDF2, sessão por cookie HttpOnly, permissão por perfil na API), sem recuperação de senha por e-mail nem SSO.
 
 ## 2. Stack
 
@@ -98,7 +100,7 @@ Gerar identificações tipo `INS-EMPG-01`. Não há número patrimonial oficial 
 
 ## 5. Tarefa 2 — Boletim Diário dos Ensacadores
 
-- **Um boletim por armazém por dia** (`UNIQUE(armazem_id, data_referencia)`), preenchido normalmente no dia seguinte.
+- **Um lançamento por dia, com os 4 armazéns de uma vez** (decisão do grupo): a tela do boletim cobre Insumos, Adubo, Pátio de Máquinas e Loja no mesmo dia, cada um com sua produção e sua equipe, e salva tudo junto. Por baixo, a persistência continua **um boletim por armazém por dia** (`UNIQUE(armazem_id, data_referencia)`), porque o painel quebra custo e sobra/falta por armazém. Preenchido normalmente no dia seguinte.
 - Linhas: para cada um dos **14 tipos**, quantidades de **descarga**, **remoção** e **transferência** (não negativas). O usuário escolhe o tipo; o sistema não infere.
 - Equipe: até **20 chapas** por boletim, por **matrícula** (nome puxado do cadastro), cada um `COMPLETA` ou `MEIA`. A mesma matrícula **pode** aparecer em boletins de outros armazéns no mesmo dia (unicidade só dentro do boletim).
 
@@ -147,7 +149,7 @@ Custo da operação para o painel = **`total_a_pagar` do boletim**. **Não usar 
 | Acima do piso | produção/diária > 90,1731 | total = produção; complemento = 0 |
 | Zero diárias | produção > 0, sem equipe | inconsistência, sem divisão |
 | 21º chapa | — | bloqueado |
-| Boletim duplicado | mesmo armazém/data | bloqueado |
+| Boletim duplicado | mesmo armazém/data | bloqueado (o lançamento do dia grava só os armazéns ainda sem boletim) |
 | Mesma matrícula em 2 armazéns no mesmo dia | — | permitido |
 
 ## 6. Modelo de dados (17 entidades — ver `/docs/04-der.md`)
@@ -167,7 +169,7 @@ BoletimDiario 1:N ItemBoletim(tipo_item, qtd_descarga, qtd_remocao, qtd_transfer
 TipoItemBoletim(nome UK, preco_unitario)
 BoletimDiario N:N Chapa(matricula PK, nome)  via ParticipacaoChapaBoletim(tipo_diaria)  PK(boletim, matricula)
 ```
-Decisões: sem `armazem_id` em Agendamento (destinos = descargas); sem entidade PedidoCompra/SAP; sem usuários/perfis; indicadores calculados por query/view, não persistidos. Status do agendamento é decisão técnica nossa (ex.: `PENDENTE_COMPRAS`, `AUTORIZADO`, `NAO_AUTORIZADO`, `EM_DESCARGA`, `CONCLUIDO`, `CANCELADO`, `NAO_RECEBIDO`) — não apresentar como regra da Cocapec. Opcional: tabela de auditoria simples (quem/quando alterou).
+Decisões: sem `armazem_id` em Agendamento (destinos = descargas); sem entidade PedidoCompra/SAP; usuários e perfis só para o login (tabelas `usuario` e `sessao`, migration V8; o DER do Regulamento não os usa); indicadores calculados por query/view, não persistidos. Status do agendamento é decisão técnica nossa (ex.: `PENDENTE_COMPRAS`, `AUTORIZADO`, `NAO_AUTORIZADO`, `EM_DESCARGA`, `CONCLUIDO`, `CANCELADO`, `NAO_RECEBIDO`) — não apresentar como regra da Cocapec. Opcional: tabela de auditoria simples (quem/quando alterou).
 
 ### Decisões de implementação da T1 (migration V5, 03/10/2026) — corrigir se a Cocapec/equipe discordar
 - **Status do agendamento:** `PENDENTE_COMPRAS → AUTORIZADO → EM_DESCARGA → CONCLUIDO`, mais `NAO_AUTORIZADO`, `CANCELADO` e `NAO_RECEBIDO`. Chegada, entrada e saída são marcos de cada `Descarga`, não status.
